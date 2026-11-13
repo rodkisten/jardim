@@ -8,6 +8,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     path = url.pathname;
   if (path === '/health') return json({ ok: true, service: 'jardim' });
   if (!env.JARDIM_PASSWORD) return json({ error: 'Serviço não configurado' }, 503);
+  // Same-origin writes protect the password session against cross-site form submissions.
   if (!['GET', 'HEAD'].includes(request.method) && request.headers.get('origin') !== url.origin)
     return json({ error: 'Origem inválida' }, 403);
   if (path === '/auth/login' && request.method === 'POST') {
@@ -89,18 +90,27 @@ async function handle(request: Request, env: Env): Promise<Response> {
         'INSERT INTO memories(id,operation_id,title,body,tags,created_at) VALUES(?,?,?,?,?,?) ON CONFLICT DO NOTHING',
       ).bind(m.id, operationId, m.title, m.body, JSON.stringify(m.tags), m.createdAt),
     );
+    // Insert-only records preserve the first accepted memory; retries cannot overwrite it.
     await env.DB.batch(statements);
-    const acknowledged: string[] = [];
-    for (const op of parsed.data.operations) {
-      const row = await env.DB.prepare('SELECT operation_id FROM memories WHERE id=?')
-        .bind(op.memory.id)
-        .first<{ operation_id: string }>();
-      if (row?.operation_id === op.operationId) acknowledged.push(op.operationId);
-    }
+    // One receipt lookup per batch avoids one remote database query per operation.
+    const placeholders = parsed.data.operations.map(() => '?').join(',');
+    const accepted = await env.DB.prepare(
+      `SELECT id, operation_id FROM memories WHERE id IN (${placeholders})`,
+    )
+      .bind(...parsed.data.operations.map((op) => op.memory.id))
+      .all<{ id: string; operation_id: string }>();
+    const receipts = new Map(accepted.results.map((row) => [row.id, row.operation_id]));
+    const acknowledged = parsed.data.operations
+      .filter((op) => receipts.get(op.memory.id) === op.operationId)
+      .map((op) => op.operationId);
     return json({ acknowledged });
   }
-  if (path === '/v1/memories' && request.method === 'GET') {
-    const cursor = Number(url.searchParams.get('cursor') || 0);
+  if (
+    ['/v1/memories', '/v1/sync/pull', '/v1/sync/bootstrap'].includes(path) &&
+    request.method === 'GET'
+  ) {
+    // Bootstrap always starts at zero; keep /v1/memories for already deployed clients.
+    const cursor = path === '/v1/sync/bootstrap' ? 0 : Number(url.searchParams.get('cursor') || 0);
     if (!Number.isSafeInteger(cursor) || cursor < 0) return json({ error: 'Cursor inválido' }, 400);
     const rows = await env.DB.prepare(
       'SELECT rowid AS sequence,* FROM memories WHERE rowid>? ORDER BY rowid LIMIT 100',

@@ -5,6 +5,7 @@ export async function hash(value: string) {
     (b) => b.toString(16).padStart(2, '0'),
   ).join('');
 }
+// Verify an HMAC rather than comparing password strings with an early-exit equality check.
 export async function equalSecret(a: string, b: string) {
   const key = await crypto.subtle.importKey(
     'raw',

@@ -8,6 +8,7 @@ export default defineConfig({
       enforce: 'pre',
       async transform(code, id) {
         if (!/\.tsx$/.test(id)) return;
+        // RC compiler/runtime use different delegated-event internals; direct listeners preserve input/click behavior.
         const result = await transformAsync(code, {
           filename: id,
           presets: [['babel-preset-solid', { generate: 'dom', delegateEvents: false }]],

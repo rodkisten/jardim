@@ -22,6 +22,17 @@ Acesse **https://jardim.migos.club**. Autenticação inicial por senha no Worker
 - [x] Worker, D1, domínio HTTPS, logs e traces configurados.
 - [x] Solid 2 RC + compilação TSX + Vite e teste de interação do bundle compilado.
 
+### Continuação · sincronização e regras de código
+
+- [x] Sincronização envia todas as pendências, divididas em até 50 operações e 512 KiB por lote (UTF-8).
+- [x] Confirmações e páginas validadas por schemas; confirmações desconhecidas nunca apagam trabalho local.
+- [x] Chamadas simultâneas na mesma aba compartilham a sincronização; respostas atrasadas não fazem o cursor retroceder entre abas.
+- [x] Bootstrap paginado de um dispositivo novo via `/v1/sync/bootstrap`, seguido de `/v1/sync/pull`; `/v1/memories` continua compatível.
+- [x] Retry automático com backoff exponencial e jitter até cinco minutos, timeout de 20 segundos por resposta completa e limite de tamanho de resposta. O botão Atualizar permite uma tentativa manual imediata. O disparador periódico continua a cada 30 segundos, respeitando o prazo do backoff.
+- [x] Comentários explicam regras de persistência, idempotência, segurança e compatibilidade. `AGENTS.md` exige mantê-los ao alterar comportamento.
+
+Validação: `tests/sync.test.ts` cobre fila de 123 operações, Unicode, confirmações inválidas/parciais, bootstrap com 135 memórias, chamadas simultâneas, avanço concorrente de cursor, paginação inválida, backoff, tamanho de resposta e timeout. `tests/api.test.ts` verifica as novas rotas com autenticação e SQL real em SQLite. Não inclui exclusões/tombstones nem conflitos de edição, que continuam pendentes. Referência: commit `feat: harden multi-device sync and document important invariants`.
+
 ### Limites desta entrega
 
 Somente **criação de memórias imutáveis**. Edição, exclusão, conflitos, anexos, PWA/cache de aplicação, capturadores, Prisma, R2, clima, Spotify, TMDB e cápsulas continuam pendentes. Salvar sem conexão funciona enquanto a aplicação já está aberta; abrir/recarregar completamente offline ainda depende da futura PWA. Exportação não inclui itens de outros dispositivos ainda não recebidos por sincronização. Os pacotes iniciais possuem manifests e `pnpm-workspace.yaml`; Turborepo e a migração completa de scripts para pnpm ainda não foram entregues. Nenhum componente Girassol foi publicado como pacote independente.
@@ -298,7 +309,7 @@ GET    /v1/cards/:id/feed.png
 - [x] Outbox transacional e deduplicação.
 - [x] Push idempotente com confirmação por item.
 - [ ] Pull incremental por cursor, paginação e tombstones.
-- [ ] Bootstrap de novo dispositivo.
+- [x] Bootstrap de novo dispositivo.
 - [ ] Resolução de conflito no diário.
 - [ ] Retry/backoff, retomada e indicadores de pendências.
 - [ ] Testes offline, rede intermitente, reenvio, concorrência e migrações.

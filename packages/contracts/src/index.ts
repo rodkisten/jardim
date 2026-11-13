@@ -18,3 +18,13 @@ export const Push = z
   })
   .strict();
 export type Operation = z.infer<typeof Push>['operations'][number];
+
+// Validate server responses too: an HTTP 200 alone cannot authorize dropping local work.
+export const PushReceipt = z.object({ acknowledged: z.array(z.uuid()).max(50) }).strict();
+export const PullPage = z
+  .object({
+    memories: z.array(Memory).max(100),
+    cursor: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    hasMore: z.boolean(),
+  })
+  .strict();

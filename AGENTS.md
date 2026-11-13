@@ -5,3 +5,5 @@
 - Keep Prettier configuration versioned. Do not hand-minify source files or bypass formatting checks.
 - Run `npm run check` before publishing changes. It checks formatting, builds the app, generates Worker types, checks TypeScript and runs tests.
 - Never commit secrets or generated build artifacts.
+
+- Add focused comments for important business rules, invariants, security boundaries and non-obvious compatibility decisions. Explain why the rule exists and what must be preserved; avoid comments that merely repeat the code. Keep these comments updated when behavior changes.

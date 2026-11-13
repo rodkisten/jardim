@@ -3,6 +3,8 @@ import { render } from '@solidjs/web';
 import { liveQuery } from 'dexie';
 import { GardenDB, synchronize } from '../../../packages/local-db/src/index';
 import type { Memory } from '../../../packages/contracts/src/index';
+import { fetchProtocol } from '../../../packages/local-db/src/transport';
+import { RetryBackoff } from '../../../packages/local-db/src/retry';
 import './style.css';
 const db = new GardenDB();
 function App() {
@@ -13,8 +15,9 @@ function App() {
     [busy, setBusy] = createSignal(false),
     [error, setError] = createSignal('');
   let syncing = false;
-  async function sync() {
-    if (syncing) return;
+  const retry = new RetryBackoff();
+  async function sync(manual = false) {
+    if (syncing || (!manual && !retry.ready())) return;
     syncing = true;
     try {
       if (!navigator.onLine) {
@@ -22,9 +25,11 @@ function App() {
         return;
       }
       setStatus('Sincronizando…');
-      await synchronize(db);
+      await synchronize(db, fetchProtocol);
+      retry.success();
       setStatus((await db.outbox.count()) ? 'Há memórias aguardando envio' : 'Tudo sincronizado');
     } catch (e) {
+      retry.fail();
       setStatus(e instanceof Error ? e.message : 'Falha na sincronização');
     } finally {
       syncing = false;
@@ -142,7 +147,7 @@ function App() {
             <span class="dot" />
             {status()}
             {pending() > 0 ? ` · ${pending()} pendente(s)` : ''}
-            <button class="subtle" onClick={() => void sync()}>
+            <button class="subtle" onClick={() => void sync(true)}>
               Atualizar
             </button>
           </div>

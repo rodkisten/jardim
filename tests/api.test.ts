@@ -93,6 +93,12 @@ test('login, atomic idempotent push, pull, logout and login rate limit', async (
   expect(sqlite.prepare('SELECT count(*) AS n FROM memories').get()!.n).toBe(1);
   const pull = await request('/v1/memories', { headers: { cookie } });
   expect(((await pull.json()) as { memories: unknown[] }).memories).toEqual([memory]);
+  for (const endpoint of ['/v1/sync/bootstrap?cursor=999', '/v1/sync/pull?cursor=0']) {
+    const page = await request(endpoint, { headers: { cookie } });
+    expect(((await page.json()) as { memories: unknown[] }).memories).toEqual([memory]);
+  }
+  const empty = await request('/v1/sync/pull?cursor=1', { headers: { cookie } });
+  expect(await empty.json()).toEqual({ memories: [], cursor: 1, hasMore: false });
   const asset = await request('/assets/private.js');
   expect(await asset.text()).toContain('Sua senha');
   expect(
