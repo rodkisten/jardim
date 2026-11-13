@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env*
+playwright-report/
+test-results/
+
+apps/api/src/assets.generated.ts
+
+.production-test-password
+
+worker-configuration.d.ts

@@ -2,10 +2,54 @@
 
 > **Um lugar para cultivar memórias.** Um jardim digital pessoal, local-first, que conecta acontecimentos, registros, descobertas, mídia e a trilha sonora da vida.
 
-**Status:** 🧭 Especificação inicial · **Público-alvo:** uso pessoal, single-user · **Idioma:** pt-BR · **Design system:** 🌻 Girassol
+**Status:** 🌱 Primeira entrega em produção · **Público-alvo:** uso pessoal, single-user · **Idioma:** pt-BR · **Design system:** 🌻 Girassol
 
 > [!IMPORTANT]
 > Este README é a **fonte de verdade do escopo e do progresso**. Checkboxes representam trabalho efetivamente concluído e validado, não apenas discutido. Atualizar este documento em toda PR que adicionar, alterar ou remover uma funcionalidade.
+
+## Primeira entrega · 12/11/2026
+
+Acesse **https://jardim.migos.club**. Autenticação inicial por senha no Worker, **sem Cloudflare Access**, conforme solicitado. A senha de produção fica exclusivamente no secret `JARDIM_PASSWORD`; não está no repositório. Sessões aleatórias de sete dias, cookies HttpOnly/Secure/SameSite, revogação no logout, validação de origem e limite de tentativas por IP.
+
+### Disponível
+
+- [x] Diário inicial: criar memórias de texto com título e tags.
+- [x] Timeline cronológica e busca textual local.
+- [x] IndexedDB/Dexie: memória e outbox na mesma transação.
+- [x] Envio idempotente por operação para D1 e pull paginado para outros dispositivos.
+- [x] Retomada ao abrir, voltar à aba, recuperar conexão e durante atividade.
+- [x] Exportação JSON das memórias disponíveis no dispositivo.
+- [x] Worker, D1, domínio HTTPS, logs e traces configurados.
+- [x] Solid 2 RC + compilação TSX + Vite e teste de interação do bundle compilado.
+
+### Limites desta entrega
+
+Somente **criação de memórias imutáveis**. Edição, exclusão, conflitos, anexos, PWA/cache de aplicação, capturadores, Prisma, R2, clima, Spotify, TMDB e cápsulas continuam pendentes. Salvar sem conexão funciona enquanto a aplicação já está aberta; abrir/recarregar completamente offline ainda depende da futura PWA. Exportação não inclui itens de outros dispositivos ainda não recebidos por sincronização. Os pacotes iniciais possuem manifests e `pnpm-workspace.yaml`; Turborepo e a migração completa de scripts para pnpm ainda não foram entregues. Nenhum componente Girassol foi publicado como pacote independente.
+
+O preset Solid 2 disponível e o runtime RC atual divergem no mecanismo interno de eventos delegados. A compilação usa `delegateEvents: false`; o teste `tests/ui.test.ts` verifica salvar e buscar usando o bundle real. TanStack permanece sem validação e não foi introduzido.
+
+Os pequenos assets iniciais são empacotados com o Worker para uma publicação única e proteção uniforme; `tooling/assets.mjs` gera o mapa antes do bundle. Reavaliar Workers Static Assets ao crescer. Nenhum segredo é incorporado ao JavaScript do navegador.
+
+### Desenvolvimento e verificações
+
+```bash
+npm ci
+npm run build
+npx wrangler types
+npm run check
+cp .dev.vars.example .dev.vars
+# Defina uma senha de desenvolvimento em .dev.vars.
+npx wrangler d1 migrations apply jardim --local
+npx wrangler dev --local-protocol https
+```
+
+`npm run check` executa build, TypeScript strict e Vitest. Os testes cobrem contratos, persistência, reenvio, confirmação parcial, cursor inválido, tamanho de requisição, autenticação, CSRF, SQL/migração SQLite, idempotência, logout, tentativas de login e UI Solid compilada. O teste SQLite usa o SQL real do Worker; não substitui teste do adaptador Prisma/D1 ainda pendente.
+
+`tests/browser.mjs` contém o cenário Chromium de ponta a ponta; requer Chromium executável (`CHROMIUM_PATH`, ou `/usr/bin/chromium`) e servidor HTTPS local. Nesta sessão, Chromium e Wrangler dev foram bloqueados pelas restrições de sockets do executor; **não declarar E2E/Safari concluídos**. A tela de entrada em produção foi inspecionada visualmente. O smoke HTTP remoto passou em login, senha incorreta, cookie seguro, SPA protegida, CSRF, lote inválido, reenvio idempotente, leitura D1, cursor inválido e logout; seu registro temporário foi removido após validação.
+
+Deploy autenticado: `npm run deploy`. Aplique antes as migrações necessárias com `npx wrangler d1 migrations apply jardim --remote`. O secret existente é preservado pelo Wrangler. CI valida pushes e PRs; deploy automático e previews ainda serão configurados. O deploy inicial foi feito pela API Cloudflare usando o mesmo bundle `dist/worker.js` e a migração SQL versionada. D1: `83d55918-db72-4dd4-8f5d-08d15df2c009` (ENAM).
+
+Referência desta entrega: commit `feat: ship initial Jardim diary and password-protected Cloudflare deployment` (ver histórico Git). O roadmap completo abaixo continua sendo a fonte dos próximos passos.
 
 ## Sumário
 
@@ -247,8 +291,8 @@ GET    /v1/cards/:id/feed.png
 
 **Safari iOS:** não depender de Background Sync para garantir entrega. Tentar sincronização ao abrir, retomar, alterar e durante atividade; tratar expurgo do IndexedDB e oferecer exportação/backup.
 
-- [ ] Outbox transacional e deduplicação.
-- [ ] Push idempotente com confirmação por item.
+- [x] Outbox transacional e deduplicação.
+- [x] Push idempotente com confirmação por item.
 - [ ] Pull incremental por cursor, paginação e tombstones.
 - [ ] Bootstrap de novo dispositivo.
 - [ ] Resolução de conflito no diário.
@@ -450,7 +494,7 @@ GET    /v1/cards/:id/feed.png
 
 - [ ] Versões exatas e compatibilidade de Solid 2, TanStack e bibliotecas UI.
 - [ ] Fluxo Prisma Migrate/D1 em desenvolvimento, CI e produção.
-- [ ] Hospedagem e domínio definitivos.
+- [x] Hospedagem e domínio definitivos.
 - [ ] Política de retenção de mídia e orçamento de IA.
 - [ ] Escopos e permissões efetivamente disponíveis em Spotify/TMDB/Meta.
 - [ ] Repositório, publicação e versionamento independentes do Girassol.
