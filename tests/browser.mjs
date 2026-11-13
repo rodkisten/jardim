@@ -3,17 +3,20 @@ import assert from 'node:assert/strict';
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
   headless: true,
-  args: ['--no-sandbox'],
+  args: ['--no-sandbox', '--ignore-certificate-errors'],
 });
 try {
   const context = await browser.newContext({
     ignoreHTTPSErrors: true,
     viewport: { width: 390, height: 844 },
   });
+  context.setDefaultTimeout(20000);
+  context.setDefaultNavigationTimeout(30000);
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   const origin = process.env.TEST_ORIGIN || 'https://localhost:8787';
+  console.log('E2E: login');
   await page.goto(origin);
   await page.getByLabel('Sua senha').fill('wrong');
   await page.getByRole('button', { name: 'Entrar no meu jardim' }).click();
@@ -27,7 +30,7 @@ try {
   await page.getByRole('button', { name: 'Plantar uma memória' }).click();
   await page.getByRole('heading', { name: title }).waitFor();
   await page.getByText('Tudo sincronizado', { exact: false }).waitFor();
-  await page.evaluate(() => navigator.serviceWorker.ready);
+  console.log('E2E: service worker and offline reload');
   await page.waitForFunction(() => !!navigator.serviceWorker.controller);
   await context.setOffline(true);
   await page.getByLabel('Dê um nome a esse momento').fill(title + ' offline');
@@ -42,7 +45,9 @@ try {
   await page.reload();
   await page.getByRole('heading', { name: title + ' offline' }).waitFor();
   const second = await browser.newContext({ ignoreHTTPSErrors: true });
+  second.setDefaultTimeout(20000);
   const tab = await second.newPage();
+  console.log('E2E: second device');
   await tab.goto(origin);
   await tab.getByLabel('Sua senha').fill('local-test-only');
   await tab.getByRole('button', { name: 'Entrar no meu jardim' }).click();
@@ -56,6 +61,7 @@ try {
     path: 'test-results/jardim-mobile.png',
     fullPage: true,
   });
+  console.log('E2E: capture and revocation');
   await page.getByText('Dispositivos e captura do YouTube', { exact: true }).click();
   await page.getByLabel('Nome do dispositivo').fill('YouTube E2E');
   await page.getByRole('button', { name: 'Criar token de captura' }).click();
