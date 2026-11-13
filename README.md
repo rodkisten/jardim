@@ -30,6 +30,10 @@ O preset Solid 2 disponível e o runtime RC atual divergem no mecanismo interno 
 
 Os pequenos assets iniciais são empacotados com o Worker para uma publicação única e proteção uniforme; `tooling/assets.mjs` gera o mapa antes do bundle. Reavaliar Workers Static Assets ao crescer. Nenhum segredo é incorporado ao JavaScript do navegador.
 
+### Formatação obrigatória
+
+Prettier é o formatador do repositório, com configuração versionada. Execute `npm run format` em toda alteração antes de concluir o trabalho ou criar commits. Os comandos `dev`, `build` e `test` executam a formatação automaticamente. `npm run format:check` valida sem modificar arquivos e é a primeira etapa de `npm run check` na CI. Artefatos gerados, dependências e arquivos locais de credenciais ficam excluídos.
+
 ### Desenvolvimento e verificações
 
 ```bash
@@ -71,7 +75,7 @@ Referência desta entrega: commit `feat: ship initial Jardim diary and password-
 
 ## Visão e princípios
 
-O **Jardim** é uma combinação de diário, lifelog, álbum multimídia, catálogo cultural, grafo de conhecimento e mecanismo de recuperação de memórias. Deve responder perguntas como: *“O que fiz naquele dia?”*, *“Que vídeos salvei?”*, *“Que música acompanhou aquele mês?”* e *“O que aprendi sobre esse assunto?”*.
+O **Jardim** é uma combinação de diário, lifelog, álbum multimídia, catálogo cultural, grafo de conhecimento e mecanismo de recuperação de memórias. Deve responder perguntas como: _“O que fiz naquele dia?”_, _“Que vídeos salvei?”_, _“Que música acompanhou aquele mês?”_ e _“O que aprendi sobre esse assunto?”_.
 
 **Princípios:**
 
@@ -234,18 +238,18 @@ jardim/
 
 Entidades centrais:
 
-| Modelo | Propósito |
-| --- | --- |
-| `Event` | Acontecimento observado/importado, imutável ou com correções versionadas |
-| `Entity` | Pessoa, mídia, página, projeto, lugar, filme, faixa etc. |
-| `Session` | Agrupamento contextual de eventos |
-| `Memory` | Registro pessoal editável com histórico de revisões |
-| `Relation` | Vínculo tipado entre entidades/memórias |
-| `Artifact` | Arquivo, áudio, vídeo, imagem ou referência externa |
-| `DailyAtmosphere` | Clima e tema visual do dia |
-| `Capsule` | Retrospectiva mensal e snapshots selados |
-| `SyncChange` | Sequência de mudanças para replicação |
-| `ImportJob` | Importação, origem, progresso e erros |
+| Modelo            | Propósito                                                                |
+| ----------------- | ------------------------------------------------------------------------ |
+| `Event`           | Acontecimento observado/importado, imutável ou com correções versionadas |
+| `Entity`          | Pessoa, mídia, página, projeto, lugar, filme, faixa etc.                 |
+| `Session`         | Agrupamento contextual de eventos                                        |
+| `Memory`          | Registro pessoal editável com histórico de revisões                      |
+| `Relation`        | Vínculo tipado entre entidades/memórias                                  |
+| `Artifact`        | Arquivo, áudio, vídeo, imagem ou referência externa                      |
+| `DailyAtmosphere` | Clima e tema visual do dia                                               |
+| `Capsule`         | Retrospectiva mensal e snapshots selados                                 |
+| `SyncChange`      | Sequência de mudanças para replicação                                    |
+| `ImportJob`       | Importação, origem, progresso e erros                                    |
 
 Campos fundamentais do evento: `id`, `schemaVersion`, `source`, `sourceEventId`, `deviceId`, `type`, `entityId`, `sessionId`, `occurredAt`, `observedAt`, `receivedAt`, `payload`, `privacy`, `confidence`, `provenance`. Não inventar `occurredAt` quando a exportação não trouxer a data.
 
@@ -333,15 +337,15 @@ GET    /v1/cards/:id/feed.png
 
 ## Integrações
 
-| Serviço | Papel | Limites e cuidados |
-| --- | --- | --- |
-| TMDB | Metadados de filmes/séries | Atribuição, cache e termos de API |
-| IMDb | Link de títulos e publicação manual | Não presumir API pública de escrita de reviews |
-| Spotify | Playback e biblioteca autorizados | OAuth, escopos, limites e lacunas em podcasts |
-| Open-Meteo | Previsão e clima histórico | Licença, origem e precisão temporal |
-| PhotoIntel | Catálogo de mídia existente | Não duplicar originais nem expor URLs privadas |
-| Cloudflare R2 | Áudio, vídeo, exportações, cards | Upload autorizado e retenção |
-| Workers AI/Vectorize | Busca semântica e resumos opcionais | Custos, privacidade e cobertura |
+| Serviço              | Papel                               | Limites e cuidados                             |
+| -------------------- | ----------------------------------- | ---------------------------------------------- |
+| TMDB                 | Metadados de filmes/séries          | Atribuição, cache e termos de API              |
+| IMDb                 | Link de títulos e publicação manual | Não presumir API pública de escrita de reviews |
+| Spotify              | Playback e biblioteca autorizados   | OAuth, escopos, limites e lacunas em podcasts  |
+| Open-Meteo           | Previsão e clima histórico          | Licença, origem e precisão temporal            |
+| PhotoIntel           | Catálogo de mídia existente         | Não duplicar originais nem expor URLs privadas |
+| Cloudflare R2        | Áudio, vídeo, exportações, cards    | Upload autorizado e retenção                   |
+| Workers AI/Vectorize | Busca semântica e resumos opcionais | Custos, privacidade e cobertura                |
 
 - [ ] Definir conectores com interfaces e erros padronizados.
 - [ ] Registrar consentimento, escopos e revogação por fonte.

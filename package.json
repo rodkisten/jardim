@@ -8,8 +8,13 @@
     "build": "vite build && node tooling/assets.mjs && esbuild apps/api/src/index.ts --bundle --minify --format=esm --platform=browser --outfile=dist/worker.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "npm run build && wrangler types && npm run typecheck && npm test",
-    "deploy": "npm run build && wrangler deploy"
+    "check": "npm run format:check && npm run build && wrangler types && npm run typecheck && npm test",
+    "deploy": "npm run build && wrangler deploy",
+    "format": "prettier --write . --ignore-unknown",
+    "format:check": "prettier --check . --ignore-unknown",
+    "predev": "npm run format",
+    "prebuild": "npm run format",
+    "pretest": "npm run format"
   },
   "dependencies": {
     "@solidjs/web": "2.0.0-rc.21",
@@ -27,6 +32,7 @@
     "esbuild": "0.28.2",
     "fake-indexeddb": "6.2.8",
     "happy-dom": "21.0.4",
+    "prettier": "3.10.1",
     "typescript": "7.0.2",
     "vite": "8.3.8",
     "vitest": "5.1.0",

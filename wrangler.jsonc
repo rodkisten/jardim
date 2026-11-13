@@ -10,27 +10,25 @@
       "binding": "DB",
       "database_name": "jardim",
       "database_id": "83d55918-db72-4dd4-8f5d-08d15df2c009",
-      "migrations_dir": "infra/cloudflare/migrations"
-    }
+      "migrations_dir": "infra/cloudflare/migrations",
+    },
   ],
   "routes": [
     {
       "pattern": "jardim.migos.club",
-      "custom_domain": true
-    }
+      "custom_domain": true,
+    },
   ],
   "observability": {
     "enabled": true,
     "traces": {
-      "enabled": true
-    }
+      "enabled": true,
+    },
   },
   "vars": {
-    "APP_ORIGIN": "https://jardim.migos.club"
+    "APP_ORIGIN": "https://jardim.migos.club",
   },
   "secrets": {
-    "required": [
-      "JARDIM_PASSWORD"
-    ]
-  }
+    "required": ["JARDIM_PASSWORD"],
+  },
 }

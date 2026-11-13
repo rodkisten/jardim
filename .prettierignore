@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.production-test-password
+apps/api/src/assets.generated.ts
+worker-configuration.d.ts
+playwright-report/
+test-results/
+package-lock.json
