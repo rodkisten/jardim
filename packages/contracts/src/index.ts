@@ -28,3 +28,15 @@ export const PullPage = z
     hasMore: z.boolean(),
   })
   .strict();
+
+export const DeviceList = z.object({
+  devices: z.array(
+    z.object({
+      id: z.uuid(),
+      name: z.string(),
+      createdAt: z.iso.datetime(),
+      revokedAt: z.iso.datetime().nullable(),
+    }),
+  ),
+});
+export const DeviceToken = z.object({ id: z.uuid(), token: z.string().regex(/^[a-f0-9]{64}$/) });

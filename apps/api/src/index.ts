@@ -1,4 +1,6 @@
-import { Push } from '../../../packages/contracts/src/index';
+import { ingest, devices } from './capture';
+import { Push } from '@rodkisten/jardim-contracts';
+import { findReceipts, findSession } from '@rodkisten/jardim-database';
 import { cookie, equalSecret, hash, sessionToken } from './auth';
 import { loginPage } from './login';
 import { assets } from './assets.generated';
@@ -8,6 +10,11 @@ async function handle(request: Request, env: Env): Promise<Response> {
     path = url.pathname;
   if (path === '/health') return json({ ok: true, service: 'jardim' });
   if (!env.JARDIM_PASSWORD) return json({ error: 'Serviço não configurado' }, 503);
+  // GM_xmlhttpRequest uses an explicit scoped token and does not rely on the web session cookie.
+  if (path === '/v1/events/batch' && request.method === 'POST') {
+    const text = await limitedBody(request, 65536);
+    return text === null ? json({ error: 'Lote muito grande' }, 413) : ingest(request, env, text);
+  }
   // Same-origin writes protect the password session against cross-site form submissions.
   if (!['GET', 'HEAD'].includes(request.method) && request.headers.get('origin') !== url.origin)
     return json({ error: 'Origem inválida' }, 403);
@@ -52,12 +59,20 @@ async function handle(request: Request, env: Env): Promise<Response> {
       headers: { Location: '/', 'Set-Cookie': cookie(token) },
     });
   }
+  // The installer contains no account data or credentials and must remain available for userscript updates.
+  if (
+    ['/downloads/jardim-youtube.user.js', '/sw.js', '/manifest.webmanifest', '/icon.svg'].includes(
+      path,
+    ) &&
+    request.method === 'GET'
+  ) {
+    const asset = assets[path];
+    return asset
+      ? new Response(asset.body, { headers: { 'Content-Type': asset.type } })
+      : new Response('Não encontrado', { status: 404 });
+  }
   const token = sessionToken(request);
-  const session = token
-    ? await env.DB.prepare('SELECT expires_at FROM sessions WHERE token_hash=? AND expires_at>?')
-        .bind(await hash(token), Date.now())
-        .first()
-    : null;
+  const session = token ? await findSession(env.DB, await hash(token), Date.now()) : null;
   if (!session)
     return path.startsWith('/v1/')
       ? json({ error: 'Autenticação necessária' }, 401)
@@ -73,6 +88,19 @@ async function handle(request: Request, env: Env): Promise<Response> {
       status: 303,
       headers: { Location: '/', 'Set-Cookie': cookie('', 0) },
     });
+  }
+  if (path === '/v1/devices') {
+    const text = request.method === 'POST' ? await limitedBody(request, 2048) : '';
+    return text === null
+      ? json({ error: 'Pedido muito grande' }, 413)
+      : devices(request, env, text);
+  }
+  const revoke = path.match(/^\/v1\/devices\/([a-f0-9-]{36})$/);
+  if (revoke && request.method === 'DELETE') {
+    await env.DB.prepare('UPDATE capture_devices SET revoked_at=? WHERE id=?')
+      .bind(new Date().toISOString(), revoke[1])
+      .run();
+    return json({ ok: true });
   }
   if (path === '/v1/sync/push' && request.method === 'POST') {
     const text = await limitedBody(request, 1048576);
@@ -92,14 +120,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
     );
     // Insert-only records preserve the first accepted memory; retries cannot overwrite it.
     await env.DB.batch(statements);
-    // One receipt lookup per batch avoids one remote database query per operation.
-    const placeholders = parsed.data.operations.map(() => '?').join(',');
-    const accepted = await env.DB.prepare(
-      `SELECT id, operation_id FROM memories WHERE id IN (${placeholders})`,
-    )
-      .bind(...parsed.data.operations.map((op) => op.memory.id))
-      .all<{ id: string; operation_id: string }>();
-    const receipts = new Map(accepted.results.map((row) => [row.id, row.operation_id]));
+    // ORM queries share the versioned schema; native batch writes retain D1's atomic retry semantics.
+    const accepted = await findReceipts(
+      env.DB,
+      parsed.data.operations.map((op) => op.memory.id),
+    );
+    const receipts = new Map(accepted.map((row) => [row.id, row.operationId]));
     const acknowledged = parsed.data.operations
       .filter((op) => receipts.get(op.memory.id) === op.operationId)
       .map((op) => op.operationId);
@@ -142,7 +168,10 @@ async function handle(request: Request, env: Env): Promise<Response> {
   const asset = assets[path] || (path.includes('.') ? null : assets['/index.html']);
   return asset
     ? new Response(request.method === 'HEAD' ? null : asset.body, {
-        headers: { 'Content-Type': asset.type },
+        headers: {
+          'Content-Type': asset.type,
+          ...(asset === assets['/index.html'] ? { 'X-Jardim-Shell': '1' } : {}),
+        },
       })
     : new Response('Não encontrado', { status: 404 });
 }

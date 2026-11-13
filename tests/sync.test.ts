@@ -1,8 +1,8 @@
 import 'fake-indexeddb/auto';
 import { afterEach, expect, test } from 'vitest';
-import { GardenDB, synchronize, encodeBatch } from '../packages/local-db/src/index';
-import { RetryBackoff } from '../packages/local-db/src/retry';
-import type { Memory, Operation } from '../packages/contracts/src/index';
+import { GardenDB, synchronize, encodeBatch } from '@rodkisten/jardim-local-db';
+import { RetryBackoff } from '@rodkisten/jardim-local-db/retry';
+import type { Memory, Operation } from '@rodkisten/jardim-contracts';
 const databases: GardenDB[] = [];
 function database() {
   const db = new GardenDB(crypto.randomUUID());
@@ -126,7 +126,7 @@ test('retry backoff grows, caps, and resets after success', () => {
 });
 
 test('transport rejects oversized streamed bodies and aborts stalled requests', async () => {
-  const { fetchProtocol } = await import('../packages/local-db/src/transport');
+  const { fetchProtocol } = await import('@rodkisten/jardim-local-db/transport');
   await expect(
     fetchProtocol('/v1/sync/pull', undefined, async () => new Response('12345'), 1000, 4),
   ).rejects.toThrow('excede');

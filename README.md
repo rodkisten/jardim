@@ -22,6 +22,18 @@ Acesse **https://jardim.migos.club**. Autenticação inicial por senha no Worker
 - [x] Worker, D1, domínio HTTPS, logs e traces configurados.
 - [x] Solid 2 RC + compilação TSX + Vite e teste de interação do bundle compilado.
 
+### Fundação · monorepo e banco remoto
+
+O gerenciador é **pnpm 10.28.2**, fixado em `packageManager`. Use Node 24.11+ (linha 24), `corepack pnpm install --frozen-lockfile` e `pnpm check`. `pnpm-lock.yaml` é o lockfile único. Os pacotes `jardim-web`, `jardim-api`, `jardim-contracts`, `jardim-local-db` e `jardim-database` declaram suas dependências e exports. Turborepo ordena contratos/banco local/geração Prisma → web → API. O build está sem cache de tarefas nesta etapa, pois web e API ainda compartilham artefatos; isso evita restaurar saídas incompletas. Previews e separação definitiva desses artefatos permanecem pendentes.
+
+ESLint e Prettier são verificações obrigatórias. TypeScript está fixado em **6.0.3**, versão suportada pelo parser do ESLint; a combinação anterior com TypeScript 7 é incompatível com esse parser e não teve os peers ignorados. `pnpm check` executa formatação → lint → builds do monorepo → tipos Wrangler → TypeScript strict → Vitest. A CI instala com lockfile congelado e executa o mesmo comando. `pnpm dev` inicia a SPA; `pnpm dev:api` inicia o Worker HTTPS local.
+
+**Prisma 7.10.1**, Client e `@prisma/adapter-d1` usam a mesma versão. `packages/database/prisma/schema.prisma` mapeia as tabelas já existentes. Timestamps ISO e tags JSON continuam texto; expiração de sessão usa BigInt para comportar milissegundos. Clientes são criados por consulta e desconectados no `finally`. As leituras de sessão e confirmação passam pelo ORM; escrita em lote, contagem de tentativas e cursor `rowid` permanecem SQL parametrizado, preservando atomicidade e compatibilidade de sincronização.
+
+**Migrações:** `0001_foundation.sql` permanece imutável. O mapeamento inicial preserva as tabelas existentes; a captura usa apenas a migração aditiva `0002_capture.sql`. `pnpm db:generate` gera o cliente e `pnpm db:validate` valida o schema. Aplique migrações locais com `pnpm db:migrate:local` e remotas com `pnpm db:migrate:remote`. Para uma mudança futura, compare o schema anterior com o novo usando `pnpm exec prisma migrate diff --from-schema <schema-anterior> --to-schema packages/database/prisma/schema.prisma --script`; revise o SQL e acrescente uma nova migração numerada em `infra/cloudflare/migrations`. Nunca aplique uma recriação inicial, `db push` ou reset no banco de produção.
+
+Testes em `tests/database.test.ts` usam o Client e adaptador D1 reais sobre SQLite, após executar a migração existente, verificando IDs, conteúdo, `rowid`, recibos e expiração BigInt. `tests/api.test.ts` integra esses caminhos no Worker. Referência: commit `feat: add private YouTube capture and offline application shell`.
+
 ### Continuação · sincronização e regras de código
 
 - [x] Sincronização envia todas as pendências, divididas em até 50 operações e 512 KiB por lote (UTF-8).
@@ -33,9 +45,27 @@ Acesse **https://jardim.migos.club**. Autenticação inicial por senha no Worker
 
 Validação: `tests/sync.test.ts` cobre fila de 123 operações, Unicode, confirmações inválidas/parciais, bootstrap com 135 memórias, chamadas simultâneas, avanço concorrente de cursor, paginação inválida, backoff, tamanho de resposta e timeout. `tests/api.test.ts` verifica as novas rotas com autenticação e SQL real em SQLite. Não inclui exclusões/tombstones nem conflitos de edição, que continuam pendentes. Referência: commit `feat: harden multi-device sync and document important invariants`.
 
+### Continuação · captura privada e PWA · 13/11/2026
+
+- [x] Userscript YouTube compilado em IIFE para Safari 16+, com metadata de instalação/atualização e distribuição em `/downloads/jardim-youtube.user.js`.
+- [x] Captura opt-in de páginas de vídeo/Shorts observadas, com título, instante observado e URL canônica. Parâmetros de busca, playlists, credenciais e cookies não são capturados.
+- [x] Fila GM persistente por evento, preservada ao fechar a página e independente entre abas; lotes de 25, timeout, backoff e confirmação estrita antes de remover pendências.
+- [x] Gestão de dispositivos na interface Solid: criar token de envio exibido uma vez, listar e revogar. O servidor armazena somente seu hash; o token não permite ler o diário.
+- [x] Ingestão idempotente em transação D1, proveniência em `capture_events` e projeção do vídeo na timeline existente. Reenvios não substituem o primeiro registro.
+- [x] Cards com link canônico para abrir o YouTube e componente Solid com CSS Module.
+- [x] Shell PWA, manifest e ícone; cache restrito à aplicação autenticada e assets. API, formulários de login e tokens não entram no Cache Storage; logout limpa o shell.
+
+**Produção:** bundle JS e módulo Wasm publicados em `jardim.migos.club`; migração `0002_capture.sql` aplicada e registrada em `d1_migrations`, junto da fundação existente. Smoke HTTP remoto validou instalador público, service worker, login, shell autenticado, bootstrap pelo Prisma/D1 real, criação/revogação de token e logout. Nenhuma memória foi inserida por esse smoke; o dispositivo temporário foi removido. `wrangler deploy --dry-run` passou. A CI ganhou um job Chromium E2E com Worker/D1 locais; sua execução remota ainda depende da publicação do commit.
+
+**Como usar:** entre no Jardim, abra **Dispositivos e captura do YouTube**, instale o userscript e crie um token. No menu do Tampermonkey, escolha **Jardim · conectar dispositivo**. A captura começa somente após conectar; o menu permite pausar ou consultar/reenviar a fila. Mantenha o userscript habilitado para retomar envios na próxima visita. Não há sincronização em segundo plano depois de encerrar o navegador.
+
+A migração aditiva `0002_capture.sql` cria dispositivos e proveniência, preservando a tabela de memórias e seus cursores. Eventos capturados são projetados como memórias para compatibilidade com dispositivos antigos. O contrato genérico de eventos, outras fontes e conflitos de edição ainda não estão implementados.
+
+**Validação automatizada:** `tests/capture.test.ts` verifica escopo do token, revogação, CSRF, idempotência, proveniência e pull; `tests/userscript.test.ts` executa o IIFE real, simulando página fechada, duas abas e confirmações falsas; `tests/pwa.test.ts` executa o service worker gerado e verifica autenticação do shell, fallback offline, exclusão de APIs do cache e limpeza no logout. Esses testes não substituem a instalação real no Safari iPhone. Referência: commit `feat: add private YouTube capture and offline application shell`.
+
 ### Limites desta entrega
 
-Somente **criação de memórias imutáveis**. Edição, exclusão, conflitos, anexos, PWA/cache de aplicação, capturadores, Prisma, R2, clima, Spotify, TMDB e cápsulas continuam pendentes. Salvar sem conexão funciona enquanto a aplicação já está aberta; abrir/recarregar completamente offline ainda depende da futura PWA. Exportação não inclui itens de outros dispositivos ainda não recebidos por sincronização. Os pacotes iniciais possuem manifests e `pnpm-workspace.yaml`; Turborepo e a migração completa de scripts para pnpm ainda não foram entregues. Nenhum componente Girassol foi publicado como pacote independente.
+Somente **criação de memórias imutáveis**. Edição, exclusão, conflitos, anexos, capturadores de outras fontes, R2, clima, Spotify, TMDB e cápsulas continuam pendentes. A PWA prepara o shell após uma entrada autenticada; a reabertura offline tem testes do service worker, mas ainda exige validação real em navegador/Safari. Exportação não inclui itens de outros dispositivos ainda não recebidos por sincronização. O monorepo usa pnpm workspaces e Turborepo, com dependências explícitas por pacote. Nenhum componente Girassol foi publicado como pacote independente.
 
 O preset Solid 2 disponível e o runtime RC atual divergem no mecanismo interno de eventos delegados. A compilação usa `delegateEvents: false`; o teste `tests/ui.test.ts` verifica salvar e buscar usando o bundle real. TanStack permanece sem validação e não foi introduzido.
 
@@ -43,26 +73,26 @@ Os pequenos assets iniciais são empacotados com o Worker para uma publicação 
 
 ### Formatação obrigatória
 
-Prettier é o formatador do repositório, com configuração versionada. Execute `npm run format` em toda alteração antes de concluir o trabalho ou criar commits. Os comandos `dev`, `build` e `test` executam a formatação automaticamente. `npm run format:check` valida sem modificar arquivos e é a primeira etapa de `npm run check` na CI. Artefatos gerados, dependências e arquivos locais de credenciais ficam excluídos.
+Prettier é o formatador do repositório, com configuração versionada. Execute `pnpm format` em toda alteração antes de concluir o trabalho ou criar commits. Os comandos `dev`, `build` e `test` executam a formatação automaticamente. `pnpm format:check` valida sem modificar arquivos e é a primeira etapa de `pnpm check` na CI. Artefatos gerados, dependências e arquivos locais de credenciais ficam excluídos.
 
 ### Desenvolvimento e verificações
 
 ```bash
-npm ci
-npm run build
-npx wrangler types
-npm run check
+corepack pnpm install --frozen-lockfile
+pnpm build
+pnpm exec wrangler types
+pnpm check
 cp .dev.vars.example .dev.vars
 # Defina uma senha de desenvolvimento em .dev.vars.
-npx wrangler d1 migrations apply jardim --local
-npx wrangler dev --local-protocol https
+pnpm exec wrangler d1 migrations apply jardim --local
+pnpm exec wrangler dev --local-protocol https
 ```
 
-`npm run check` executa build, TypeScript strict e Vitest. Os testes cobrem contratos, persistência, reenvio, confirmação parcial, cursor inválido, tamanho de requisição, autenticação, CSRF, SQL/migração SQLite, idempotência, logout, tentativas de login e UI Solid compilada. O teste SQLite usa o SQL real do Worker; não substitui teste do adaptador Prisma/D1 ainda pendente.
+`pnpm check` executa build, TypeScript strict e Vitest. Os testes cobrem contratos, persistência, reenvio, confirmação parcial, cursor inválido, tamanho de requisição, autenticação, CSRF, SQL/migração SQLite, idempotência, logout, tentativas de login e UI Solid compilada. O teste SQLite usa o SQL real do Worker e o adaptador Prisma/D1 real. A validação remota do Worker continua necessária para conferir bindings e compatibilidade do runtime.
 
-`tests/browser.mjs` contém o cenário Chromium de ponta a ponta; requer Chromium executável (`CHROMIUM_PATH`, ou `/usr/bin/chromium`) e servidor HTTPS local. Nesta sessão, Chromium e Wrangler dev foram bloqueados pelas restrições de sockets do executor; **não declarar E2E/Safari concluídos**. A tela de entrada em produção foi inspecionada visualmente. O smoke HTTP remoto passou em login, senha incorreta, cookie seguro, SPA protegida, CSRF, lote inválido, reenvio idempotente, leitura D1, cursor inválido e logout; seu registro temporário foi removido após validação.
+`tests/browser.mjs` contém o cenário Chromium de ponta a ponta; requer Chromium executável (`CHROMIUM_PATH`, ou `/usr/bin/chromium`) e servidor HTTPS local. Nesta sessão, Chromium foi bloqueado por `socket() failed: Operation not permitted` ao iniciar; o Worker local conseguiu iniciar, mas a validação E2E não executou; **não declarar E2E/Safari concluídos**. A tela de entrada em produção foi inspecionada visualmente. O smoke HTTP remoto passou em login, senha incorreta, cookie seguro, SPA protegida, CSRF, lote inválido, reenvio idempotente, leitura D1, cursor inválido e logout; seu registro temporário foi removido após validação.
 
-Deploy autenticado: `npm run deploy`. Aplique antes as migrações necessárias com `npx wrangler d1 migrations apply jardim --remote`. O secret existente é preservado pelo Wrangler. CI valida pushes e PRs; deploy automático e previews ainda serão configurados. O deploy inicial foi feito pela API Cloudflare usando o mesmo bundle `dist/worker.js` e a migração SQL versionada. D1: `83d55918-db72-4dd4-8f5d-08d15df2c009` (ENAM).
+Deploy autenticado: `pnpm deploy`. Aplique antes as migrações necessárias com `pnpm exec wrangler d1 migrations apply jardim --remote`. O secret existente é preservado pelo Wrangler. CI valida pushes e PRs; deploy automático e previews ainda serão configurados. O deploy inicial foi feito pela API Cloudflare usando o mesmo bundle `dist/worker.js` e a migração SQL versionada. D1: `83d55918-db72-4dd4-8f5d-08d15df2c009` (ENAM).
 
 Referência desta entrega: commit `feat: ship initial Jardim diary and password-protected Cloudflare deployment` (ver histórico Git). O roadmap completo abaixo continua sendo a fonte dos próximos passos.
 
@@ -204,7 +234,7 @@ Solid 2 está sendo avaliado em fase RC. Não considerar a compatibilidade com K
 
 ## Monorepo e pacotes
 
-Estrutura-alvo, **ainda não implementada**:
+Estrutura-alvo, **parcialmente implementada**: web, API, userscript, contratos, banco local, banco remoto e captura já existem; os demais módulos continuam no roadmap:
 
 ```text
 jardim/
@@ -393,13 +423,13 @@ GET    /v1/cards/:id/feed.png
 ## Build, testes e entrega
 
 - [ ] Inicializar pnpm workspaces + Turborepo + TS strict.
-- [ ] Configurar ESLint, Prettier e verificações de tipos.
+- [x] Configurar ESLint, Prettier e verificações de tipos.
 - [ ] Build Vite SPA/PWA com chunks por rota.
-- [ ] Build userscript IIFE com metadata `@match`, `@run-at`, `@updateURL` e `@downloadURL`.
+- [x] Build userscript IIFE com metadata `@match`, `@run-at`, `@updateURL` e `@downloadURL`.
 - [ ] Build Chrome MV3 com permissões mínimas.
 - [ ] Build Worker API com bindings e ambiente local.
-- [ ] Vitest unitário e de contratos.
-- [ ] Testes de integração D1/Prisma e sync.
+- [x] Vitest unitário e de contratos.
+- [x] Testes de integração D1/Prisma e sync em SQLite, com adaptador real.
 - [ ] Playwright E2E e testes manuais Safari iPhone.
 - [ ] CI: lint → typecheck → unit → integration → build → e2e → preview → smoke → produção.
 - [ ] Deploy com versionamento, rollback e migrações controladas.
@@ -422,9 +452,9 @@ GET    /v1/cards/:id/feed.png
 
 ### Fase 0 · Fundação
 
-- [ ] Criar estrutura do monorepo e scripts de desenvolvimento.
+- [x] Criar estrutura do monorepo e scripts de desenvolvimento.
 - [ ] Validar Solid 2 RC + Vite + TanStack + Dexie.
-- [ ] Validar Prisma + D1 adapter, migrações e Workers.
+- [x] Validar Prisma + D1 adapter e preservação de migrações em integração SQLite; smoke remoto descrito acima.
 - [ ] Definir schemas, tipos e convenções.
 - [ ] Preparar CI, testes, previews e ambientes.
 - [ ] Iniciar Girassol independente.
@@ -432,10 +462,10 @@ GET    /v1/cards/:id/feed.png
 ### Fase 1 · Primeiro fluxo ponta a ponta
 
 - [ ] Capturar um vídeo do YouTube no Safari.
-- [ ] Persistir evento local e operação outbox.
-- [ ] Sincronizar com Worker e D1 sem duplicatas.
+- [x] Persistir evento local e operação outbox no userscript YouTube.
+- [x] Sincronizar com Worker e D1 sem duplicatas (testes de integração e reenvio).
 - [ ] Fazer pull no desktop.
-- [ ] Exibir vídeo na timeline e pesquisar.
+- [x] Exibir vídeo na timeline e pesquisar pelo título, URL e tags.
 - [ ] Validar offline, retry e reinstalação de dispositivo.
 
 ### Fase 2 · Jardim pessoal

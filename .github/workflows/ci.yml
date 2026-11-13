@@ -1,4 +1,5 @@
 name: Validate Jardim
+run-name: '🌱 Jardim · ${{ github.ref_name }} · ${{ github.event_name }}'
 on: [push, pull_request]
 permissions:
   contents: read
@@ -7,9 +8,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-      - run: npm ci
-      - run: npm run check
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Validate local Worker and browser workflow
+        shell: bash
+        run: |
+          echo 'JARDIM_PASSWORD=local-test-only' > .dev.vars
+          pnpm exec wrangler d1 migrations apply jardim --local
+          pnpm exec wrangler dev --local --local-protocol https --port 8787 > /tmp/jardim-worker.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true; cat /tmp/jardim-worker.log' EXIT
+          ready=0
+          for attempt in {1..60}; do
+            if curl --insecure --fail --silent https://localhost:8787/health > /dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" = 1
+          export CHROMIUM_PATH="$(node --input-type=module -e 'import { chromium } from "@playwright/test"; console.log(chromium.executablePath())')"
+          node tests/browser.mjs

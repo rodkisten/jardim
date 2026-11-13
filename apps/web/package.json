@@ -2,5 +2,16 @@
   "name": "@rodkisten/jardim-web",
   "version": "0.0.1",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@solidjs/web": "2.0.0-rc.21",
+    "solid-js": "2.0.0-rc.21",
+    "dexie": "4.4.7",
+    "@rodkisten/jardim-contracts": "workspace:*",
+    "@rodkisten/jardim-local-db": "workspace:*"
+  },
+  "scripts": {
+    "build": "vite build --config ../../vite.config.ts",
+    "dev": "vite --config ../../vite.config.ts --host 0.0.0.0"
+  }
 }

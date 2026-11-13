@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  runtime  = "cloudflare"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Map the existing tables instead of recreating them: deployed IDs and sync cursors must survive.
+model Memory {
+  id          String @id
+  operationId String @unique @map("operation_id")
+  title       String
+  body        String
+  // ISO timestamps and JSON tags remain text to preserve the existing wire and storage formats.
+  tags        String
+  createdAt   String @map("created_at")
+
+  @@index([createdAt(sort: Desc), id], map: "memories_created")
+  @@map("memories")
+}
+
+model Session {
+  tokenHash String @id @map("token_hash")
+  expiresAt BigInt @map("expires_at")
+
+  @@index([expiresAt], map: "sessions_expiry")
+  @@map("sessions")
+}
+
+model LoginAttempt {
+  ipHash      String @id @map("ip_hash")
+  attempts    Int
+  windowStart BigInt @map("window_start")
+
+  @@map("login_attempts")
+}
+
+model CaptureDevice {
+  id String @id
+  tokenHash String @unique @map("token_hash")
+  name String
+  createdAt String @map("created_at")
+  revokedAt String? @map("revoked_at")
+  @@map("capture_devices")
+}
+
+model CaptureEvent {
+  id String @id
+  deviceId String @map("device_id")
+  sourceEventId String @map("source_event_id")
+  observedAt String @map("observed_at")
+  receivedAt String @map("received_at")
+  url String
+  @@unique([deviceId, sourceEventId])
+  @@index([deviceId], map: "capture_events_device")
+  @@map("capture_events")
+}

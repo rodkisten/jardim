@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'node:url';
 import { transformAsync } from '@babel/core';
 export default defineConfig({
-  root: 'apps/web',
+  root: fileURLToPath(new URL('./apps/web', import.meta.url)),
   plugins: [
     {
       name: 'solid-2',
@@ -19,6 +20,6 @@ export default defineConfig({
       },
     },
   ],
-  build: { outDir: '../../dist/web', emptyOutDir: true },
+  build: { outDir: fileURLToPath(new URL('./dist/web', import.meta.url)), emptyOutDir: true },
   server: { proxy: { '/v1': 'http://localhost:8787', '/auth': 'http://localhost:8787' } },
 });

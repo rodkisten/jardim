@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { afterEach, expect, test } from 'vitest';
-import { GardenDB, synchronize } from '../packages/local-db/src/index';
-import { Memory, Push } from '../packages/contracts/src/index';
+import { GardenDB, synchronize } from '@rodkisten/jardim-local-db';
+import { Memory, Push } from '@rodkisten/jardim-contracts';
 import { equalSecret, sessionToken } from '../apps/api/src/auth';
 import worker, { limitedBody } from '../apps/api/src/index';
 const databases: GardenDB[] = [];

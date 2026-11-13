@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import { Memory, PullPage, PushReceipt, type Operation } from '../../contracts/src/index';
+import { Memory, PullPage, PushReceipt, type Operation } from '@rodkisten/jardim-contracts';
 export class GardenDB extends Dexie {
   memories!: EntityTable<Memory, 'id'>;
   outbox!: EntityTable<Operation, 'operationId'>;

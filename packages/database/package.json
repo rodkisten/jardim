@@ -1,0 +1,17 @@
+{
+  "name": "@rodkisten/jardim-database",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@prisma/client": "7.10.1",
+    "@prisma/adapter-d1": "7.10.1",
+    "@cloudflare/workers-types": "5.20261112.1"
+  },
+  "scripts": {
+    "build": "prisma generate --schema prisma/schema.prisma"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

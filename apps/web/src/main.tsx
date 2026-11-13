@@ -1,11 +1,13 @@
 import { createSignal, onCleanup } from 'solid-js';
 import { render } from '@solidjs/web';
 import { liveQuery } from 'dexie';
-import { GardenDB, synchronize } from '../../../packages/local-db/src/index';
-import type { Memory } from '../../../packages/contracts/src/index';
-import { fetchProtocol } from '../../../packages/local-db/src/transport';
-import { RetryBackoff } from '../../../packages/local-db/src/retry';
+import { GardenDB, synchronize } from '@rodkisten/jardim-local-db';
+import type { Memory } from '@rodkisten/jardim-contracts';
+import { fetchProtocol } from '@rodkisten/jardim-local-db/transport';
+import { RetryBackoff } from '@rodkisten/jardim-local-db/retry';
 import './style.css';
+import { Devices } from './Devices';
+import { MemoryCard } from './MemoryCard';
 const db = new GardenDB();
 function App() {
   const [memories, setMemories] = createSignal<Memory[]>([]),
@@ -212,24 +214,7 @@ function App() {
             />
             <div class="entries">
               {filtered().length ? (
-                filtered().map((memory) => (
-                  <article class="memory">
-                    <time datetime={memory.createdAt}>
-                      {new Intl.DateTimeFormat('pt-BR', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      }).format(new Date(memory.createdAt))}
-                    </time>
-                    <h3>{memory.title}</h3>
-                    <p>{memory.body}</p>
-                    <div class="tags">
-                      {memory.tags.map((tag) => (
-                        <span>#{tag}</span>
-                      ))}
-                    </div>
-                  </article>
-                ))
+                filtered().map((memory) => <MemoryCard memory={memory} />)
               ) : (
                 <div class="empty">
                   <span aria-hidden="true">☘</span>
@@ -248,6 +233,7 @@ function App() {
             </div>
           </section>
         </div>
+        <Devices />
         <footer>
           JARDIM <span>Feito para lembrar de viver.</span> 🌱
         </footer>
@@ -256,3 +242,10 @@ function App() {
   );
 }
 render(() => <App />, document.getElementById('root')!);
+
+// Cache only the application shell after authenticated load; API data remains in IndexedDB.
+if ('serviceWorker' in navigator) {
+  void navigator.serviceWorker.register('/sw.js').catch(() => {
+    console.info('O acesso offline completo será preparado na próxima conexão.');
+  });
+}

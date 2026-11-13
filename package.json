@@ -4,23 +4,23 @@
   "type": "module",
   "packageManager": "pnpm@10.28.2",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build && node tooling/assets.mjs && esbuild apps/api/src/index.ts --bundle --minify --format=esm --platform=browser --outfile=dist/worker.js",
+    "dev": "turbo run dev --filter=@rodkisten/jardim-web",
+    "dev:api": "wrangler dev --local-protocol https",
+    "build": "turbo run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "npm run format:check && npm run build && wrangler types && npm run typecheck && npm test",
-    "deploy": "npm run build && wrangler deploy",
+    "lint": "eslint .",
+    "check": "prettier --check . --ignore-unknown && eslint . && turbo run build && wrangler types && tsc --noEmit && vitest run",
+    "deploy": "turbo run build && wrangler deploy",
     "format": "prettier --write . --ignore-unknown",
     "format:check": "prettier --check . --ignore-unknown",
-    "predev": "npm run format",
-    "prebuild": "npm run format",
-    "pretest": "npm run format"
-  },
-  "dependencies": {
-    "@solidjs/web": "2.0.0-rc.21",
-    "dexie": "4.4.7",
-    "solid-js": "2.0.0-rc.21",
-    "zod": "4.6.7"
+    "predev": "prettier --write . --ignore-unknown",
+    "prebuild": "prettier --write . --ignore-unknown",
+    "pretest": "prettier --write . --ignore-unknown",
+    "db:generate": "prisma generate --schema packages/database/prisma/schema.prisma",
+    "db:validate": "prisma validate --schema packages/database/prisma/schema.prisma",
+    "db:migrate:local": "wrangler d1 migrations apply jardim --local",
+    "db:migrate:remote": "wrangler d1 migrations apply jardim --remote"
   },
   "devDependencies": {
     "@babel/core": "7.29.13",
@@ -33,9 +33,22 @@
     "fake-indexeddb": "6.2.8",
     "happy-dom": "21.0.4",
     "prettier": "3.10.1",
-    "typescript": "7.0.2",
+    "typescript": "6.0.3",
     "vite": "8.3.8",
     "vitest": "5.1.0",
-    "wrangler": "4.161.0"
+    "wrangler": "4.161.0",
+    "turbo": "2.11.11",
+    "prisma": "7.10.1",
+    "eslint": "10.14.0",
+    "@eslint/js": "10.0.1",
+    "typescript-eslint": "8.72.2",
+    "globals": "17.14.0",
+    "@rodkisten/jardim-contracts": "workspace:*",
+    "@rodkisten/jardim-local-db": "workspace:*",
+    "@rodkisten/jardim-database": "workspace:*",
+    "@rodkisten/jardim-capture": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.11.0 <25"
   }
 }

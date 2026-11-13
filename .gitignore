@@ -11,3 +11,7 @@ apps/api/src/assets.generated.ts
 .production-test-password
 
 worker-configuration.d.ts
+
+packages/database/src/generated/
+
+.turbo/

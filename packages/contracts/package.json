@@ -2,5 +2,14 @@
   "name": "@rodkisten/jardim-contracts",
   "version": "0.0.1",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
 }

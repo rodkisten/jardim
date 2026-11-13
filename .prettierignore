@@ -8,3 +8,7 @@ worker-configuration.d.ts
 playwright-report/
 test-results/
 package-lock.json
+
+packages/database/src/generated/
+
+.turbo/

@@ -2,5 +2,16 @@
   "name": "@rodkisten/jardim-api",
   "version": "0.0.1",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@rodkisten/jardim-contracts": "workspace:*",
+    "@rodkisten/jardim-database": "workspace:*",
+    "@rodkisten/jardim-capture": "workspace:*"
+  },
+  "scripts": {
+    "build": "node ../../tooling/build-api.mjs"
+  },
+  "devDependencies": {
+    "@rodkisten/jardim-web": "workspace:*"
+  }
 }
