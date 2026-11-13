@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@rodkisten/jardim-contracts';
 import { hash } from './auth';
 import { youtubeVideo } from '@rodkisten/jardim-capture';
 const Event = z

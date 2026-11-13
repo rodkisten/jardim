@@ -1,3 +1,4 @@
+export { z } from 'zod';
 import { z } from 'zod';
 export const Memory = z
   .object({
