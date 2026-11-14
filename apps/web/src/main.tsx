@@ -16,6 +16,7 @@ import { Capsules } from './Capsules';
 import { WeatherCard } from './WeatherCard';
 import { Integrations } from './Integrations';
 import { MediaComposer, type PendingFile } from './MediaComposer';
+import { RichEditor } from './RichEditor';
 import { synchronizeDiary } from '@rodkisten/jardim-local-db/revisions';
 const db = new GardenDB();
 function App() {
@@ -136,7 +137,7 @@ function App() {
             : files().some((file) => file.blob.type.startsWith('audio/'))
               ? 'Mensagem de voz'
               : 'Uma foto'),
-        body: String(data.get('body')),
+        body: draftBody(),
         tags: String(data.get('tags'))
           .split(',')
           .map((s) => s.trim())
@@ -264,16 +265,7 @@ function App() {
                   maxlength={160}
                 />
                 <label for="body">Sua memória</label>
-                <textarea
-                  value={draftBody()}
-                  onInput={(event) => setDraftBody(event.currentTarget.value)}
-                  id="body"
-                  name="body"
-                  placeholder="Escreva aqui…"
-                  rows={4}
-                  required={!files().length}
-                  maxlength={20000}
-                />
+                <RichEditor value={draftBody()} onChange={setDraftBody} disabled={busy()} />
                 <label for="tags">
                   Tags <span class="muted">· separadas por vírgula</span>
                 </label>
