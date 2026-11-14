@@ -19,6 +19,9 @@ export function Capsules(props: { db: GardenDB; memories: Memory[]; onChanged: (
   const [month, setMonth] = createSignal(
       `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`,
     ),
+    [title, setTitle] = createSignal(
+      `Meu Jardim · ${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`,
+    ),
     [message, setMessage] = createSignal(''),
     [local, setLocal] = createSignal<{ id: string; payload: Capsule; uploaded: number }[]>([]),
     [remote, setRemote] = createSignal<z.infer<typeof List>['capsules']>([]),
@@ -155,6 +158,7 @@ export function Capsules(props: { db: GardenDB; memories: Memory[]; onChanged: (
           value={month()}
           onChange={(event) => {
             setMonth(event.currentTarget.value);
+            setTitle(`Meu Jardim · ${event.currentTarget.value}`);
             setExcluded([]);
           }}
           required
@@ -165,7 +169,8 @@ export function Capsules(props: { db: GardenDB; memories: Memory[]; onChanged: (
           name="title"
           required
           maxlength={160}
-          value={`Meu Jardim · ${month()}`}
+          value={title()}
+          onInput={(event) => setTitle(event.currentTarget.value)}
         />
         <label for="capsule-intro">Sua narrativa</label>
         <textarea

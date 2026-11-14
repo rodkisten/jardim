@@ -41,11 +41,11 @@ export const loginPage = (error = false) => /* HTML */ `
         display: block;
         margin: 32px 0 10px;
       }
-      input,
       input {
         background: var(--g-surface);
         color: var(--g-text);
       }
+      input,
       button {
         width: 100%;
         font: inherit;

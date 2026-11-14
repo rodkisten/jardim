@@ -26,6 +26,10 @@ function App() {
     [busy, setBusy] = createSignal(false),
     [error, setError] = createSignal(''),
     [editing, setEditing] = createSignal<Memory | null>(null),
+    // Draft fields must survive unrelated sync and UI updates in Solid's reactive render.
+    [draftTitle, setDraftTitle] = createSignal(''),
+    [draftBody, setDraftBody] = createSignal(''),
+    [draftTags, setDraftTags] = createSignal(''),
     [day, setDay] = createSignal(''),
     [source, setSource] = createSignal('all'),
     [files, setFiles] = createSignal<PendingFile[]>([]),
@@ -129,6 +133,9 @@ function App() {
       else await db.plant(input, files());
       setFiles([]);
       setEditing(null);
+      setDraftTitle('');
+      setDraftBody('');
+      setDraftTags('');
       form.reset();
       void sync();
     } catch {
@@ -219,7 +226,8 @@ function App() {
             <form onSubmit={save}>
               <label for="title">Dê um nome a esse momento</label>
               <input
-                value={editing()?.title || ''}
+                value={draftTitle()}
+                onInput={(event) => setDraftTitle(event.currentTarget.value)}
                 id="title"
                 name="title"
                 placeholder="Uma coisa boa de hoje…"
@@ -228,7 +236,8 @@ function App() {
               />
               <label for="body">Sua memória</label>
               <textarea
-                value={editing()?.body || ''}
+                value={draftBody()}
+                onInput={(event) => setDraftBody(event.currentTarget.value)}
                 id="body"
                 name="body"
                 placeholder="Escreva sem pressa."
@@ -240,7 +249,8 @@ function App() {
                 Tags <span class="muted">· separadas por vírgula</span>
               </label>
               <input
-                value={editing()?.tags.join(', ') || ''}
+                value={draftTags()}
+                onInput={(event) => setDraftTags(event.currentTarget.value)}
                 id="tags"
                 name="tags"
                 placeholder="vida, descobertas, gratidão"
@@ -257,7 +267,16 @@ function App() {
                 <span aria-hidden="true">↗</span>
               </button>
               {editing() ? (
-                <button type="button" class="subtle" onClick={() => setEditing(null)}>
+                <button
+                  type="button"
+                  class="subtle"
+                  onClick={() => {
+                    setEditing(null);
+                    setDraftTitle('');
+                    setDraftBody('');
+                    setDraftTags('');
+                  }}
+                >
                   Cancelar edição
                 </button>
               ) : null}
@@ -318,6 +337,9 @@ function App() {
                     memory={memory}
                     onEdit={() => {
                       setEditing(memory);
+                      setDraftTitle(memory.title);
+                      setDraftBody(memory.body);
+                      setDraftTags(memory.tags.join(', '));
                       document.getElementById('title')?.focus();
                     }}
                     onDelete={() =>

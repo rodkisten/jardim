@@ -24,7 +24,7 @@ Acesse **https://jardim.migos.club**. Autenticação inicial por senha no Worker
 
 ### Fundação · monorepo e banco remoto
 
-O gerenciador é **pnpm 10.28.2**, fixado em `packageManager`. Use Node 24.11+ (linha 24), `corepack pnpm install --frozen-lockfile` e `pnpm check`. `pnpm-lock.yaml` é o lockfile único. Os pacotes `jardim-web`, `jardim-api`, `jardim-contracts`, `jardim-local-db` e `jardim-database` declaram suas dependências e exports. Turborepo ordena contratos/banco local/geração Prisma → web → API. O build está sem cache de tarefas nesta etapa, pois web e API ainda compartilham artefatos; isso evita restaurar saídas incompletas. Previews e separação definitiva desses artefatos permanecem pendentes.
+O gerenciador é **pnpm 10.28.2**, fixado em `packageManager`. Use Node 24.11+ (linha 24), `corepack pnpm install --frozen-lockfile` e `pnpm check`. `pnpm-lock.yaml` é o lockfile único. Os pacotes `jardim-web`, `jardim-api`, `jardim-contracts`, `jardim-local-db` e `jardim-database` declaram suas dependências e exports. Turborepo ordena contratos/banco local/geração Prisma → web → API. O build está sem cache de tarefas nesta etapa, pois web e API ainda compartilham artefatos; isso evita restaurar saídas incompletas. O preview fixo de QA usa banco e bucket separados; previews automáticos por PR e separação definitiva desses artefatos permanecem pendentes.
 
 ESLint e Prettier são verificações obrigatórias. TypeScript está fixado em **6.0.3**, versão suportada pelo parser do ESLint; a combinação anterior com TypeScript 7 é incompatível com esse parser e não teve os peers ignorados. `pnpm check` executa formatação → lint → builds do monorepo → tipos Wrangler → TypeScript strict → Vitest. A CI instala com lockfile congelado e executa o mesmo comando. `pnpm dev` inicia a SPA; `pnpm dev:api` inicia o Worker HTTPS local.
 
@@ -91,6 +91,10 @@ Implementação de referência: commit `feat: ship editable multimedia diary wit
 **Migrações:** `0003_revisions.sql` preserva a tabela e os rowids antigos, acrescenta versões, lixeira, journal monotônico e recibos; `0004_capsules.sql` guarda snapshots imutáveis; `0005_integrations.sql` acrescenta credenciais criptografadas, estados OAuth e proveniência. `tests/migrations.test.ts` executa a atualização sobre uma memória preexistente e confere conteúdo, ID, rowid e histórico inicial. A criação legada `/v1` continua disponível para o capturador; recarregue clientes antigos para usar edição e exclusão via `/v2`.
 
 **Verificação:** `pnpm check` exige formatação, lint, builds, tipos e testes. Integrações SQLite cobrem conflitos, edição em voo, retry, restauração, lixeira, mídia, cápsulas e credenciais. O job Chromium usa apenas arquivos e dispositivos de mídia sintéticos, testando dois contextos, offline, tema escuro, edição, R2 local, captura, gravação, cápsula, PNG e backup. Safari iPhone, câmera e VoiceOver reais continuam exigindo teste em dispositivo; Chromium não substitui essa validação.
+
+**Ambiente de QA:** https://qa-jardim.kisten.workers.dev usa o Preview `qa` do Worker, D1 `jardim-preview-qa` e bucket privado `jardim-preview-qa`. As migrações foram aplicadas nesse banco vazio, sem copiar memórias ou credenciais de integrações da produção. O acesso mantém a proteção por senha. Esse ambiente fixo não substitui a automação de previews por PR.
+
+**Rascunhos e verificação remota:** campos de título do diário, cultura e cápsulas preservam a edição em atualizações reativas. O teste do bundle compilado verifica essa preservação. `tests/remote-smoke.py` valida a implantação com leituras autenticadas, sem criar ou remover memórias; usa a senha exclusivamente de um arquivo local ignorado pelo Git.
 
 ### Limites atuais
 

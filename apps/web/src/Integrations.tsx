@@ -39,7 +39,8 @@ export function Integrations(props: { db: GardenDB; memories: Memory[]; onChange
     [busy, setBusy] = createSignal(false),
     [results, setResults] = createSignal<z.infer<typeof Results>['results']>([]),
     [selected, setSelected] = createSignal<z.infer<typeof Results>['results'][number] | null>(null),
-    [kind, setKind] = createSignal('filme');
+    [kind, setKind] = createSignal('filme'),
+    [cultureTitle, setCultureTitle] = createSignal('');
   async function load() {
     try {
       const response = await fetchProtocol('/v2/integrations');
@@ -180,6 +181,7 @@ export function Integrations(props: { db: GardenDB; memories: Memory[]; onChange
         tags: ['cultura', kind(), state],
       });
       form.reset();
+      setCultureTitle('');
       setSelected(null);
       setMessage('Registro cultural guardado.');
       props.onChanged();
@@ -253,6 +255,7 @@ export function Integrations(props: { db: GardenDB; memories: Memory[]; onChange
           class="subtle"
           onClick={() => {
             setSelected(item);
+            setCultureTitle(item.title.slice(0, 140));
             setKind(item.type === 'movie' ? 'filme' : 'série');
           }}
         >
@@ -266,7 +269,8 @@ export function Integrations(props: { db: GardenDB; memories: Memory[]; onChange
           name="title"
           required
           maxlength={140}
-          value={selected()?.title.slice(0, 140) || ''}
+          value={cultureTitle()}
+          onInput={(event) => setCultureTitle(event.currentTarget.value)}
         />
         <label for="culture-kind">Tipo</label>
         <select

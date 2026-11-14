@@ -78,7 +78,18 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   else Reflect.deleteProperty(globalThis, 'MediaRecorder');
   const title = document.querySelector<HTMLInputElement>('#title')!;
   title.value = 'Uma nova memória';
-  document.querySelector<HTMLTextAreaElement>('#body')!.value = 'Um momento importante';
+  title.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  const body = document.querySelector<HTMLTextAreaElement>('#body')!;
+  body.value = 'Um momento importante';
+  body.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  const draftSearch = document.querySelector<HTMLInputElement>('#search')!;
+  draftSearch.value = 'outra atualização';
+  draftSearch.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  expect(title.value).toBe('Uma nova memória');
+  expect(body.value).toBe('Um momento importante');
+  draftSearch.value = '';
+  draftSearch.dispatchEvent(new InputEvent('input', { bubbles: true }));
   title.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
   await new Promise((r) => setTimeout(r, 250));
   expect(document.querySelector('.memory h3')?.textContent).toBe('Uma nova memória');
@@ -86,6 +97,17 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   expect(posted).toBe(0);
   releaseInitial(Response.json({ snapshots: [], cursor: 0, hasMore: false }));
   await expect.poll(() => posted, { timeout: 1500 }).toBe(1);
+
+  // A manual title must survive reactive updates such as changing the media kind
+  // or receiving integration configuration while the user is filling the form.
+  const cultureTitle = document.querySelector<HTMLInputElement>('#culture-title')!;
+  cultureTitle.value = 'Filme digitado';
+  cultureTitle.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  const kind = document.querySelector('#culture-kind')! as unknown as HTMLSelectElement;
+  kind.value = 'série';
+  kind.dispatchEvent(new Event('change', { bubbles: true }));
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  expect(cultureTitle.value).toBe('Filme digitado');
 
   const search = document.querySelector<HTMLInputElement>('#search')!;
   search.value = 'sem resultado';
