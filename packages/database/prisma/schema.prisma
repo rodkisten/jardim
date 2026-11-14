@@ -14,6 +14,7 @@ model Memory {
   operationId String @unique @map("operation_id")
   title       String
   body        String
+  richDocument String? @map("rich_document")
   // ISO timestamps and JSON tags remain text to preserve the existing wire and storage formats.
   tags        String
   createdAt   String @map("created_at")
