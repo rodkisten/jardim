@@ -234,7 +234,7 @@ function App() {
   }
   return (
     <>
-      <header>
+      <header class="app-header">
         <a class="brand" href="/">
           <span class="brand-mark" aria-hidden="true">
             <i />
@@ -244,7 +244,8 @@ function App() {
           </span>
           <span>Jardim</span>
         </a>
-        <div class="actions">
+        <div class="actions header-actions">
+          <span class="header-context">Workspace pessoal</span>
           <ThemeSwitch />
           <button class="subtle" onClick={() => void exportData()}>
             Exportar
@@ -254,14 +255,14 @@ function App() {
           </form>
         </div>
       </header>
-      <main>
+      <main class="app-main">
         <nav class="page-nav" aria-label="Navegação principal">
           <a href="#memorias">Memórias</a>
           <a href="#capsulas">Cápsulas</a>
           <a href="#integracoes">Conexões</a>
         </nav>
         <section class="intro">
-          <p class="eyebrow">SEU ARQUIVO PESSOAL</p>
+          <p class="eyebrow">JARDIM / VISÃO GERAL</p>
           <h1>
             Sua vida,
             <br />
@@ -279,7 +280,7 @@ function App() {
         </section>
         <WeatherCard db={db} memories={memories()} onChanged={() => void sync()} />
         <div class="new-memory-bar">
-          <p>Uma nota, uma foto, uma mensagem.</p>
+          <div class="memory-bar-heading"><span class="eyebrow">SUAS MEMÓRIAS</span><p>Uma nota, uma foto, uma mensagem.</p></div>
           <button class="new-memory" onClick={startNewMemory}>
             + Nova memória
           </button>
