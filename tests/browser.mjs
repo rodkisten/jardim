@@ -59,6 +59,11 @@ try {
   await page.getByRole('heading', { name: title }).waitFor();
   await page.getByText('Tudo sincronizado', { exact: false }).waitFor();
   console.log('E2E: service worker and offline reload');
+  // A forced reload can bypass an active service worker. A normal navigation must
+  // enter its scope before we assert control and test a genuine offline reload.
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  await page.goto(origin);
+  await page.getByRole('heading', { name: title, exact: true }).waitFor();
   try {
     await page.waitForFunction(() => !!navigator.serviceWorker.controller);
   } catch (error) {

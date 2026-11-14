@@ -42,7 +42,7 @@ self.addEventListener('fetch', event => {
   event.respondWith((async()=>{for(const key of await caches.keys()) if(key.startsWith('jardim-shell-')) await caches.delete(key);return fetch(event.request);})());return;
  }
  // Private API data, login forms and tokens never enter Cache Storage.
- if(event.request.method!=='GET' || url.pathname.startsWith('/v1/') || url.pathname.startsWith('/auth/')) return;
+ if(event.request.method!=='GET' || url.pathname.startsWith('/v1/') || url.pathname.startsWith('/v2/') || url.pathname.startsWith('/auth/')) return;
  if(event.request.mode === 'navigate') {
   event.respondWith((async()=>{
    try {const response=await fetch(event.request);if(response.headers.get('X-Jardim-Shell')==='1'){const cache=await caches.open(CACHE);await cache.put('/',response.clone());}return response;} catch {

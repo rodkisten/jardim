@@ -80,6 +80,7 @@ test('built service worker caches authenticated shell only, keeps API network-on
   offline = true;
   expect(await (await dispatch('/')!).text()).toBe('shell');
   expect(dispatch('/v1/memories', 'GET', 'cors')).toBeUndefined();
+  expect(dispatch('/v2/sync/pull', 'GET', 'navigate')).toBeUndefined();
   expect(dispatch('/auth/login', 'POST', 'navigate')).toBeUndefined();
   offline = false;
   await dispatch('/auth/logout', 'POST');
