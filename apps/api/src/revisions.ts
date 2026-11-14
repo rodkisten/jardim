@@ -37,7 +37,7 @@ export async function mutate(env: Env, text: string) {
     ...(op.kind === 'create'
       ? [
           env.DB.prepare(
-            'INSERT INTO memories(id,operation_id,title,body,tags,created_at,revision_operation) SELECT ?,?,?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM mutation_receipts WHERE operation_id=?) ON CONFLICT DO NOTHING',
+            'INSERT INTO memories(id,operation_id,title,body,tags,created_at,revision_operation,rich_document) SELECT ?,?,?,?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM mutation_receipts WHERE operation_id=?) ON CONFLICT DO NOTHING',
           ).bind(
             m.id,
             op.operationId,
@@ -46,16 +46,18 @@ export async function mutate(env: Env, text: string) {
             JSON.stringify(m.tags),
             m.createdAt,
             op.operationId,
+            m.richDocument ? JSON.stringify(m.richDocument) : null,
             op.operationId,
           ),
         ]
       : []),
     env.DB.prepare(
-      'UPDATE memories SET title=?,body=?,tags=?,deleted_at=?,revision=revision+1,revision_operation=? WHERE id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM mutation_receipts WHERE operation_id=?)',
+      'UPDATE memories SET title=?,body=?,tags=?,rich_document=?,deleted_at=?,revision=revision+1,revision_operation=? WHERE id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM mutation_receipts WHERE operation_id=?)',
     ).bind(
       m.title,
       m.body,
       JSON.stringify(m.tags),
+      m.richDocument ? JSON.stringify(m.richDocument) : null,
       op.kind === 'delete' ? new Date().toISOString() : null,
       op.operationId,
       m.id,
