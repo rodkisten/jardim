@@ -1,3 +1,15 @@
+import {
+  integrationStatus,
+  spotifyStart,
+  spotifyCallback,
+  syncSpotify,
+  disconnectSpotify,
+  searchTmdb,
+} from './integrations';
+import { weather } from './weather';
+import { sealCapsule, listCapsules, readCapsule, capsuleCard } from './capsules';
+import { media } from './media';
+import { mutate, revisionPage, history } from './revisions';
 import { ingest, devices } from './capture';
 import { Push } from '@rodkisten/jardim-contracts';
 import { findReceipts, findSession } from '@rodkisten/jardim-database';
@@ -10,6 +22,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     path = url.pathname;
   if (path === '/health') return json({ ok: true, service: 'jardim' });
   if (!env.JARDIM_PASSWORD) return json({ error: 'Serviço não configurado' }, 503);
+  if (path === '/v2/spotify/callback' && request.method === 'GET') return spotifyCallback(env, url);
   // GM_xmlhttpRequest uses an explicit scoped token and does not rely on the web session cookie.
   if (path === '/v1/events/batch' && request.method === 'POST') {
     const text = await limitedBody(request, 65536);
@@ -61,9 +74,14 @@ async function handle(request: Request, env: Env): Promise<Response> {
   }
   // The installer contains no account data or credentials and must remain available for userscript updates.
   if (
-    ['/downloads/jardim-youtube.user.js', '/sw.js', '/manifest.webmanifest', '/icon.svg'].includes(
-      path,
-    ) &&
+    [
+      '/downloads/jardim-youtube.user.js',
+      '/sw.js',
+      '/manifest.webmanifest',
+      '/icon.svg',
+      '/theme.js',
+      '/theme.css',
+    ].includes(path) &&
     request.method === 'GET'
   ) {
     const asset = assets[path];
@@ -74,7 +92,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
   const token = sessionToken(request);
   const session = token ? await findSession(env.DB, await hash(token), Date.now()) : null;
   if (!session)
-    return path.startsWith('/v1/')
+    return path.startsWith('/v1/') || path.startsWith('/v2/')
       ? json({ error: 'Autenticação necessária' }, 401)
       : new Response(loginPage(), {
           status: 200,
@@ -89,6 +107,38 @@ async function handle(request: Request, env: Env): Promise<Response> {
       headers: { Location: '/', 'Set-Cookie': cookie('', 0) },
     });
   }
+  if (path === '/v2/integrations' && request.method === 'GET') return integrationStatus(env);
+  if (path === '/v2/spotify/start' && request.method === 'POST') return spotifyStart(env);
+  if (path === '/v2/spotify/sync' && request.method === 'POST') return syncSpotify(env);
+  if (path === '/v2/spotify' && request.method === 'DELETE') return disconnectSpotify(env);
+  if (path === '/v2/tmdb/search' && request.method === 'GET') return searchTmdb(env, url);
+  if (['/v2/weather', '/v2/weather/search'].includes(path) && request.method === 'GET')
+    return weather(url);
+  if (path === '/v2/capsules') {
+    if (request.method === 'GET') return listCapsules(env);
+    if (request.method === 'POST') {
+      const text = await limitedBody(request, 4 * 1024 * 1024);
+      return text === null ? json({ error: 'Cápsula muito grande' }, 413) : sealCapsule(env, text);
+    }
+  }
+  const card = path.match(/^\/v2\/capsules\/([a-f0-9-]{36})\/card\.svg$/);
+  if (card && request.method === 'GET')
+    return capsuleCard(env, card[1], url.searchParams.get('format') || 'og');
+  const capsule = path.match(/^\/v2\/capsules\/([a-f0-9-]{36})$/);
+  if (capsule && request.method === 'GET') return readCapsule(env, capsule[1]);
+  const artifact = path.match(/^\/v2\/media\/([a-f0-9-]{36})$/);
+  if (artifact) return media(request, env, artifact[1]);
+  if (path === '/v2/mutations' && request.method === 'POST') {
+    const text = await limitedBody(request, 131072);
+    return text === null ? json({ error: 'Alteração muito grande' }, 413) : mutate(env, text);
+  }
+  if (path === '/v2/sync/pull' && request.method === 'GET') {
+    const cursor = Number(url.searchParams.get('cursor') || 0);
+    if (!Number.isSafeInteger(cursor) || cursor < 0) return json({ error: 'Cursor inválido' }, 400);
+    return revisionPage(env, cursor);
+  }
+  const revisions = path.match(/^\/v2\/memories\/([a-f0-9-]{36})\/revisions$/);
+  if (revisions && request.method === 'GET') return history(env, revisions[1]);
   if (path === '/v1/devices') {
     const text = request.method === 'POST' ? await limitedBody(request, 2048) : '';
     return text === null
@@ -162,7 +212,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
       hasMore: rows.results.length === 100,
     });
   }
-  if (path.startsWith('/v1/')) return json({ error: 'Rota não encontrada' }, 404);
+  if (path.startsWith('/v1/') || path.startsWith('/v2/'))
+    return json({ error: 'Rota não encontrada' }, 404);
   if (request.method !== 'GET' && request.method !== 'HEAD')
     return json({ error: 'Método inválido' }, 405);
   const asset = assets[path] || (path.includes('.') ? null : assets['/index.html']);
@@ -216,7 +267,7 @@ export default {
     result.headers.set('X-Frame-Options', 'DENY');
     result.headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     );
     return result;
   },

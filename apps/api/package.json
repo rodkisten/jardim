@@ -6,7 +6,8 @@
   "dependencies": {
     "@rodkisten/jardim-contracts": "workspace:*",
     "@rodkisten/jardim-database": "workspace:*",
-    "@rodkisten/jardim-capture": "workspace:*"
+    "@rodkisten/jardim-capture": "workspace:*",
+    "@rodkisten/jardim-cards": "workspace:*"
   },
   "scripts": {
     "build": "node ../../tooling/build-api.mjs"

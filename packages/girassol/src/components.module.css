@@ -1,0 +1,44 @@
+.button {
+  border: 1px solid transparent;
+  border-radius: var(--g-radius);
+  padding: 0.75rem 1rem;
+  background: var(--g-accent);
+  color: var(--g-on-accent);
+  font: inherit;
+  cursor: pointer;
+  min-height: 44px;
+}
+.button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.button:focus-visible,
+.input:focus-visible {
+  outline: 3px solid var(--g-focus);
+  outline-offset: 3px;
+}
+.input {
+  font: inherit;
+  padding: 0.75rem;
+  border: 1px solid var(--g-border);
+  border-radius: var(--g-radius);
+  background: var(--g-surface);
+  color: var(--g-text);
+  width: 100%;
+  min-height: 44px;
+}
+.card {
+  padding: var(--g-space-6);
+  border: 1px solid var(--g-border);
+  border-radius: var(--g-radius);
+  background: var(--g-surface);
+  color: var(--g-text);
+}
+.badge {
+  display: inline-flex;
+  background: var(--g-tint);
+  color: var(--g-text);
+  padding: 0.25rem 0.65rem;
+  border-radius: 99px;
+  font-size: 0.8rem;
+}

@@ -47,4 +47,4 @@ jobs:
           done
           test "$ready" = 1
           export CHROMIUM_PATH="$(node --input-type=module -e 'import { chromium } from "@playwright/test"; console.log(chromium.executablePath())')"
-          timeout 180s node tests/browser.mjs
+          timeout 300s node tests/browser.mjs

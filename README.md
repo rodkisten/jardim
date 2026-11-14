@@ -43,7 +43,7 @@ Testes em `tests/database.test.ts` usam o Client e adaptador D1 reais sobre SQLi
 - [x] Retry automático com backoff exponencial e jitter até cinco minutos, timeout de 20 segundos por resposta completa e limite de tamanho de resposta. O botão Atualizar permite uma tentativa manual imediata. O disparador periódico continua a cada 30 segundos, respeitando o prazo do backoff.
 - [x] Comentários explicam regras de persistência, idempotência, segurança e compatibilidade. `AGENTS.md` exige mantê-los ao alterar comportamento.
 
-Validação: `tests/sync.test.ts` cobre fila de 123 operações, Unicode, confirmações inválidas/parciais, bootstrap com 135 memórias, chamadas simultâneas, avanço concorrente de cursor, paginação inválida, backoff, tamanho de resposta e timeout. `tests/api.test.ts` verifica as novas rotas com autenticação e SQL real em SQLite. Não inclui exclusões/tombstones nem conflitos de edição, que continuam pendentes. Referência: commit `feat: harden multi-device sync and document important invariants`.
+Validação: `tests/sync.test.ts` cobre fila de 123 operações, Unicode, confirmações inválidas/parciais, bootstrap com 135 memórias, chamadas simultâneas, avanço concorrente de cursor, paginação inválida, backoff, tamanho de resposta e timeout. `tests/api.test.ts` verifica as novas rotas com autenticação e SQL real em SQLite. Essa entrega inicial foi ampliada pela sincronização `/v2`, documentada abaixo. Referência: commit `feat: harden multi-device sync and document important invariants`.
 
 ### Continuação · captura privada e PWA · 13/11/2026
 
@@ -55,17 +55,48 @@ Validação: `tests/sync.test.ts` cobre fila de 123 operações, Unicode, confir
 - [x] Cards com link canônico para abrir o YouTube e componente Solid com CSS Module.
 - [x] Shell PWA, manifest e ícone; cache restrito à aplicação autenticada e assets. API, formulários de login e tokens não entram no Cache Storage; logout limpa o shell.
 
-**Produção:** bundle JS e módulo Wasm publicados em `jardim.migos.club`; migração `0002_capture.sql` aplicada e registrada em `d1_migrations`, junto da fundação existente. Smoke HTTP remoto validou instalador público, service worker, login, shell autenticado, bootstrap pelo Prisma/D1 real, criação/revogação de token e logout. Nenhuma memória foi inserida por esse smoke; o dispositivo temporário foi removido. `wrangler deploy --dry-run` passou. A CI ganhou um job Chromium E2E com Worker/D1 locais; sua execução remota ainda depende da publicação do commit.
+**Produção:** bundle JS e módulo Wasm publicados em `jardim.migos.club`; migração `0002_capture.sql` aplicada e registrada em `d1_migrations`, junto da fundação existente. Smoke HTTP remoto validou instalador público, service worker, login, shell autenticado, bootstrap pelo Prisma/D1 real, criação/revogação de token e logout. Nenhuma memória foi inserida por esse smoke; o dispositivo temporário foi removido. `wrangler deploy --dry-run` passou. A CI ganhou um job Chromium E2E com Worker/D1 locais; a versão inicial foi validada na execução GitHub Actions `43446110010`, com check e E2E concluídos com sucesso; os novos cenários exigem a CI do commit atual.
 
 **Como usar:** entre no Jardim, abra **Dispositivos e captura do YouTube**, instale o userscript e crie um token. No menu do Tampermonkey, escolha **Jardim · conectar dispositivo**. A captura começa somente após conectar; o menu permite pausar ou consultar/reenviar a fila. Mantenha o userscript habilitado para retomar envios na próxima visita. Não há sincronização em segundo plano depois de encerrar o navegador.
 
-A migração aditiva `0002_capture.sql` cria dispositivos e proveniência, preservando a tabela de memórias e seus cursores. Eventos capturados são projetados como memórias para compatibilidade com dispositivos antigos. O contrato genérico de eventos, outras fontes e conflitos de edição ainda não estão implementados.
+A migração aditiva `0002_capture.sql` cria dispositivos e proveniência, preservando a tabela de memórias e seus cursores. Eventos capturados são projetados como memórias para compatibilidade com dispositivos antigos. O contrato genérico de eventos e outras fontes continuam no roadmap; edição e conflitos são tratados pela sincronização `/v2` descrita abaixo.
 
 **Validação automatizada:** `tests/capture.test.ts` verifica escopo do token, revogação, CSRF, idempotência, proveniência e pull; `tests/userscript.test.ts` executa o IIFE real, simulando página fechada, duas abas e confirmações falsas; `tests/pwa.test.ts` executa o service worker gerado e verifica autenticação do shell, fallback offline, exclusão de APIs do cache e limpeza no logout. Esses testes não substituem a instalação real no Safari iPhone. Referência: commit `feat: add private YouTube capture and offline application shell`.
 
-### Limites desta entrega
+### Continuação · diário multimídia, Girassol e tema escuro
 
-Somente **criação de memórias imutáveis**. Edição, exclusão, conflitos, anexos, capturadores de outras fontes, R2, clima, Spotify, TMDB e cápsulas continuam pendentes. A PWA prepara o shell após uma entrada autenticada; a reabertura offline tem testes do service worker, mas ainda exige validação real em navegador/Safari. Exportação não inclui itens de outros dispositivos ainda não recebidos por sincronização. O monorepo usa pnpm workspaces e Turborepo, com dependências explícitas por pacote. Nenhum componente Girassol foi publicado como pacote independente.
+Implementação de referência: commit `feat: ship editable multimedia diary with dark mode and private capsules`.
+
+- [x] Editar memórias offline e mover para a lixeira, mantendo revisões e permitindo restauração.
+- [x] Sincronização `/v2`: sequência independente monotônica, compare-and-swap por revisão, recibos idempotentes e resolução explícita de conflitos entre dispositivos.
+- [x] Uma edição feita durante o envio anterior permanece na fila; uma resposta perdida não aplica a mesma alteração duas vezes.
+- [x] Importar o JSON exportado pelo Jardim com IDs preservados, transação atômica e conflitos para versões remotas diferentes. Dados locais e exclusões conhecidas nunca são sobrescritos por um backup antigo.
+- [x] Fotos, áudio e vídeo originais em R2 privado; até cinco anexos por memória e 12 MiB por arquivo. IndexedDB guarda memória, bytes e fila na mesma transação; envio é retomado na próxima conexão.
+- [x] Gravação de voz e vídeo circular de até 30 segundos, escolhendo MIME por `MediaRecorder.isTypeSupported`, com tratamento de permissão e fallback por seleção de arquivo.
+- [x] Upload autenticado e imutável por UUID/hash; leitura protegida e respostas de byte range para reprodução de mídia.
+- [x] Busca textual com filtros por dia e fonte.
+- [x] Card do dia com cidade escolhida explicitamente, consulta Open-Meteo, fonte, horário UTC e indicação de **estimativa modelada**, com persistência opcional como memória.
+- [x] Pacote `@rodkisten/girassol` separado do domínio do Jardim, com Button, Input, Card, Badge, CSS Modules, tokens e galeria visual.
+- [x] Tema **Sistema / Claro / Escuro**, com troca no cabeçalho e login, preferência por dispositivo, atualização entre abas e aplicação antes da primeira pintura. A aplicação continua utilizável se o armazenamento de preferências estiver bloqueado.
+- [x] Registros culturais manuais: filme/série, estado, data da experiência, nota, comentário, temporada e episódio; link de busca IMDb com publicação manual.
+- [x] Importação JSON do histórico estendido do Spotify, com IDs determinísticos e sem inventar datas sem fuso.
+- [x] Cápsulas mensais com seleção de memórias e narrativa escrita pelo usuário, snapshots privados imutáveis, fila offline e novas versões sem substituir as anteriores.
+- [x] `@rodkisten/jardim-cards`: SVG seguro e PNG no navegador nos formatos OG 1200×630, Story 1080×1920, quadrado 1080×1080 e feed 1080×1350. O endpoint SVG exige autenticação; não há link público automático.
+- [x] Impressão da cápsula aberta com opção de salvar PDF pelo navegador.
+
+**Conectores implementados, com ativação externa pendente:** Spotify usa OAuth PKCE com estado de uso único, escopo `user-read-recently-played`, renovação de token e armazenamento AES-GCM com chave independente da senha do Jardim. A coleta atual cobre até 50 músicas recentes por consulta, não o histórico completo nem toda a biblioteca/podcasts. TMDB possui busca autenticada de filmes e séries. Testes usam respostas controladas; o fluxo real depende das credenciais abaixo e não é marcado como validado em produção.
+
+**Configuração de integrações:** `SPOTIFY_CLIENT_ID` é a variável pública da aplicação registrada no Spotify; cadastre `https://jardim.migos.club/v2/spotify/callback` como redirect URI. `INTEGRATION_KEY` é um secret de 32 bytes em hexadecimal usado para criptografar tokens. `TMDB_TOKEN` é o API Read Access Token, também secret. Nunca coloque tokens nos arquivos versionados ou no JavaScript do navegador. Sem a configuração, os controles indicam a pendência e o diário/importadores manuais continuam disponíveis. Desconectar Spotify remove os tokens locais; a revogação completa pode ser feita no painel da conta Spotify. Não há envio de áudio protegido, nem análise de dados Spotify por IA.
+
+**Migrações:** `0003_revisions.sql` preserva a tabela e os rowids antigos, acrescenta versões, lixeira, journal monotônico e recibos; `0004_capsules.sql` guarda snapshots imutáveis; `0005_integrations.sql` acrescenta credenciais criptografadas, estados OAuth e proveniência. `tests/migrations.test.ts` executa a atualização sobre uma memória preexistente e confere conteúdo, ID, rowid e histórico inicial. A criação legada `/v1` continua disponível para o capturador; recarregue clientes antigos para usar edição e exclusão via `/v2`.
+
+**Verificação:** `pnpm check` exige formatação, lint, builds, tipos e testes. Integrações SQLite cobrem conflitos, edição em voo, retry, restauração, lixeira, mídia, cápsulas e credenciais. O job Chromium usa apenas arquivos e dispositivos de mídia sintéticos, testando dois contextos, offline, tema escuro, edição, R2 local, captura, gravação, cápsula, PNG e backup. Safari iPhone, câmera e VoiceOver reais continuam exigindo teste em dispositivo; Chromium não substitui essa validação.
+
+### Limites atuais
+
+A exportação JSON contém as memórias presentes no dispositivo; **não é backup integral** de anexos, lixeira, histórico de revisões, tokens ou cápsulas. A exclusão é lógica, com conteúdo recuperável na lixeira; apagamento permanente e retenção de objetos órfãos ainda precisam de implementação. Upload é limitado e intermediado pelo Worker; upload multipart direto/assinado com retomada de partes permanece pendente.
+
+PhotoIntel, coletores adicionais/Takeout/Meta, catálogo cultural completo com progresso derivado, biblioteca completa Spotify, busca semântica/grafo, IA, alertas de custo e compartilhamento público revogável continuam no roadmap. Girassol tem pacote próprio no monorepo, sem publicação npm ou repositório externo independente. O PDF é gerado pelo fluxo de impressão do navegador, não por serviço de renderização em background.
 
 O preset Solid 2 disponível e o runtime RC atual divergem no mecanismo interno de eventos delegados. A compilação usa `delegateEvents: false`; o teste `tests/ui.test.ts` verifica salvar e buscar usando o bundle real. TanStack permanece sem validação e não foi introduzido.
 
@@ -90,7 +121,7 @@ pnpm exec wrangler dev --local-protocol https
 
 `pnpm check` executa build, TypeScript strict e Vitest. Os testes cobrem contratos, persistência, reenvio, confirmação parcial, cursor inválido, tamanho de requisição, autenticação, CSRF, SQL/migração SQLite, idempotência, logout, tentativas de login e UI Solid compilada. O teste SQLite usa o SQL real do Worker e o adaptador Prisma/D1 real. A validação remota do Worker continua necessária para conferir bindings e compatibilidade do runtime.
 
-`tests/browser.mjs` contém o cenário Chromium de ponta a ponta; requer Chromium executável (`CHROMIUM_PATH`, ou `/usr/bin/chromium`) e servidor HTTPS local. Nesta sessão, Chromium foi bloqueado por `socket() failed: Operation not permitted` ao iniciar; o Worker local conseguiu iniciar, mas a validação E2E não executou; **não declarar E2E/Safari concluídos**. A tela de entrada em produção foi inspecionada visualmente. O smoke HTTP remoto passou em login, senha incorreta, cookie seguro, SPA protegida, CSRF, lote inválido, reenvio idempotente, leitura D1, cursor inválido e logout; seu registro temporário foi removido após validação.
+`tests/browser.mjs` contém o cenário Chromium de ponta a ponta; requer Chromium executável (`CHROMIUM_PATH`, ou `/usr/bin/chromium`) e servidor HTTPS local. O executor local inicialmente bloqueou o Chromium por `socket() failed: Operation not permitted`; a CI executou o cenário Chromium inicial com sucesso. **Não declarar Safari iPhone concluído** com base nesse resultado. A tela de entrada em produção foi inspecionada visualmente. O smoke HTTP remoto passou em login, senha incorreta, cookie seguro, SPA protegida, CSRF, lote inválido, reenvio idempotente, leitura D1, cursor inválido e logout; seu registro temporário foi removido após validação.
 
 Deploy autenticado: `pnpm deploy`. Aplique antes as migrações necessárias com `pnpm exec wrangler d1 migrations apply jardim --remote`. O secret existente é preservado pelo Wrangler. CI valida pushes e PRs; deploy automático e previews ainda serão configurados. O deploy inicial foi feito pela API Cloudflare usando o mesmo bundle `dist/worker.js` e a migração SQL versionada. D1: `83d55918-db72-4dd4-8f5d-08d15df2c009` (ENAM).
 
@@ -400,9 +431,9 @@ GET    /v1/cards/:id/feed.png
 **Componentes base:** Button, Input, Select, Combobox, Dialog, Sheet, Popover, Menu, Tabs, Toast, Tooltip, Card, Badge, Timeline, MediaCard, AudioPlayer, CircularVideo, WeatherCard, MonthCapsule, EmptyState, Skeleton, SyncStatus.
 
 - [ ] Definir identidade visual e tokens do Girassol.
-- [ ] Criar pacote separado e documentação visual.
+- [x] Criar pacote separado e documentação visual no monorepo.
 - [ ] Validar acessibilidade, teclado, touch e VoiceOver.
-- [ ] Suportar claro/escuro, contraste e movimento reduzido.
+- [x] Suportar claro/escuro/sistema, tokens de contraste, foco visível e movimento reduzido; VoiceOver real permanece pendente.
 - [ ] Testar compatibilidade com Solid 2 RC.
 - [ ] Criar templates reutilizáveis de OG e cards.
 - [ ] Garantir isolamento CSS de interfaces injetadas.
@@ -457,7 +488,7 @@ GET    /v1/cards/:id/feed.png
 - [x] Validar Prisma + D1 adapter e preservação de migrações em integração SQLite; smoke remoto descrito acima.
 - [ ] Definir schemas, tipos e convenções.
 - [ ] Preparar CI, testes, previews e ambientes.
-- [ ] Iniciar Girassol independente.
+- [x] Iniciar Girassol como pacote independente do domínio, com galeria integrada.
 
 ### Fase 1 · Primeiro fluxo ponta a ponta
 
@@ -470,11 +501,11 @@ GET    /v1/cards/:id/feed.png
 
 ### Fase 2 · Jardim pessoal
 
-- [ ] Diário e memórias com anexos.
+- [x] Diário e memórias com anexos, edição, lixeira e revisões.
 - [ ] Notas de voz e vídeos circulares.
 - [ ] Integração PhotoIntel.
-- [ ] Card do dia com clima.
-- [ ] Busca textual e filtros.
+- [x] Card do dia com clima escolhido pelo usuário e proveniência persistida.
+- [x] Busca textual e filtros por dia e fonte.
 
 ### Fase 3 · Fontes e histórico
 
@@ -493,9 +524,9 @@ GET    /v1/cards/:id/feed.png
 
 ### Fase 5 · Cápsulas e inteligência
 
-- [ ] Cápsula mensal interativa.
+- [x] Cápsula mensal interativa, privada e baseada nos registros locais selecionados.
 - [ ] OG images, Stories, feed e PDF.
-- [ ] Cápsulas seladas e revisões.
+- [x] Cápsulas seladas e novas versões privadas sem sobrescrita.
 - [ ] Busca semântica e grafo.
 - [ ] Resumos assistidos por IA com proveniência.
 

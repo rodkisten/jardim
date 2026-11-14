@@ -1,13 +1,22 @@
 import { createSignal, onCleanup } from 'solid-js';
 import { render } from '@solidjs/web';
 import { liveQuery } from 'dexie';
-import { GardenDB, synchronize } from '@rodkisten/jardim-local-db';
+import { GardenDB } from '@rodkisten/jardim-local-db';
 import type { Memory } from '@rodkisten/jardim-contracts';
 import { fetchProtocol } from '@rodkisten/jardim-local-db/transport';
 import { RetryBackoff } from '@rodkisten/jardim-local-db/retry';
+import '@rodkisten/girassol/tokens.css';
+import { Button, Input, Card, Badge } from '@rodkisten/girassol';
 import './style.css';
 import { Devices } from './Devices';
+import { ThemeSwitch } from './ThemeSwitch';
 import { MemoryCard } from './MemoryCard';
+import { DiaryTools } from './DiaryTools';
+import { Capsules } from './Capsules';
+import { WeatherCard } from './WeatherCard';
+import { Integrations } from './Integrations';
+import { MediaComposer, type PendingFile } from './MediaComposer';
+import { synchronizeDiary } from '@rodkisten/jardim-local-db/revisions';
 const db = new GardenDB();
 function App() {
   const [memories, setMemories] = createSignal<Memory[]>([]),
@@ -15,7 +24,12 @@ function App() {
     [status, setStatus] = createSignal('Preparando seu jardim…'),
     [query, setQuery] = createSignal(''),
     [busy, setBusy] = createSignal(false),
-    [error, setError] = createSignal('');
+    [error, setError] = createSignal(''),
+    [editing, setEditing] = createSignal<Memory | null>(null),
+    [day, setDay] = createSignal(''),
+    [source, setSource] = createSignal('all'),
+    [files, setFiles] = createSignal<PendingFile[]>([]),
+    [recording, setRecording] = createSignal(false);
   let syncing = false;
   const retry = new RetryBackoff();
   async function sync(manual = false) {
@@ -27,9 +41,19 @@ function App() {
         return;
       }
       setStatus('Sincronizando…');
-      await synchronize(db, fetchProtocol);
+      await synchronizeDiary(db, fetchProtocol);
       retry.success();
-      setStatus((await db.outbox.count()) ? 'Há memórias aguardando envio' : 'Tudo sincronizado');
+      const conflicts = await db.conflicts.count();
+      setStatus(
+        conflicts
+          ? `${conflicts} conflito(s) para revisar`
+          : (await db.outbox.count()) +
+              (await db.mutations.count()) +
+              (await db.attachments.where('uploaded').equals(0).count()) +
+              (await db.capsules.where('uploaded').equals(0).count())
+            ? 'Há alterações aguardando envio'
+            : 'Tudo sincronizado',
+      );
     } catch (e) {
       retry.fail();
       setStatus(e instanceof Error ? e.message : 'Falha na sincronização');
@@ -40,7 +64,11 @@ function App() {
   {
     const sub = liveQuery(async () => ({
       memories: await db.memories.orderBy('createdAt').reverse().toArray(),
-      pending: await db.outbox.count(),
+      pending:
+        (await db.outbox.count()) +
+        (await db.mutations.count()) +
+        (await db.attachments.where('uploaded').equals(0).count()) +
+        (await db.capsules.where('uploaded').equals(0).count()),
     })).subscribe({
       next: (data) => {
         setMemories(data.memories);
@@ -74,18 +102,24 @@ function App() {
     setBusy(true);
     setError('');
     try {
-      await db.plant({
+      const input = {
         title: String(data.get('title')),
         body: String(data.get('body')),
         tags: String(data.get('tags'))
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean),
-      });
+      };
+      if (editing()) await db.change(editing()!.id, input);
+      else await db.plant(input, files());
+      setFiles([]);
+      setEditing(null);
       form.reset();
       void sync();
     } catch {
-      setError('Não foi possível guardar. Use título, texto e até 12 tags de 40 caracteres.');
+      setError(
+        'Não foi possível guardar. Confira título, texto, até 12 tags e até 5 anexos de 12 MiB.',
+      );
     } finally {
       setBusy(false);
     }
@@ -113,10 +147,14 @@ function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   const filtered = () =>
-    memories().filter((m) =>
-      `${m.title} ${m.body} ${m.tags.join(' ')}`
-        .toLocaleLowerCase('pt-BR')
-        .includes(query().toLocaleLowerCase('pt-BR')),
+    memories().filter(
+      (m) =>
+        (!day() || new Date(m.createdAt).toLocaleDateString('en-CA') === day()) &&
+        (source() === 'all' ||
+          (source() === 'youtube' ? m.tags.includes('youtube') : !m.tags.includes('youtube'))) &&
+        `${m.title} ${m.body} ${m.tags.join(' ')}`
+          .toLocaleLowerCase('pt-BR')
+          .includes(query().toLocaleLowerCase('pt-BR')),
     );
   return (
     <>
@@ -125,6 +163,7 @@ function App() {
           ✳ <span>Jardim</span>
         </a>
         <div class="actions">
+          <ThemeSwitch />
           <button class="subtle" onClick={() => void exportData()}>
             Exportar
           </button>
@@ -154,6 +193,7 @@ function App() {
             </button>
           </div>
         </section>
+        <WeatherCard db={db} memories={memories()} onChanged={() => void sync()} />
         <div class="layout">
           <section class="composer">
             <div class="section-title">
@@ -164,6 +204,7 @@ function App() {
             <form onSubmit={save}>
               <label for="title">Dê um nome a esse momento</label>
               <input
+                value={editing()?.title || ''}
                 id="title"
                 name="title"
                 placeholder="Uma coisa boa de hoje…"
@@ -172,6 +213,7 @@ function App() {
               />
               <label for="body">Sua memória</label>
               <textarea
+                value={editing()?.body || ''}
                 id="body"
                 name="body"
                 placeholder="Escreva sem pressa."
@@ -182,10 +224,28 @@ function App() {
               <label for="tags">
                 Tags <span class="muted">· separadas por vírgula</span>
               </label>
-              <input id="tags" name="tags" placeholder="vida, descobertas, gratidão" />
-              <button class="primary" disabled={busy()}>
-                {busy() ? 'Guardando…' : 'Plantar uma memória'} <span>↗</span>
+              <input
+                value={editing()?.tags.join(', ') || ''}
+                id="tags"
+                name="tags"
+                placeholder="vida, descobertas, gratidão"
+              />
+              {!editing() ? (
+                <MediaComposer
+                  files={files()}
+                  onChange={setFiles}
+                  onRecordingChange={setRecording}
+                />
+              ) : null}
+              <button class="primary" disabled={busy() || recording()}>
+                {busy() ? 'Guardando…' : editing() ? 'Salvar edição' : 'Plantar uma memória'}{' '}
+                <span>↗</span>
               </button>
+              {editing() ? (
+                <button type="button" class="subtle" onClick={() => setEditing(null)}>
+                  Cancelar edição
+                </button>
+              ) : null}
               <p class="footnote">
                 Salva primeiro neste dispositivo. Sincronizada quando houver conexão.
               </p>
@@ -212,9 +272,49 @@ function App() {
               value={query()}
               onInput={(e) => setQuery(e.currentTarget.value)}
             />
+            <div class="filters">
+              <label>
+                Dia
+                <input type="date" value={day()} onInput={(e) => setDay(e.currentTarget.value)} />
+              </label>
+              <label>
+                Fonte
+                <select value={source()} onChange={(e) => setSource(e.currentTarget.value)}>
+                  <option value="all">Todas</option>
+                  <option value="diary">Diário</option>
+                  <option value="youtube">YouTube</option>
+                </select>
+              </label>
+              <button
+                class="subtle"
+                onClick={() => {
+                  setDay('');
+                  setSource('all');
+                  setQuery('');
+                }}
+              >
+                Limpar filtros
+              </button>
+            </div>
             <div class="entries">
               {filtered().length ? (
-                filtered().map((memory) => <MemoryCard memory={memory} />)
+                filtered().map((memory) => (
+                  <MemoryCard
+                    memory={memory}
+                    onEdit={() => {
+                      setEditing(memory);
+                      document.getElementById('title')?.focus();
+                    }}
+                    onDelete={() =>
+                      void db
+                        .change(memory.id, null)
+                        .then(() => sync())
+                        .catch(() => setError('Não foi possível mover para a lixeira.'))
+                    }
+                    db={db}
+                    onChanged={() => void sync()}
+                  />
+                ))
               ) : (
                 <div class="empty">
                   <span aria-hidden="true">☘</span>
@@ -233,7 +333,22 @@ function App() {
             </div>
           </section>
         </div>
+        <Integrations db={db} memories={memories()} onChanged={() => void sync()} />
+        <Capsules db={db} memories={memories()} onChanged={() => void sync()} />
+        <DiaryTools db={db} onChanged={() => void sync()} />
         <Devices />
+        <details class="composer">
+          <summary>🌻 Girassol · componentes</summary>
+          <Card label="Galeria Girassol">
+            <Badge>Design system</Badge>
+            <h2>Pequenos detalhes, boas raízes.</h2>
+            <label for="girassol-example">Campo de exemplo</label>
+            <Input id="girassol-example" placeholder="Seu próximo momento" />
+            <Button onClick={() => setStatus('Girassol · componentes Solid 2 ativos')}>
+              Experimentar botão
+            </Button>
+          </Card>
+        </details>
         <footer>
           JARDIM <span>Feito para lembrar de viver.</span> 🌱
         </footer>

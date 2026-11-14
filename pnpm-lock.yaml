@@ -22,6 +22,9 @@ importers:
       '@rodkisten/jardim-capture':
         specifier: workspace:*
         version: link:packages/capture
+      '@rodkisten/jardim-cards':
+        specifier: workspace:*
+        version: link:packages/cards
       '@rodkisten/jardim-contracts':
         specifier: workspace:*
         version: link:packages/contracts
@@ -85,6 +88,9 @@ importers:
       '@rodkisten/jardim-capture':
         specifier: workspace:*
         version: link:../../packages/capture
+      '@rodkisten/jardim-cards':
+        specifier: workspace:*
+        version: link:../../packages/cards
       '@rodkisten/jardim-contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -104,6 +110,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@rodkisten/girassol':
+        specifier: workspace:*
+        version: link:../../packages/girassol
+      '@rodkisten/jardim-cards':
+        specifier: workspace:*
+        version: link:../../packages/cards
       '@rodkisten/jardim-contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -122,6 +134,12 @@ importers:
 
   packages/capture: {}
 
+  packages/cards:
+    dependencies:
+      '@rodkisten/jardim-contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
   packages/contracts:
     dependencies:
       zod:
@@ -139,6 +157,15 @@ importers:
       '@prisma/client':
         specifier: 7.10.1
         version: 7.10.1(prisma@7.10.1(@types/node@26.6.6)(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2))(typescript@7.0.2)
+
+  packages/girassol:
+    devDependencies:
+      '@solidjs/web':
+        specifier: 2.0.0-rc.21
+        version: 2.0.0-rc.21(solid-js@2.0.0-rc.21)
+      solid-js:
+        specifier: 2.0.0-rc.21
+        version: 2.0.0-rc.21
 
   packages/local-db:
     dependencies:

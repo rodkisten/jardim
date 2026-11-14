@@ -17,6 +17,9 @@ model Memory {
   // ISO timestamps and JSON tags remain text to preserve the existing wire and storage formats.
   tags        String
   createdAt   String @map("created_at")
+  revision Int @default(1)
+  deletedAt String? @map("deleted_at")
+  revisionOperation String? @map("revision_operation")
 
   @@index([createdAt(sort: Desc), id], map: "memories_created")
   @@map("memories")
@@ -57,4 +60,33 @@ model CaptureEvent {
   @@unique([deviceId, sourceEventId])
   @@index([deviceId], map: "capture_events_device")
   @@map("capture_events")
+}
+
+model MemoryChange {
+ sequence Int @id @default(autoincrement())
+ memoryId String @map("memory_id")
+ @@map("memory_changes")
+}
+model MemoryRevision {
+ memoryId String @map("memory_id")
+ revision Int
+ snapshot String
+ @@id([memoryId,revision])
+ @@map("memory_revisions")
+}
+model MutationReceipt {
+ operationId String @id @map("operation_id")
+ payloadHash String @map("payload_hash")
+ snapshot String
+ @@map("mutation_receipts")
+}
+model Capsule {
+ id String @id
+ month String
+ title String
+ payload String
+ payloadHash String @map("payload_hash")
+ createdAt String @map("created_at")
+ @@index([month,createdAt(sort:Desc)],map:"capsules_month")
+ @@map("capsules")
 }

@@ -5,14 +5,17 @@ export const loginPage = (error = false) => /* HTML */ `
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
     <title>Entre no Jardim</title>
+    <meta name="theme-color" content="#f4f1e9" />
+    <link rel="stylesheet" href="/theme.css" />
+    <script src="/theme.js"></script>
     <style>
       * {
         box-sizing: border-box;
       }
       body {
         margin: 0;
-        background: #f4f1e9;
-        color: #293d32;
+        background: var(--g-background);
+        color: var(--g-text);
         font: 17px system-ui;
         min-height: 100dvh;
         display: grid;
@@ -32,30 +35,34 @@ export const loginPage = (error = false) => /* HTML */ `
       }
       p {
         line-height: 1.7;
-        color: #667367;
+        color: var(--g-muted);
       }
       label {
         display: block;
         margin: 32px 0 10px;
       }
       input,
+      input {
+        background: var(--g-surface);
+        color: var(--g-text);
+      }
       button {
         width: 100%;
         font: inherit;
         padding: 17px;
         border-radius: 12px;
-        border: 1px solid #cdd2c8;
+        border: 1px solid var(--g-border);
       }
       button {
         margin-top: 14px;
-        background: #2c553f;
-        color: white;
+        background: var(--g-accent);
+        color: var(--g-on-accent);
         cursor: pointer;
       }
       small {
         display: block;
         margin-top: 30px;
-        color: #667367;
+        color: var(--g-muted);
       }
     </style>
     <main>
@@ -80,6 +87,7 @@ export const loginPage = (error = false) => /* HTML */ `
         ${error ? '<p role="alert">Senha incorreta. Tente novamente.</p>' : ''}
         <button>Entrar no meu jardim →</button>
       </form>
+      <button type="button" data-login-theme>◐ Tema: Sistema</button>
       <small>Seu espaço pessoal. Uma memória de cada vez.</small>
     </main>
   </html>

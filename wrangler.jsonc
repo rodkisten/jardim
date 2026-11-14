@@ -13,6 +13,7 @@
       "migrations_dir": "infra/cloudflare/migrations",
     },
   ],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "jardim-media" }],
   "routes": [
     {
       "pattern": "jardim.migos.club",

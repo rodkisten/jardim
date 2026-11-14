@@ -1,9 +1,22 @@
 import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 const root = new URL('../dist/web/', import.meta.url);
+await writeFile(
+  new URL('theme.css', root),
+  await readFile(new URL('../packages/girassol/src/tokens.css', import.meta.url), 'utf8'),
+);
 const html = await readFile(new URL('index.html', root), 'utf8');
-const version = createHash('sha256').update(html).digest('hex').slice(0, 16);
-const assets = (await readdir(new URL('assets/', root))).map((file) => '/assets/' + file);
+
+const assets = [
+  ...(await readdir(new URL('assets/', root))).map((file) => '/assets/' + file),
+  '/theme.js',
+  '/theme.css',
+];
+// Every precached file participates in the version, including the unhashed theme bootstrap.
+const contentHash = createHash('sha256').update(html);
+for (const path of [...assets].sort())
+  contentHash.update(path).update(await readFile(new URL(path.slice(1), root)));
+const version = contentHash.digest('hex').slice(0, 16);
 const worker = `const CACHE = ${JSON.stringify('jardim-shell-' + version)};
 const ASSETS = ${JSON.stringify(assets)};
 self.addEventListener('install', event => { event.waitUntil((async () => {

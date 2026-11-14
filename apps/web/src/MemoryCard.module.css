@@ -3,11 +3,11 @@
   padding: 0.6rem 0.8rem;
   border: 1px solid currentColor;
   border-radius: 0.6rem;
-  color: #315c45;
+  color: var(--g-accent);
   font-weight: 600;
   text-decoration: none;
 }
 .source:focus-visible {
-  outline: 3px solid #8f9f66;
+  outline: 3px solid var(--g-focus);
   outline-offset: 3px;
 }
