@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { transformAsync } from '@babel/core';
 export default defineConfig({
   root: fileURLToPath(new URL('./apps/web', import.meta.url)),
-  plugins: [
+  // Workspace packages must share the same reactive runtime instance.\n  resolve: { dedupe: ['solid-js', '@solidjs/web'] },\n  plugins: [
     {
       name: 'solid-2',
       enforce: 'pre',
