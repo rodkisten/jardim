@@ -181,13 +181,18 @@ function App() {
       };
       if (editing()) await db.change(editing()!.id, input);
       else await db.plant(input, files());
+      const savedExistingMemory = Boolean(editing());
       setFiles([]);
       setEditing(null);
       setDraftTitle('');
       setDraftBody('');
       setDraftTags('');
-      if (!editing()) {
-        try { localStorage.removeItem(DRAFT_KEY); } catch { /* Storage may be disabled. */ }
+      if (!savedExistingMemory) {
+        try {
+          localStorage.removeItem(DRAFT_KEY);
+        } catch {
+          // Storage may be disabled.
+        }
       }
       form.reset();
       closeComposer();
@@ -333,9 +338,11 @@ function App() {
                     class="subtle"
                     onClick={() => {
                       setEditing(null);
-                      setDraftTitle('');
-                      setDraftBody('');
-                      setDraftTags('');
+                      const draft = readDraft();
+                      setDraftTitle(draft.title);
+                      setDraftBody(draft.body);
+                      setDraftTags(draft.tags);
+                      closeComposer();
                     }}
                   >
                     Cancelar edição
