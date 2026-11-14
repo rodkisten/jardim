@@ -83,7 +83,7 @@ jobs:
           git switch -c "$BRANCH"
           git add pnpm-lock.yaml
           git commit -m "chore(deps): refresh pnpm lockfile"
-          git push --force-with-lease origin "HEAD:refs/heads/$BRANCH"
+          git push --force origin "HEAD:refs/heads/$BRANCH"
 
           existing_pr="$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')"
           if [ -n "$existing_pr" ]; then
