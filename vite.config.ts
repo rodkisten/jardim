@@ -20,6 +20,7 @@ export default defineConfig({
       },
     },
   ],
-  build: { outDir: fileURLToPath(new URL('./dist/web', import.meta.url)), emptyOutDir: true },
+  // Temporarily keep production bundles readable so E2E stack traces identify the Solid runtime callsite.
+  build: { outDir: fileURLToPath(new URL('./dist/web', import.meta.url)), emptyOutDir: true, minify: false, sourcemap: true },
   server: { proxy: { '/v1': 'http://localhost:8787', '/auth': 'http://localhost:8787' } },
 });
