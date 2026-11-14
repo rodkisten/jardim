@@ -18,6 +18,7 @@ import { Integrations } from './Integrations';
 import { MediaComposer, type PendingFile } from './MediaComposer';
 import { RichEditor } from './RichEditor';
 import { CommandPalette } from './CommandPalette';
+import { NavIcon } from './NavIcon';
 import { synchronizeDiary } from '@rodkisten/jardim-local-db/revisions';
 const db = new GardenDB();
 const DRAFT_KEY = 'jardim:composer-draft:v1';
@@ -52,11 +53,23 @@ function App() {
     [recording, setRecording] = createSignal(false),
     [composerOpen, setComposerOpen] = createSignal(false),
     [searchOpen, setSearchOpen] = createSignal(false),
-    [searchQuery, setSearchQuery] = createSignal('');
+    [searchQuery, setSearchQuery] = createSignal(''),
+    [activeSection, setActiveSection] = createSignal('memorias');
   const filteredMemories = () => {
     const query = searchQuery().trim().toLocaleLowerCase('pt-BR');
     return query ? memories().filter((memory) => [memory.title, memory.body, ...memory.tags].some((value) => value.toLocaleLowerCase('pt-BR').includes(query))) : memories();
   };
+  // Track the visible workspace section without polling scroll position.
+  createEffect(() => {
+    const ids = ['memorias', 'capsulas', 'integracoes'];
+    const sections = ids.map((id) => document.getElementById(id)).filter((element): element is HTMLElement => !!element);
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+      if (visible[0]) setActiveSection(visible[0].target.id);
+    }, { rootMargin: '-18% 0px -52% 0px', threshold: [0, 0.1, 0.3, 0.6] });
+    sections.forEach((section) => observer.observe(section));
+    onCleanup(() => observer.disconnect());
+  });
   // Persist text drafts only; binary attachments remain in the local media queue.
   // Editing an existing memory must never overwrite the new-memory draft.
   createEffect(() => {
@@ -266,19 +279,19 @@ function App() {
       <div class="workspace-layout">
         <aside class="workspace-sidebar" aria-label="Seções do Jardim">
           <span class="workspace-sidebar-label">WORKSPACE</span>
-          <a href="#memorias">▤ <span>Memórias</span></a>
-          <a href="#capsulas">◷ <span>Cápsulas</span></a>
-          <a href="#integracoes">◇ <span>Conexões</span></a>
+          <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}><NavIcon name="memories" /> <span>Memórias</span></a>
+          <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}><NavIcon name="capsules" /> <span>Cápsulas</span></a>
+          <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}><NavIcon name="connections" /> <span>Conexões</span></a>
           <div class="workspace-sidebar-divider" />
-          <button type="button" onClick={() => setSearchOpen(!searchOpen())}>⌕ <span>Buscar</span></button>
-          <button type="button" onClick={startNewMemory}>＋ <span>Nova memória</span></button>
+          <button type="button" onClick={() => setSearchOpen(!searchOpen())}><NavIcon name="search" /> <span>Buscar</span></button>
+          <button type="button" onClick={startNewMemory}><NavIcon name="plus" /> <span>Nova memória</span></button>
           <span class="workspace-sidebar-bottom">{pending() ? `${pending()} pendente(s)` : 'Tudo em seu lugar'}</span>
         </aside>
       <main class="app-main">
         <nav class="page-nav" aria-label="Navegação principal">
-          <a href="#memorias">Memórias</a>
-          <a href="#capsulas">Cápsulas</a>
-          <a href="#integracoes">Conexões</a>
+          <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}>Memórias</a>
+          <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}>Cápsulas</a>
+          <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}>Conexões</a>
         </nav>
         {searchOpen() ? (
           <section class="workspace-search" role="search">
@@ -438,11 +451,11 @@ function App() {
       </main>
       </div>
       <nav class="mobile-bottom-nav" aria-label="Acesso rápido">
-        <a href="#memorias"><span aria-hidden="true">▤</span>Memórias</a>
-        <a href="#capsulas"><span aria-hidden="true">◷</span>Cápsulas</a>
-        <button type="button" class="mobile-create" onClick={startNewMemory} aria-label="Criar memória">＋</button>
-        <a href="#integracoes"><span aria-hidden="true">◇</span>Conexões</a>
-        <button type="button" onClick={() => { setSearchOpen(true); document.querySelector('.workspace-search')?.scrollIntoView({ behavior: 'smooth' }); }}><span aria-hidden="true">⌕</span>Buscar</button>
+        <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}><NavIcon name="memories" />Memórias</a>
+        <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}><NavIcon name="capsules" />Cápsulas</a>
+        <button type="button" class="mobile-create" onClick={startNewMemory} aria-label="Criar memória"><NavIcon name="plus" size={25} /></button>
+        <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}><NavIcon name="connections" />Conexões</a>
+        <button type="button" onClick={() => { setSearchOpen(true); document.querySelector('.workspace-search')?.scrollIntoView({ behavior: 'smooth' }); }}><NavIcon name="search" />Buscar</button>
       </nav>
     </>
   );
