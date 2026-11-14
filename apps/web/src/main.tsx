@@ -177,6 +177,7 @@ function App() {
               ? 'Mensagem de voz'
               : 'Uma foto'),
         body: draftBody(),
+        ...(draftDocument() ? { richDocument: draftDocument() } : {}),
         tags: String(data.get('tags'))
           .split(',')
           .map((s) => s.trim())
@@ -372,7 +373,7 @@ function App() {
               openComposer();
               setDraftTitle(memory.title);
               setDraftBody(memory.body);
-              setDraftDocument(null);
+              setDraftDocument(memory.richDocument ?? null);
               setDraftTags(memory.tags.join(', '));
               document.getElementById('title')?.focus();
             }}
