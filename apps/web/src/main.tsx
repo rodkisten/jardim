@@ -239,7 +239,7 @@ function App() {
               ) : null}
               <button class="primary" disabled={busy() || recording()}>
                 {busy() ? 'Guardando…' : editing() ? 'Salvar edição' : 'Plantar uma memória'}{' '}
-                <span>↗</span>
+                <span aria-hidden="true">↗</span>
               </button>
               {editing() ? (
                 <button type="button" class="subtle" onClick={() => setEditing(null)}>
