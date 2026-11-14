@@ -1219,3 +1219,45 @@ body::before {
     display: block;
   }
 }
+
+
+/* Active location is shared by desktop rail, tabs, and the mobile dock. */
+.workspace-sidebar a[aria-current='location'] {
+  background: var(--g-tint);
+  color: var(--g-text);
+  font-weight: 650;
+  box-shadow: inset 2px 0 var(--g-accent);
+}
+.page-nav a[aria-current='location'] {
+  color: var(--g-text);
+  border-bottom-color: var(--g-accent);
+  font-weight: 650;
+}
+.mobile-bottom-nav a[aria-current='location'] {
+  color: var(--g-accent);
+  background: var(--g-tint);
+}
+.workspace-sidebar svg,
+.mobile-bottom-nav svg {
+  flex: none;
+  display: block;
+}
+.mobile-bottom-nav .mobile-create svg {
+  width: 25px;
+  height: 25px;
+}
+@media (max-width: 760px) {
+  .mobile-bottom-nav a svg,
+  .mobile-bottom-nav button svg {
+    width: 21px;
+    height: 21px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .workspace-sidebar a,
+  .workspace-sidebar button,
+  .mobile-bottom-nav a,
+  .mobile-bottom-nav button {
+    transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+}
