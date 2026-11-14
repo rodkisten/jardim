@@ -20,16 +20,17 @@ import { RichEditor } from './RichEditor';
 import { synchronizeDiary } from '@rodkisten/jardim-local-db/revisions';
 const db = new GardenDB();
 const DRAFT_KEY = 'jardim:composer-draft:v1';
-function readDraft(): { title: string; body: string; tags: string } {
+function readDraft(): { title: string; body: string; tags: string; document: Record<string, unknown> | null } {
   try {
     const value = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') as Record<string, unknown>;
     return {
       title: typeof value.title === 'string' ? value.title.slice(0, 160) : '',
       body: typeof value.body === 'string' ? value.body.slice(0, 20000) : '',
       tags: typeof value.tags === 'string' ? value.tags.slice(0, 1000) : '',
+      document: value.document && typeof value.document === 'object' && !Array.isArray(value.document) && (value.document as Record<string, unknown>).type === 'doc' ? value.document as Record<string, unknown> : null,
     };
   } catch {
-    return { title: '', body: '', tags: '' };
+    return { title: '', body: '', tags: '', document: null };
   }
 }
 
@@ -45,6 +46,7 @@ function App() {
     [draftTitle, setDraftTitle] = createSignal(restoredDraft.title),
     [draftBody, setDraftBody] = createSignal(restoredDraft.body),
     [draftTags, setDraftTags] = createSignal(restoredDraft.tags),
+    [draftDocument, setDraftDocument] = createSignal<Record<string, unknown> | null>(restoredDraft.document),
     [files, setFiles] = createSignal<PendingFile[]>([]),
     [recording, setRecording] = createSignal(false),
     [composerOpen, setComposerOpen] = createSignal(false);
@@ -52,7 +54,7 @@ function App() {
   // Editing an existing memory must never overwrite the new-memory draft.
   createEffect(() => {
     if (editing()) return;
-    const draft = { title: draftTitle(), body: draftBody(), tags: draftTags() };
+    const draft = { title: draftTitle(), body: draftBody(), tags: draftTags(), document: draftDocument() };
     try {
       if (draft.title || draft.body || draft.tags) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       else localStorage.removeItem(DRAFT_KEY);
@@ -72,6 +74,7 @@ function App() {
     setDraftTitle(draft.title);
     setDraftBody(draft.body);
     setDraftTags(draft.tags);
+    setDraftDocument(draft.document);
     openComposer();
   }
   function closeComposer() {
@@ -187,6 +190,7 @@ function App() {
       setDraftTitle('');
       setDraftBody('');
       setDraftTags('');
+      setDraftDocument(null);
       if (!savedExistingMemory) {
         try {
           localStorage.removeItem(DRAFT_KEY);
@@ -309,7 +313,7 @@ function App() {
                   maxlength={160}
                 />
                 <label for="body">Sua memória</label>
-                <RichEditor value={draftBody()} onChange={setDraftBody} disabled={busy()} />
+                <RichEditor value={draftBody()} onChange={setDraftBody} document={draftDocument()} onDocumentChange={setDraftDocument} disabled={busy()} />
                 <label for="tags">
                   Tags <span class="muted">· separadas por vírgula</span>
                 </label>
@@ -342,6 +346,7 @@ function App() {
                       setDraftTitle(draft.title);
                       setDraftBody(draft.body);
                       setDraftTags(draft.tags);
+                      setDraftDocument(draft.document);
                       closeComposer();
                     }}
                   >
@@ -367,6 +372,7 @@ function App() {
               openComposer();
               setDraftTitle(memory.title);
               setDraftBody(memory.body);
+              setDraftDocument(null);
               setDraftTags(memory.tags.join(', '));
               document.getElementById('title')?.focus();
             }}
