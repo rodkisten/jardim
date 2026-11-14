@@ -34,7 +34,7 @@ export class GardenDB extends Dexie {
     this.version(4).stores({ capsules: 'id,uploaded' });
   }
   async plant(
-    input: { title: string; body: string; tags: string[] },
+    input: { title: string; body: string; tags: string[]; richDocument?: Memory['richDocument'] },
     files: { blob: Blob; name: string; duration?: number }[] = [],
   ) {
     if (
@@ -65,7 +65,7 @@ export class GardenDB extends Dexie {
     });
     return memory;
   }
-  async change(id: string, input: { title: string; body: string; tags: string[] } | null) {
+  async change(id: string, input: { title: string; body: string; tags: string[]; richDocument?: Memory['richDocument'] } | null) {
     await this.transaction(
       'rw',
       this.memories,
