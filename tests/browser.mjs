@@ -21,6 +21,15 @@ try {
   context.setDefaultNavigationTimeout(30000);
   const page = await context.newPage();
   pageForFailure = page;
+  page.on('console', (message) => {
+    if (['warning', 'error'].includes(message.type())) console.log('E2E browser:', message.text());
+  });
+  const diagnostics = await context.newCDPSession(page);
+  await diagnostics.send('ServiceWorker.enable');
+  diagnostics.on('ServiceWorker.workerErrorReported', (event) =>
+    console.log('E2E service worker:', JSON.stringify(event.errorMessage)),
+  );
+
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   const origin = process.env.TEST_ORIGIN || 'https://localhost:8787';
@@ -50,7 +59,24 @@ try {
   await page.getByRole('heading', { name: title }).waitFor();
   await page.getByText('Tudo sincronizado', { exact: false }).waitFor();
   console.log('E2E: service worker and offline reload');
-  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  try {
+    await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  } catch (error) {
+    console.log(
+      'E2E registration:',
+      await page.evaluate(async () => ({
+        registrations: (await navigator.serviceWorker.getRegistrations()).map((r) => ({
+          scope: r.scope,
+          active: r.active?.state,
+          waiting: r.waiting?.state,
+          installing: r.installing?.state,
+        })),
+        caches: await caches.keys(),
+      })),
+    );
+    throw error;
+  }
+
   await context.setOffline(true);
   await page.getByLabel('Dê um nome a esse momento').fill(title + ' offline');
   await page.getByLabel('Sua memória', { exact: true }).fill('Salva sem rede');

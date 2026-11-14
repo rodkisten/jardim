@@ -43,6 +43,7 @@ export function MediaComposer(props: {
     }
     const sequence = ++generation;
     recordingState(true);
+    let acquired: MediaStream | undefined;
     try {
       const media = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -50,6 +51,7 @@ export function MediaComposer(props: {
           ? { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } }
           : false,
       });
+      acquired = media;
       if (disposed || sequence !== generation) {
         media.getTracks().forEach((track) => track.stop());
         return;
@@ -99,6 +101,8 @@ export function MediaComposer(props: {
       recordingState(true);
       timer = setTimeout(stop, 30000);
     } catch {
+      // A constructor failure can happen before Solid commits setStream; release the acquired hardware directly.
+      acquired?.getTracks().forEach((track) => track.stop());
       stop();
       recordingState(false);
       setStream(null);

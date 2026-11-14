@@ -22,10 +22,12 @@ const ASSETS = ${JSON.stringify(assets)};
 self.addEventListener('install', event => { event.waitUntil((async () => {
  const cache = await caches.open(CACHE);
  for (const path of ['/', ...ASSETS]) {
-  const response = await fetch(path,{cache:'no-store'});
+  try {
+ const response = await fetch(path,{cache:'no-store'});
   const valid = path === '/' ? response.headers.get('X-Jardim-Shell') === '1' : /javascript|text\\/css/.test(response.headers.get('Content-Type') || '');
   if(!response.ok || !valid) throw Error('Entre no Jardim antes de preparar acesso offline.');
   await cache.put(path,response);
+ } catch(error) { console.error(JSON.stringify({event:'offline_asset_failed',asset:path,name:error.name,message:error.message})); throw error; }
  }
  await self.skipWaiting();
 })()); });

@@ -49,6 +49,33 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   theme.click();
   await new Promise((resolve) => setTimeout(resolve, 30));
 
+  let released = 0;
+  const oldMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+  const oldRecorder = Object.getOwnPropertyDescriptor(globalThis, 'MediaRecorder');
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: { getUserMedia: async () => ({ getTracks: () => [{ stop: () => released++ }] }) },
+  });
+  Object.defineProperty(globalThis, 'MediaRecorder', {
+    configurable: true,
+    value: class {
+      static isTypeSupported() {
+        return true;
+      }
+      constructor() {
+        throw Error('encoder unavailable');
+      }
+    },
+  });
+  const voice = Array.from(document.querySelectorAll('button')).find(
+    (button) => button.textContent === 'Gravar voz',
+  )!;
+  voice.click();
+  await expect.poll(() => released, { timeout: 1000 }).toBeGreaterThan(0);
+  if (oldMediaDevices) Object.defineProperty(navigator, 'mediaDevices', oldMediaDevices);
+  else Reflect.deleteProperty(navigator, 'mediaDevices');
+  if (oldRecorder) Object.defineProperty(globalThis, 'MediaRecorder', oldRecorder);
+  else Reflect.deleteProperty(globalThis, 'MediaRecorder');
   const title = document.querySelector<HTMLInputElement>('#title')!;
   title.value = 'Uma nova memória';
   document.querySelector<HTMLTextAreaElement>('#body')!.value = 'Um momento importante';
