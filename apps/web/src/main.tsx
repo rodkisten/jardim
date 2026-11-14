@@ -1,4 +1,4 @@
-import { createSignal, onCleanup } from 'solid-js';
+import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { render } from '@solidjs/web';
 import { liveQuery } from 'dexie';
 import { GardenDB } from '@rodkisten/jardim-local-db';
@@ -19,7 +19,22 @@ import { MediaComposer, type PendingFile } from './MediaComposer';
 import { RichEditor } from './RichEditor';
 import { synchronizeDiary } from '@rodkisten/jardim-local-db/revisions';
 const db = new GardenDB();
+const DRAFT_KEY = 'jardim:composer-draft:v1';
+function readDraft(): { title: string; body: string; tags: string } {
+  try {
+    const value = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') as Record<string, unknown>;
+    return {
+      title: typeof value.title === 'string' ? value.title.slice(0, 160) : '',
+      body: typeof value.body === 'string' ? value.body.slice(0, 20000) : '',
+      tags: typeof value.tags === 'string' ? value.tags.slice(0, 1000) : '',
+    };
+  } catch {
+    return { title: '', body: '', tags: '' };
+  }
+}
+
 function App() {
+  const restoredDraft = readDraft();
   const [memories, setMemories] = createSignal<Memory[]>([]),
     [pending, setPending] = createSignal(0),
     [status, setStatus] = createSignal('Preparando seu jardim…'),
@@ -27,16 +42,37 @@ function App() {
     [error, setError] = createSignal(''),
     [editing, setEditing] = createSignal<Memory | null>(null),
     // Draft fields must survive unrelated sync and UI updates in Solid's reactive render.
-    [draftTitle, setDraftTitle] = createSignal(''),
-    [draftBody, setDraftBody] = createSignal(''),
-    [draftTags, setDraftTags] = createSignal(''),
+    [draftTitle, setDraftTitle] = createSignal(restoredDraft.title),
+    [draftBody, setDraftBody] = createSignal(restoredDraft.body),
+    [draftTags, setDraftTags] = createSignal(restoredDraft.tags),
     [files, setFiles] = createSignal<PendingFile[]>([]),
     [recording, setRecording] = createSignal(false),
     [composerOpen, setComposerOpen] = createSignal(false);
+  // Persist text drafts only; binary attachments remain in the local media queue.
+  // Editing an existing memory must never overwrite the new-memory draft.
+  createEffect(() => {
+    if (editing()) return;
+    const draft = { title: draftTitle(), body: draftBody(), tags: draftTags() };
+    try {
+      if (draft.title || draft.body || draft.tags) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      else localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // Private browsing or exhausted storage must not block writing.
+    }
+  });
   let composerDialog: HTMLDialogElement | undefined;
   function openComposer() {
+    if (composerDialog?.open) return;
     setComposerOpen(true);
     composerDialog?.showModal();
+  }
+  function startNewMemory() {
+    setEditing(null);
+    const draft = readDraft();
+    setDraftTitle(draft.title);
+    setDraftBody(draft.body);
+    setDraftTags(draft.tags);
+    openComposer();
   }
   function closeComposer() {
     composerDialog?.close();
@@ -150,6 +186,9 @@ function App() {
       setDraftTitle('');
       setDraftBody('');
       setDraftTags('');
+      if (!editing()) {
+        try { localStorage.removeItem(DRAFT_KEY); } catch { /* Storage may be disabled. */ }
+      }
       form.reset();
       closeComposer();
       void sync();
@@ -231,7 +270,7 @@ function App() {
         <WeatherCard db={db} memories={memories()} onChanged={() => void sync()} />
         <div class="new-memory-bar">
           <p>Uma nota, uma foto, uma mensagem.</p>
-          <button class="new-memory" onClick={openComposer}>
+          <button class="new-memory" onClick={startNewMemory}>
             + Nova memória
           </button>
         </div>
@@ -317,8 +356,8 @@ function App() {
             memories={memories()}
             db={db}
             onEdit={(memory) => {
-              openComposer();
               setEditing(memory);
+              openComposer();
               setDraftTitle(memory.title);
               setDraftBody(memory.body);
               setDraftTags(memory.tags.join(', '));
