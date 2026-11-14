@@ -2,7 +2,7 @@
   "name": "jardim",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.34.9",
   "scripts": {
     "dev": "turbo run dev --filter=@rodkisten/jardim-web",
     "dev:api": "wrangler dev --local-protocol https",
