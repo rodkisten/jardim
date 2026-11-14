@@ -30,10 +30,18 @@ function App() {
     [source, setSource] = createSignal('all'),
     [files, setFiles] = createSignal<PendingFile[]>([]),
     [recording, setRecording] = createSignal(false);
-  let syncing = false;
+  let syncing = false,
+    resyncRequested = false,
+    resyncManual = false;
   const retry = new RetryBackoff();
   async function sync(manual = false) {
-    if (syncing || (!manual && !retry.ready())) return;
+    // A save during the pull phase needs another exchange; coalescing must not lose that new intent.
+    if (syncing) {
+      resyncRequested = true;
+      resyncManual ||= manual;
+      return;
+    }
+    if (!manual && !retry.ready()) return;
     syncing = true;
     try {
       if (!navigator.onLine) {
@@ -59,6 +67,13 @@ function App() {
       setStatus(e instanceof Error ? e.message : 'Falha na sincronização');
     } finally {
       syncing = false;
+      if (resyncRequested) {
+        const immediate = resyncManual;
+        resyncRequested = false;
+        resyncManual = false;
+        // Automatic follow-ups still respect failure backoff; only an explicit retry bypasses it.
+        queueMicrotask(() => void sync(immediate));
+      }
     }
   }
   {

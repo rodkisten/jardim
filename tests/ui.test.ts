@@ -1,13 +1,36 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
 import { expect, test } from 'vitest';
+import { Push, type Memory } from '@rodkisten/jardim-contracts';
 import { readFileSync, readdirSync } from 'node:fs';
 test('Solid 2 compiled application mounts and reacts to local save', async () => {
   document.body.innerHTML = '<div id="root"></div>';
+  let releaseInitial!: (response: Response) => void;
+  const initialPull = new Promise<Response>((resolve) => {
+    releaseInitial = resolve;
+  });
+  let firstPull = true,
+    posted = 0;
+  const remote: Memory[] = [];
   Object.defineProperty(globalThis, 'fetch', {
     configurable: true,
-    value: async (_url: unknown, init?: RequestInit) =>
-      Response.json(init ? { acknowledged: [] } : { memories: [], cursor: 0, hasMore: false }),
+    value: async (_url: unknown, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        const batch = Push.parse(JSON.parse(String(init.body)));
+        posted++;
+        remote.push(...batch.operations.map((op) => op.memory));
+        return Response.json({ acknowledged: batch.operations.map((op) => op.operationId) });
+      }
+      if (firstPull) {
+        firstPull = false;
+        return initialPull;
+      }
+      return Response.json({
+        snapshots: remote.map((memory) => ({ memory, revision: 1, deletedAt: null })),
+        cursor: remote.length,
+        hasMore: false,
+      });
+    },
   });
   const file = readdirSync('dist/web/assets').find((f) => f.endsWith('.js'))!;
   const code = readFileSync('dist/web/assets/' + file, 'utf8');
@@ -32,6 +55,11 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   title.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
   await new Promise((r) => setTimeout(r, 250));
   expect(document.querySelector('.memory h3')?.textContent).toBe('Uma nova memória');
+  // The save happened while the initial pull was in flight. It must be sent without waiting 30 seconds.
+  expect(posted).toBe(0);
+  releaseInitial(Response.json({ snapshots: [], cursor: 0, hasMore: false }));
+  await expect.poll(() => posted, { timeout: 1500 }).toBe(1);
+
   const search = document.querySelector<HTMLInputElement>('#search')!;
   search.value = 'sem resultado';
   search.dispatchEvent(new InputEvent('input', { bubbles: true }));
