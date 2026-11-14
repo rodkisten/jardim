@@ -34,8 +34,16 @@ function App() {
     [composerOpen, setComposerOpen] = createSignal(false);
   let composerDialog: HTMLDialogElement | undefined;
   function openComposer() {
+    if (composerDialog?.open) return;
     setComposerOpen(true);
     composerDialog?.showModal();
+  }
+  function startNewMemory() {
+    setEditing(null);
+    setDraftTitle('');
+    setDraftBody('');
+    setDraftTags('');
+    openComposer();
   }
   function closeComposer() {
     composerDialog?.close();
@@ -230,7 +238,7 @@ function App() {
         <WeatherCard db={db} memories={memories()} onChanged={() => void sync()} />
         <div class="new-memory-bar">
           <p>Uma nota, uma foto, uma mensagem.</p>
-          <button class="new-memory" onClick={openComposer}>
+          <button class="new-memory" onClick={startNewMemory}>
             + Nova memória
           </button>
         </div>
@@ -325,8 +333,8 @@ function App() {
             memories={memories()}
             db={db}
             onEdit={(memory) => {
-              openComposer();
               setEditing(memory);
+              openComposer();
               setDraftTitle(memory.title);
               setDraftBody(memory.body);
               setDraftTags(memory.tags.join(', '));
