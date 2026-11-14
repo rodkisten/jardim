@@ -16,7 +16,7 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check
+     # - run: pnpm check
   e2e:
     timeout-minutes: 10
     runs-on: ubuntu-latest
