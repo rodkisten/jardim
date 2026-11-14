@@ -2,7 +2,7 @@ import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { render } from '@solidjs/web';
 import { liveQuery } from 'dexie';
 import { GardenDB } from '@rodkisten/jardim-local-db';
-import type { Memory } from '@rodkisten/jardim-contracts';
+import { RichDocument, type Memory } from '@rodkisten/jardim-contracts';
 import { fetchProtocol } from '@rodkisten/jardim-local-db/transport';
 import { RetryBackoff } from '@rodkisten/jardim-local-db/retry';
 import '@rodkisten/girassol/tokens.css';
@@ -197,7 +197,7 @@ function App() {
               ? 'Mensagem de voz'
               : 'Uma foto'),
         body: draftBody(),
-        ...(draftDocument() ? { richDocument: draftDocument() } : {}),
+        ...(draftDocument() ? { richDocument: RichDocument.parse(draftDocument()) } : {}),
         tags: String(data.get('tags'))
           .split(',')
           .map((s) => s.trim())
