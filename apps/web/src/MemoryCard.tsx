@@ -1,5 +1,6 @@
 import { memorySource, sources } from './timeline';
 import { Attachment } from './Attachment';
+import { RichMemory } from './RichMemory';
 import { createSignal } from 'solid-js';
 import { z, Snapshot } from '@rodkisten/jardim-contracts';
 import type { GardenDB } from '@rodkisten/jardim-local-db';
@@ -54,9 +55,7 @@ export function MemoryCard(props: {
         </time>
       </div>
       <h3>{props.memory.title}</h3>
-      <p>
-        {props.memory.body.replace(/\[anexo:[a-f0-9-]{36}\]/g, '').replace(/\[clima:.*\]/g, '')}
-      </p>
+      <RichMemory memory={props.memory} />
       {Array.from(
         new Set(
           Array.from(props.memory.body.matchAll(/\[anexo:([a-f0-9-]{36})\]/g), (match) => match[1]),

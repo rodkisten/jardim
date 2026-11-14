@@ -1,8 +1,8 @@
-import { createSignal, onCleanup } from 'solid-js';
+import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { render } from '@solidjs/web';
 import { liveQuery } from 'dexie';
 import { GardenDB } from '@rodkisten/jardim-local-db';
-import type { Memory } from '@rodkisten/jardim-contracts';
+import { RichDocument, type Memory } from '@rodkisten/jardim-contracts';
 import { fetchProtocol } from '@rodkisten/jardim-local-db/transport';
 import { RetryBackoff } from '@rodkisten/jardim-local-db/retry';
 import '@rodkisten/girassol/tokens.css';
@@ -16,9 +16,28 @@ import { Capsules } from './Capsules';
 import { WeatherCard } from './WeatherCard';
 import { Integrations } from './Integrations';
 import { MediaComposer, type PendingFile } from './MediaComposer';
+import { RichEditor } from './RichEditor';
+import { CommandPalette } from './CommandPalette';
+import { NavIcon } from './NavIcon';
 import { synchronizeDiary } from '@rodkisten/jardim-local-db/revisions';
 const db = new GardenDB();
+const DRAFT_KEY = 'jardim:composer-draft:v1';
+function readDraft(): { title: string; body: string; tags: string; document: Record<string, unknown> | null } {
+  try {
+    const value = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') as Record<string, unknown>;
+    return {
+      title: typeof value.title === 'string' ? value.title.slice(0, 160) : '',
+      body: typeof value.body === 'string' ? value.body.slice(0, 20000) : '',
+      tags: typeof value.tags === 'string' ? value.tags.slice(0, 1000) : '',
+      document: value.document && typeof value.document === 'object' && !Array.isArray(value.document) && (value.document as Record<string, unknown>).type === 'doc' ? value.document as Record<string, unknown> : null,
+    };
+  } catch {
+    return { title: '', body: '', tags: '', document: null };
+  }
+}
+
 function App() {
+  const restoredDraft = readDraft();
   const [memories, setMemories] = createSignal<Memory[]>([]),
     [pending, setPending] = createSignal(0),
     [status, setStatus] = createSignal('Preparando seu jardim…'),
@@ -26,16 +45,57 @@ function App() {
     [error, setError] = createSignal(''),
     [editing, setEditing] = createSignal<Memory | null>(null),
     // Draft fields must survive unrelated sync and UI updates in Solid's reactive render.
-    [draftTitle, setDraftTitle] = createSignal(''),
-    [draftBody, setDraftBody] = createSignal(''),
-    [draftTags, setDraftTags] = createSignal(''),
+    [draftTitle, setDraftTitle] = createSignal(restoredDraft.title),
+    [draftBody, setDraftBody] = createSignal(restoredDraft.body),
+    [draftTags, setDraftTags] = createSignal(restoredDraft.tags),
+    [draftDocument, setDraftDocument] = createSignal<Record<string, unknown> | null>(restoredDraft.document),
     [files, setFiles] = createSignal<PendingFile[]>([]),
     [recording, setRecording] = createSignal(false),
-    [composerOpen, setComposerOpen] = createSignal(false);
+    [composerOpen, setComposerOpen] = createSignal(false),
+    [searchOpen, setSearchOpen] = createSignal(false),
+    [searchQuery, setSearchQuery] = createSignal(''),
+    [activeSection, setActiveSection] = createSignal('memorias');
+  const filteredMemories = () => {
+    const query = searchQuery().trim().toLocaleLowerCase('pt-BR');
+    return query ? memories().filter((memory) => [memory.title, memory.body, ...memory.tags].some((value) => value.toLocaleLowerCase('pt-BR').includes(query))) : memories();
+  };
+  // Track the visible workspace section without polling scroll position.
+  createEffect(() => {
+    const ids = ['memorias', 'capsulas', 'integracoes'];
+    const sections = ids.map((id) => document.getElementById(id)).filter((element): element is HTMLElement => !!element);
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+      if (visible[0]) setActiveSection(visible[0].target.id);
+    }, { rootMargin: '-18% 0px -52% 0px', threshold: [0, 0.1, 0.3, 0.6] });
+    sections.forEach((section) => observer.observe(section));
+    onCleanup(() => observer.disconnect());
+  });
+  // Persist text drafts only; binary attachments remain in the local media queue.
+  // Editing an existing memory must never overwrite the new-memory draft.
+  createEffect(() => {
+    if (editing()) return;
+    const draft = { title: draftTitle(), body: draftBody(), tags: draftTags(), document: draftDocument() };
+    try {
+      if (draft.title || draft.body || draft.tags) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      else localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // Private browsing or exhausted storage must not block writing.
+    }
+  });
   let composerDialog: HTMLDialogElement | undefined;
   function openComposer() {
+    if (composerDialog?.open) return;
     setComposerOpen(true);
     composerDialog?.showModal();
+  }
+  function startNewMemory() {
+    setEditing(null);
+    const draft = readDraft();
+    setDraftTitle(draft.title);
+    setDraftBody(draft.body);
+    setDraftTags(draft.tags);
+    setDraftDocument(draft.document);
+    openComposer();
   }
   function closeComposer() {
     composerDialog?.close();
@@ -136,7 +196,8 @@ function App() {
             : files().some((file) => file.blob.type.startsWith('audio/'))
               ? 'Mensagem de voz'
               : 'Uma foto'),
-        body: String(data.get('body')),
+        body: draftBody(),
+        ...(draftDocument() ? { richDocument: RichDocument.parse(draftDocument()) } : {}),
         tags: String(data.get('tags'))
           .split(',')
           .map((s) => s.trim())
@@ -144,11 +205,20 @@ function App() {
       };
       if (editing()) await db.change(editing()!.id, input);
       else await db.plant(input, files());
+      const savedExistingMemory = Boolean(editing());
       setFiles([]);
       setEditing(null);
       setDraftTitle('');
       setDraftBody('');
       setDraftTags('');
+      setDraftDocument(null);
+      if (!savedExistingMemory) {
+        try {
+          localStorage.removeItem(DRAFT_KEY);
+        } catch {
+          // Storage may be disabled.
+        }
+      }
       form.reset();
       closeComposer();
       void sync();
@@ -184,7 +254,7 @@ function App() {
   }
   return (
     <>
-      <header>
+      <header class="app-header">
         <a class="brand" href="/">
           <span class="brand-mark" aria-hidden="true">
             <i />
@@ -194,7 +264,9 @@ function App() {
           </span>
           <span>Jardim</span>
         </a>
-        <div class="actions">
+        <div class="actions header-actions">
+          <span class="header-context">Workspace pessoal</span>
+          <CommandPalette memories={memories()} onCreate={startNewMemory} onSearch={(query) => { setSearchQuery(query); setSearchOpen(true); document.getElementById("memorias")?.scrollIntoView({ behavior: "smooth" }); }} onNavigate={(section) => document.getElementById(section)?.scrollIntoView({ behavior: "smooth" })} />
           <ThemeSwitch />
           <button class="subtle" onClick={() => void exportData()}>
             Exportar
@@ -204,14 +276,35 @@ function App() {
           </form>
         </div>
       </header>
-      <main>
+      <div class="workspace-layout">
+        <aside class="workspace-sidebar" aria-label="Seções do Jardim">
+          <span class="workspace-sidebar-label">WORKSPACE</span>
+          <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}><NavIcon name="memories" /> <span>Memórias</span></a>
+          <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}><NavIcon name="capsules" /> <span>Cápsulas</span></a>
+          <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}><NavIcon name="connections" /> <span>Conexões</span></a>
+          <div class="workspace-sidebar-divider" />
+          <button type="button" onClick={() => setSearchOpen(!searchOpen())}><NavIcon name="search" /> <span>Buscar</span></button>
+          <button type="button" onClick={startNewMemory}><NavIcon name="plus" /> <span>Nova memória</span></button>
+          <span class="workspace-sidebar-bottom">{pending() ? `${pending()} pendente(s)` : 'Tudo em seu lugar'}</span>
+        </aside>
+      <main class="app-main">
         <nav class="page-nav" aria-label="Navegação principal">
-          <a href="#memorias">Memórias</a>
-          <a href="#capsulas">Cápsulas</a>
-          <a href="#integracoes">Conexões</a>
+          <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}>Memórias</a>
+          <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}>Cápsulas</a>
+          <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}>Conexões</a>
         </nav>
+        {searchOpen() ? (
+          <section class="workspace-search" role="search">
+            <label for="memory-search">Buscar memórias</label>
+            <div class="workspace-search-row">
+              <input id="memory-search" type="search" value={searchQuery()} onInput={(event) => setSearchQuery(event.currentTarget.value)} placeholder="Título, texto ou tag…" />
+              <button type="button" class="subtle" onClick={() => { setSearchQuery(''); setSearchOpen(false); }}>Fechar</button>
+            </div>
+            <span class="muted">{filteredMemories().length} resultado(s) na timeline</span>
+          </section>
+        ) : null}
         <section class="intro">
-          <p class="eyebrow">SEU ARQUIVO PESSOAL</p>
+          <p class="eyebrow">JARDIM / VISÃO GERAL</p>
           <h1>
             Sua vida,
             <br />
@@ -229,8 +322,8 @@ function App() {
         </section>
         <WeatherCard db={db} memories={memories()} onChanged={() => void sync()} />
         <div class="new-memory-bar">
-          <p>Uma nota, uma foto, uma mensagem.</p>
-          <button class="new-memory" onClick={openComposer}>
+          <div class="memory-bar-heading"><span class="eyebrow">SUAS MEMÓRIAS</span><p>Uma nota, uma foto, uma mensagem.</p></div>
+          <button class="new-memory" onClick={startNewMemory}>
             + Nova memória
           </button>
         </div>
@@ -264,16 +357,7 @@ function App() {
                   maxlength={160}
                 />
                 <label for="body">Sua memória</label>
-                <textarea
-                  value={draftBody()}
-                  onInput={(event) => setDraftBody(event.currentTarget.value)}
-                  id="body"
-                  name="body"
-                  placeholder="Escreva aqui…"
-                  rows={4}
-                  required={!files().length}
-                  maxlength={20000}
-                />
+                <RichEditor value={draftBody()} onChange={setDraftBody} document={draftDocument()} onDocumentChange={setDraftDocument} disabled={busy()} />
                 <label for="tags">
                   Tags <span class="muted">· separadas por vírgula</span>
                 </label>
@@ -302,9 +386,12 @@ function App() {
                     class="subtle"
                     onClick={() => {
                       setEditing(null);
-                      setDraftTitle('');
-                      setDraftBody('');
-                      setDraftTags('');
+                      const draft = readDraft();
+                      setDraftTitle(draft.title);
+                      setDraftBody(draft.body);
+                      setDraftTags(draft.tags);
+                      setDraftDocument(draft.document);
+                      closeComposer();
                     }}
                   >
                     Cancelar edição
@@ -322,13 +409,14 @@ function App() {
             </section>
           </dialog>
           <Timeline
-            memories={memories()}
+            memories={filteredMemories()}
             db={db}
             onEdit={(memory) => {
-              openComposer();
               setEditing(memory);
+              openComposer();
               setDraftTitle(memory.title);
               setDraftBody(memory.body);
+              setDraftDocument(memory.richDocument ?? null);
               setDraftTags(memory.tags.join(', '));
               document.getElementById('title')?.focus();
             }}
@@ -361,6 +449,14 @@ function App() {
           JARDIM <span>Seu arquivo. Seu tempo.</span>
         </footer>
       </main>
+      </div>
+      <nav class="mobile-bottom-nav" aria-label="Acesso rápido">
+        <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}><NavIcon name="memories" />Memórias</a>
+        <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}><NavIcon name="capsules" />Cápsulas</a>
+        <button type="button" class="mobile-create" onClick={startNewMemory} aria-label="Criar memória"><NavIcon name="plus" size={25} /></button>
+        <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}><NavIcon name="connections" />Conexões</a>
+        <button type="button" onClick={() => { setSearchOpen(true); document.querySelector('.workspace-search')?.scrollIntoView({ behavior: 'smooth' }); }}><NavIcon name="search" />Buscar</button>
+      </nav>
     </>
   );
 }

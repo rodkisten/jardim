@@ -10,7 +10,18 @@
     "@rodkisten/jardim-contracts": "workspace:*",
     "@rodkisten/jardim-local-db": "workspace:*",
     "@rodkisten/girassol": "workspace:*",
-    "@rodkisten/jardim-cards": "workspace:*"
+    "@rodkisten/jardim-cards": "workspace:*",
+    "@tiptap/core": "^3.0.0",
+    "@tiptap/starter-kit": "^3.0.0",
+    "@tiptap/extension-link": "^3.0.0",
+    "@tiptap/extension-placeholder": "^3.0.0",
+    "@tiptap/extension-underline": "^3.0.0",
+    "@tiptap/extension-text-align": "^3.0.0",
+    "@tiptap/extension-highlight": "^3.0.0",
+    "@tiptap/extension-task-list": "^3.0.0",
+    "@tiptap/extension-task-item": "^3.0.0",
+    "@tiptap/extension-typography": "^3.0.0",
+    "@tiptap/extension-character-count": "^3.0.0"
   },
   "scripts": {
     "build": "vite build --config ../../vite.config.ts",

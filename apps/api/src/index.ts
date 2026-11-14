@@ -175,8 +175,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if (!parsed.success) return json({ error: 'Lote inválido' }, 400);
     const statements = parsed.data.operations.map(({ operationId, memory: m }) =>
       env.DB.prepare(
-        'INSERT INTO memories(id,operation_id,title,body,tags,created_at) VALUES(?,?,?,?,?,?) ON CONFLICT DO NOTHING',
-      ).bind(m.id, operationId, m.title, m.body, JSON.stringify(m.tags), m.createdAt),
+        'INSERT INTO memories(id,operation_id,title,body,tags,created_at,rich_document) VALUES(?,?,?,?,?,?,?) ON CONFLICT DO NOTHING',
+      ).bind(m.id, operationId, m.title, m.body, JSON.stringify(m.tags), m.createdAt, m.richDocument ? JSON.stringify(m.richDocument) : null),
     );
     // Insert-only records preserve the first accepted memory; retries cannot overwrite it.
     await env.DB.batch(statements);
@@ -209,6 +209,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
         body: string;
         tags: string;
         created_at: string;
+        rich_document: string | null;
       }>();
     return json({
       memories: rows.results.map((r) => ({
@@ -217,6 +218,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
         body: r.body,
         tags: JSON.parse(r.tags),
         createdAt: r.created_at,
+        ...(r.rich_document ? { richDocument: JSON.parse(r.rich_document) } : {}),
       })),
       cursor: rows.results.at(-1)?.sequence || cursor,
       hasMore: rows.results.length === 100,
