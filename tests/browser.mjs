@@ -13,7 +13,7 @@ const browser = await chromium.launch({
 });
 async function openEditor(page) {
   if (!(await page.getByRole('dialog').isVisible()))
-    await page.getByRole('button', { name: '+ Nova memória', exact: true }).click();
+    await page.getByRole('button', { name: 'Criar memória', exact: true }).click();
 }
 let pageForFailure;
 try {
@@ -45,7 +45,7 @@ try {
   await page.getByRole('alert').waitFor();
   await page.getByLabel('Sua senha').fill('local-test-only');
   await page.getByRole('button', { name: 'Entrar no Jardim' }).click();
-  await page.getByRole('button', { name: '+ Nova memória', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Criar memória', exact: true }).waitFor();
   console.log('E2E: manual dark theme and persisted preference');
   await page.getByRole('button', { name: 'Tema: Sistema. Alterar tema', exact: true }).click();
   await page.getByRole('button', { name: 'Tema: Claro. Alterar tema', exact: true }).click();
