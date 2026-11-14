@@ -34,7 +34,7 @@ export function RichEditor(props: {
       element: host,
       content: { type: 'doc', content: [{ type: 'paragraph', content: props.value ? [{ type: 'text', text: props.value }] : [] }] },
       extensions: [
-        StarterKit.configure({ link: false, underline: false }),
+        StarterKit.configure({ link: false, underline: false, taskList: false, taskItem: false }),
         Link.configure({ openOnClick: false, autolink: true, defaultProtocol: 'https' }),
         Underline,
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
@@ -61,7 +61,10 @@ export function RichEditor(props: {
       refresh();
     }
   });
-  createEffect(() => editor?.setEditable(!props.disabled));
+  createEffect(() => {
+    const disabled = props.disabled;
+    editor?.setEditable(!disabled);
+  });
   const action = (label: string, fn: (editor: Editor) => void, active?: (editor: Editor) => boolean) => (
     <button type="button" aria-label={label} aria-pressed={editor && active ? active(editor) : undefined}
       class="rich-action" onClick={() => run(fn)}>{label}</button>
