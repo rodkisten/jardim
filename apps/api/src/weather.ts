@@ -48,31 +48,33 @@ export async function weather(url: URL, fetcher: typeof fetch = fetch) {
     return Response.json({ error: 'Localização inválida' }, { status: 400 });
   const data = z
     .object({
-      current: z.object({
-        time: z.string(),
-        temperature_2m: z.number(),
-        weather_code: z.number().int(),
-        is_day: z.number().int(),
-      }),
       timezone: z.string(),
+      daily: z.object({
+        time: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1),
+        temperature_2m_min: z.array(z.number()).min(1),
+        temperature_2m_max: z.array(z.number()).min(1),
+        weather_code: z.array(z.number().int()).min(1),
+        precipitation_probability_max: z.array(z.number().min(0).max(100).nullable()).min(1),
+      }),
     })
     .parse(
       await externalJson(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,is_day&timezone=UTC`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max&timezone=auto&forecast_days=1`,
         {},
         fetcher,
       ),
     );
   return Response.json({
-    temperature: data.current.temperature_2m,
-    code: data.current.weather_code,
-    isDay: data.current.is_day === 1,
-    modelTime: data.current.time + 'Z',
+    date: data.daily.time[0],
+    minimum: data.daily.temperature_2m_min[0],
+    maximum: data.daily.temperature_2m_max[0],
+    code: data.daily.weather_code[0],
+    rainChance: data.daily.precipitation_probability_max[0],
     retrievedAt: new Date().toISOString(),
     source: 'Open-Meteo',
-    kind: 'model_estimate',
+    kind: 'forecast',
     latitude,
     longitude,
-    timezone: 'UTC',
+    timezone: data.timezone,
   });
 }

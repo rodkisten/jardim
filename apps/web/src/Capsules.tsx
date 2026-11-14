@@ -140,6 +140,7 @@ export function Capsules(props: { db: GardenDB; memories: Memory[]; onChanged: (
   }
   return (
     <details
+      id="capsulas"
       class="composer capsules"
       onToggle={(event) => {
         if (event.currentTarget.open) void load();

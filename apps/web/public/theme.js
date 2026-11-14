@@ -15,7 +15,7 @@
     const dark = mode === 'dark' || (mode === 'system' && media.matches);
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', dark ? '#172019' : '#f4f1e9');
+      ?.setAttribute('content', dark ? '#17161d' : '#faf9fc');
     const button = document.querySelector('[data-login-theme]');
     if (button)
       button.textContent = `◐ Tema: ${mode === 'system' ? 'Sistema' : mode === 'dark' ? 'Escuro' : 'Claro'}`;

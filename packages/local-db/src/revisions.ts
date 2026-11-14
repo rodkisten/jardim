@@ -25,7 +25,10 @@ async function exchange(db: GardenDB, fetcher: typeof fetch) {
   for (const file of files) {
     const response = await fetcher(`/v2/media/${file.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': file.blob.type },
+      headers: {
+        'Content-Type': file.blob.type,
+        ...(file.duration ? { 'X-Media-Duration': String(file.duration) } : {}),
+      },
       body: file.blob,
     });
     if (!response.ok) throw Error('Anexos preservados neste dispositivo. Não foi possível enviar.');

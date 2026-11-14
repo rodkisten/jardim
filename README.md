@@ -75,7 +75,7 @@ Implementação de referência: commit `feat: ship editable multimedia diary wit
 - [x] Gravação de voz e vídeo circular de até 30 segundos, escolhendo MIME por `MediaRecorder.isTypeSupported`, com tratamento de permissão e fallback por seleção de arquivo.
 - [x] Upload autenticado e imutável por UUID/hash; leitura protegida e respostas de byte range para reprodução de mídia.
 - [x] Busca textual com filtros por dia e fonte.
-- [x] Card do dia com cidade escolhida explicitamente, consulta Open-Meteo, fonte, horário UTC e indicação de **estimativa modelada**, com persistência opcional como memória.
+- [x] Card do dia com cidade escolhida explicitamente e salva, previsão diária Open-Meteo no fuso da cidade, mínima/máxima, condição e chance de chuva, com persistência opcional como memória.
 - [x] Pacote `@rodkisten/girassol` separado do domínio do Jardim, com Button, Input, Card, Badge, CSS Modules, tokens e galeria visual.
 - [x] Tema **Sistema / Claro / Escuro**, com troca no cabeçalho e login, preferência por dispositivo, atualização entre abas e aplicação antes da primeira pintura. A aplicação continua utilizável se o armazenamento de preferências estiver bloqueado.
 - [x] Registros culturais manuais: filme/série, estado, data da experiência, nota, comentário, temporada e episódio; link de busca IMDb com publicação manual.
@@ -86,7 +86,7 @@ Implementação de referência: commit `feat: ship editable multimedia diary wit
 
 **Conectores implementados, com ativação externa pendente:** Spotify usa OAuth PKCE com estado de uso único, escopo `user-read-recently-played`, renovação de token e armazenamento AES-GCM com chave independente da senha do Jardim. A coleta atual cobre até 50 músicas recentes por consulta, não o histórico completo nem toda a biblioteca/podcasts. TMDB possui busca autenticada de filmes e séries. Testes usam respostas controladas; o fluxo real depende das credenciais abaixo e não é marcado como validado em produção.
 
-**Configuração de integrações:** `SPOTIFY_CLIENT_ID` é a variável pública da aplicação registrada no Spotify; cadastre `https://jardim.migos.club/v2/spotify/callback` como redirect URI. `INTEGRATION_KEY` é um secret de 32 bytes em hexadecimal usado para criptografar tokens. `TMDB_TOKEN` é o API Read Access Token, também secret. Nunca coloque tokens nos arquivos versionados ou no JavaScript do navegador. Sem a configuração, os controles indicam a pendência e o diário/importadores manuais continuam disponíveis. Desconectar Spotify remove os tokens locais; a revogação completa pode ser feita no painel da conta Spotify. Não há envio de áudio protegido, nem análise de dados Spotify por IA.
+**Configuração de integrações:** configure o Client ID na interface, em **Cultura, Spotify e conexões → Configurar aplicação Spotify**; a variável pública `SPOTIFY_CLIENT_ID` continua disponível como alternativa para uma aplicação registrada no Spotify; cadastre `https://jardim.migos.club/v2/spotify/callback` como redirect URI. `INTEGRATION_KEY` é um secret de 32 bytes em hexadecimal usado para criptografar tokens. `TMDB_TOKEN` é o API Read Access Token, também secret. Nunca coloque tokens nos arquivos versionados ou no JavaScript do navegador. Sem a configuração, os controles indicam a pendência e o diário/importadores manuais continuam disponíveis. Desconectar Spotify remove os tokens locais; a revogação completa pode ser feita no painel da conta Spotify. Não há envio de áudio protegido, nem análise de dados Spotify por IA.
 
 **Migrações:** `0003_revisions.sql` preserva a tabela e os rowids antigos, acrescenta versões, lixeira, journal monotônico e recibos; `0004_capsules.sql` guarda snapshots imutáveis; `0005_integrations.sql` acrescenta credenciais criptografadas, estados OAuth e proveniência. `tests/migrations.test.ts` executa a atualização sobre uma memória preexistente e confere conteúdo, ID, rowid e histórico inicial. A criação legada `/v1` continua disponível para o capturador; recarregue clientes antigos para usar edição e exclusão via `/v2`.
 
@@ -110,6 +110,25 @@ Implementação de referência: commit `feat: ship editable multimedia diary wit
 As opções ficam em uma grade de duas colunas para celular, com navegação acessível por nome e botões de pelo menos 44 px. O filtro é local e funciona offline. Trocar o fuso do dispositivo pode mudar o agrupamento; ainda não há um fuso histórico por memória. Não houve mudança de schema ou migração nesta etapa.
 
 Validação: `tests/timeline.test.ts` cobre fuso, limites da semana entre anos, fontes, busca, aniversários, ano bissexto, navegação de fim de mês e ordenação de instantes com precisão fracionária. O Chromium verifica períodos e agrupamento por fonte com uma lembrança sintética de outro ano em D1 local.
+
+### Continuação · visual, mensagens e clima diário
+
+Referência de direção visual: https://githubnext.com/. Girassol passa a usar superfícies neutras, tipografia sans, cards com campos suaves de cor rosa/azul/coral/violeta, estados claros e escuros e movimentos curtos com respeito a `prefers-reduced-motion`. A fonte Mona Sans de GitHub é distribuída localmente, sob SIL Open Font License (`apps/web/src/assets/MonaSans-OFL.txt`); não há requisição a um provedor de fontes. O ícone PWA e os cards de cápsulas acompanham a paleta. A interface não usa metáforas botânicas ou verde obrigatório.
+
+- [x] Editor recolhido por padrão, aberto por **Nova memória** em diálogo modal, com foco e fechamento nativos. Fechar preserva o rascunho durante a sessão; salvar fecha o editor. Ao fechar durante captura, câmera e microfone são liberados e a gravação em andamento é descartada.
+- [x] Memórias somente com mídia, sem obrigar título/texto: o título é preenchido conforme o anexo. Fotos/áudio/vídeo têm prévia antes de salvar.
+- [x] Áudio com forma de onda derivada das amostras reais, reprodução/pausa, busca e velocidades 1×/1,5×/2×. A decodificação é iniciada quando o player entra na área visível; formato sem suporte indica indisponibilidade, sem simular barras.
+- [x] Medidor de frequências reais do microfone durante captura, contador, pausa/retomada e descarte. Gravações limitadas a 30 segundos ativos e 12 MiB; limite de cinco anexos preservado.
+- [x] Mensagens de vídeo circulares com câmera frontal/traseira escolhida antes de gravar, prévia, anel de progresso, reprodução por toque, busca, velocidade e opção de ampliar/recolher. Um player pausa os demais ao iniciar.
+- [x] Cidade salva na conta e no dispositivo; última previsão disponível offline e atualização automática ao retornar/reconectar/mudar de dia. Sem localização automática. Memória antiga de clima com coordenadas pode recuperar a cidade durante atualização.
+- [x] Previsão **do dia**, com data e fuso da cidade, mínima/máxima, condição e probabilidade máxima de chuva. É previsão modelada, não medição de estação; uma previsão de outro dia é identificada como antiga.
+- [x] Configuração Spotify na interface, endereço de retorno copiável, indicação de configuração ausente e mensagens para autorização cancelada ou troca de token malsucedida. Trocar a aplicação invalida estados OAuth e tokens anteriores.
+
+**Spotify em produção:** a investigação encontrou ausência de Client ID. Ainda é necessário registrar/usar uma aplicação própria no Spotify for Developers, cadastrar o endereço de retorno exibido e informar seu Client ID na interface. O fluxo usa PKCE, sem solicitar Client Secret. A autorização real e os limites de desenvolvimento dependem da conta/aplicação Spotify; a configuração guiada não é uma alegação de conexão já autorizada.
+
+**Dados:** migração aditiva `0006_preferences.sql` cria apenas preferências validadas, sem alterar memórias ou mídia. Tokens OAuth continuam criptografados em tabela separada. A preferência de cidade é retomada offline e sincronizada ao reconectar. O rascunho do editor é preservado ao fechar/abrir na mesma sessão, sem promessa de persistência após recarga.
+
+**Validação:** testes medem picos reais/silêncio, preferências e troca de aplicação, previsão diária com origem fixa e preservação das memórias na migração. Chromium cobre editor fechado/rascunho, cidade após recarga, waveform de áudio sintético, captura com pausa/retomada, vídeo circular e início PKCE. Safari iPhone, permissões reais e codecs específicos continuam precisando de validação em dispositivo.
 
 ### Limites atuais
 

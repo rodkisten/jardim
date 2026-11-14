@@ -23,6 +23,7 @@ test('forward migrations preserve existing IDs and rowids and seed revision hist
       '0003_revisions.sql',
       '0004_capsules.sql',
       '0005_integrations.sql',
+      '0006_preferences.sql',
     ])
       db.exec(readFileSync('infra/cloudflare/migrations/' + file, 'utf8'));
     expect(

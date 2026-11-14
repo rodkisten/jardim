@@ -90,3 +90,10 @@ model Capsule {
  @@index([month,createdAt(sort:Desc)],map:"capsules_month")
  @@map("capsules")
 }
+
+model AppPreference {
+ key String @id
+ value String
+ updatedAt String @map("updated_at")
+ @@map("app_preferences")
+}

@@ -1,9 +1,12 @@
+import { MediaPlayer } from './MediaPlayer';
 import { createSignal, onCleanup } from 'solid-js';
 import type { GardenDB } from '@rodkisten/jardim-local-db';
 export function Attachment(props: { id: string; db?: GardenDB }) {
   const [source, setSource] = createSignal(''),
     [type, setType] = createSignal(''),
-    [error, setError] = createSignal('');
+    [error, setError] = createSignal(''),
+    [blob, setBlob] = createSignal<Blob | undefined>(undefined),
+    [duration, setDuration] = createSignal<number | undefined>(undefined);
   let localUrl = '',
     disposed = false;
   async function load() {
@@ -15,6 +18,8 @@ export function Attachment(props: { id: string; db?: GardenDB }) {
         if (localUrl) URL.revokeObjectURL(localUrl);
         localUrl = URL.createObjectURL(local.blob);
         setType(local.blob.type);
+        setBlob(local.blob);
+        setDuration(local.duration);
         setSource(localUrl);
         return;
       }
@@ -24,6 +29,8 @@ export function Attachment(props: { id: string; db?: GardenDB }) {
         throw Error('Anexo ainda não recebido. Conecte o dispositivo de origem para enviar.');
       if (!disposed) {
         setType(response.headers.get('Content-Type') || '');
+        const hint = Number(response.headers.get('X-Media-Duration'));
+        if (Number.isFinite(hint) && hint > 0 && hint <= 86400) setDuration(hint);
         setSource(url);
       }
     } catch (error) {
@@ -42,10 +49,8 @@ export function Attachment(props: { id: string; db?: GardenDB }) {
         <>
           {type().startsWith('image/') ? (
             <img src={source()} alt="Foto da memória" loading="lazy" />
-          ) : type().startsWith('audio/') ? (
-            <audio controls preload="metadata" src={source()} />
-          ) : type().startsWith('video/') ? (
-            <video class="circular-video" controls playsinline preload="metadata" src={source()} />
+          ) : type().startsWith('audio/') || type().startsWith('video/') ? (
+            <MediaPlayer source={source()} type={type()} blob={blob()} durationHint={duration()} />
           ) : null}
           <figcaption>
             <a href={source()} download="anexo">

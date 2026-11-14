@@ -1,0 +1,137 @@
+.player {
+  max-width: 100%;
+}
+.audioMessage {
+  padding: 12px;
+  border: 1px solid var(--g-border);
+  border-radius: 20px;
+  background: var(--g-tint);
+}
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+}
+.controls button {
+  flex-shrink: 0;
+  min-height: 44px;
+  min-width: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--g-surface);
+  color: var(--g-accent);
+}
+.controls .play {
+  color: var(--g-on-accent);
+  background: var(--g-accent);
+  font-size: 18px;
+}
+.track {
+  flex: 1;
+  min-width: 0;
+}
+.track input {
+  width: 100%;
+  padding: 0;
+  height: 14px;
+  border: 0;
+  accent-color: var(--g-accent);
+}
+.wave {
+  height: 40px;
+  display: grid;
+  align-items: center;
+}
+.wave svg {
+  width: 100%;
+  height: 40px;
+}
+.wave span {
+  font-size: 11px;
+  color: var(--g-muted);
+}
+.time {
+  display: block;
+  font-size: 11px;
+  color: var(--g-muted);
+  font-variant-numeric: tabular-nums;
+}
+.speed {
+  font-size: 12px;
+}
+.videoMessage {
+  width: min(100%, 300px);
+  margin: auto;
+}
+.videoFrame {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #17171c;
+  isolation: isolate;
+}
+.videoFrame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.videoToggle {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  border-radius: 50%;
+  color: white;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+.videoToggle span {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #16162088;
+  backdrop-filter: blur(6px);
+}
+.player[data-playing='true'] .videoToggle {
+  opacity: 0;
+}
+.videoFrame:hover .videoToggle,
+.videoToggle:focus-visible {
+  opacity: 1;
+}
+.ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transform: rotate(-90deg);
+}
+.ring circle {
+  fill: none;
+  stroke: var(--g-accent);
+  stroke-width: 2;
+}
+.player[data-expanded='true'] {
+  width: 100%;
+}
+.player[data-expanded='true'] .videoFrame {
+  border-radius: 16px;
+  aspect-ratio: 4/5;
+}
+.player[data-expanded='true'] video {
+  object-fit: contain;
+}
+.player[data-expanded='true'] .ring {
+  display: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .videoMessage {
+    transition: width 220ms ease;
+  }
+}

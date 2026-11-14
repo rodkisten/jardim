@@ -1,3 +1,4 @@
+import { readPreferences } from './preferences';
 import { z } from '@rodkisten/jardim-contracts';
 import { hash } from './auth';
 import { externalJson } from './external';
@@ -66,16 +67,38 @@ async function storeToken(env: IntegrationEnv, token: z.infer<typeof Token>) {
     .bind('spotify', await encode(env, token), token.expires_at)
     .run();
 }
+async function configuredEnv(env: IntegrationEnv): Promise<IntegrationEnv> {
+  const settings = await readPreferences(env);
+  return {
+    ...env,
+    SPOTIFY_CLIENT_ID:
+      typeof settings.spotifyClientId === 'string'
+        ? settings.spotifyClientId
+        : env.SPOTIFY_CLIENT_ID,
+  };
+}
 export async function integrationStatus(env: IntegrationEnv) {
+  env = await configuredEnv(env);
   const row = await env.DB.prepare('SELECT expires_at FROM integration_tokens WHERE provider=?')
     .bind('spotify')
     .first();
   return Response.json({
-    spotify: { configured: !!env.SPOTIFY_CLIENT_ID && !!env.INTEGRATION_KEY, connected: !!row },
+    spotify: {
+      configured: !!env.SPOTIFY_CLIENT_ID && !!env.INTEGRATION_KEY,
+      connected: !!row,
+      clientId: env.SPOTIFY_CLIENT_ID || '',
+      redirectUri: env.APP_ORIGIN + '/v2/spotify/callback',
+      missing: !env.SPOTIFY_CLIENT_ID
+        ? 'client_id'
+        : !env.INTEGRATION_KEY
+          ? 'encryption_key'
+          : null,
+    },
     tmdb: { configured: !!env.TMDB_TOKEN },
   });
 }
 export async function spotifyStart(env: IntegrationEnv) {
+  env = await configuredEnv(env);
   if (!env.SPOTIFY_CLIENT_ID || !env.INTEGRATION_KEY)
     return Response.json(
       { error: 'A aplicação Spotify precisa ser configurada.' },
@@ -114,6 +137,12 @@ export async function spotifyCallback(
   url: URL,
   fetcher: typeof fetch = fetch,
 ) {
+  env = await configuredEnv(env);
+  if (url.searchParams.has('error'))
+    return new Response(null, {
+      status: 303,
+      headers: { Location: '/?spotify=denied#integracoes' },
+    });
   const state = url.searchParams.get('state') || '',
     code = url.searchParams.get('code') || '';
   if (
@@ -132,29 +161,36 @@ export async function spotifyCallback(
     .first<{ verifier: string }>();
   if (!pending)
     return new Response('Conexão expirada. Abra o Jardim para tentar novamente.', { status: 400 });
-  const response = TokenResponse.parse(
-    await externalJson(
-      'https://accounts.spotify.com/api/token',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: env.APP_ORIGIN + '/v2/spotify/callback',
-          client_id: env.SPOTIFY_CLIENT_ID,
-          code_verifier: pending.verifier,
-        }),
-      },
-      fetcher,
-    ),
-  );
-  if (!response.refresh_token) throw Error('Spotify não forneceu renovação.');
-  await storeToken(env, {
-    access_token: response.access_token,
-    refresh_token: response.refresh_token,
-    expires_at: Date.now() + response.expires_in * 1000,
-  });
+  try {
+    const response = TokenResponse.parse(
+      await externalJson(
+        'https://accounts.spotify.com/api/token',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: env.APP_ORIGIN + '/v2/spotify/callback',
+            client_id: env.SPOTIFY_CLIENT_ID,
+            code_verifier: pending.verifier,
+          }),
+        },
+        fetcher,
+      ),
+    );
+    if (!response.refresh_token) throw Error('Spotify não forneceu renovação.');
+    await storeToken(env, {
+      access_token: response.access_token,
+      refresh_token: response.refresh_token,
+      expires_at: Date.now() + response.expires_in * 1000,
+    });
+  } catch {
+    return new Response(null, {
+      status: 303,
+      headers: { Location: '/?spotify=failed#integracoes' },
+    });
+  }
   return new Response(null, { status: 303, headers: { Location: '/#integracoes' } });
 }
 export async function disconnectSpotify(env: IntegrationEnv) {
@@ -165,6 +201,7 @@ export async function disconnectSpotify(env: IntegrationEnv) {
   return Response.json({ ok: true });
 }
 async function spotifyAccess(env: IntegrationEnv, fetcher: typeof fetch) {
+  env = await configuredEnv(env);
   const row = await env.DB.prepare('SELECT encrypted FROM integration_tokens WHERE provider=?')
     .bind('spotify')
     .first<{ encrypted: string }>();

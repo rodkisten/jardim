@@ -30,7 +30,17 @@ function App() {
     [draftBody, setDraftBody] = createSignal(''),
     [draftTags, setDraftTags] = createSignal(''),
     [files, setFiles] = createSignal<PendingFile[]>([]),
-    [recording, setRecording] = createSignal(false);
+    [recording, setRecording] = createSignal(false),
+    [composerOpen, setComposerOpen] = createSignal(false);
+  let composerDialog: HTMLDialogElement | undefined;
+  function openComposer() {
+    setComposerOpen(true);
+    composerDialog?.showModal();
+  }
+  function closeComposer() {
+    composerDialog?.close();
+    setComposerOpen(false);
+  }
   let syncing = false,
     resyncRequested = false,
     resyncManual = false;
@@ -119,7 +129,13 @@ function App() {
     setError('');
     try {
       const input = {
-        title: String(data.get('title')),
+        title:
+          String(data.get('title')).trim() ||
+          (files().some((file) => file.blob.type.startsWith('video/'))
+            ? 'Mensagem de vídeo'
+            : files().some((file) => file.blob.type.startsWith('audio/'))
+              ? 'Mensagem de voz'
+              : 'Uma foto'),
         body: String(data.get('body')),
         tags: String(data.get('tags'))
           .split(',')
@@ -134,6 +150,7 @@ function App() {
       setDraftBody('');
       setDraftTags('');
       form.reset();
+      closeComposer();
       void sync();
     } catch {
       setError(
@@ -169,7 +186,13 @@ function App() {
     <>
       <header>
         <a class="brand" href="/">
-          ✳ <span>Jardim</span>
+          <span class="brand-mark" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+          <span>Jardim</span>
         </a>
         <div class="actions">
           <ThemeSwitch />
@@ -182,17 +205,19 @@ function App() {
         </div>
       </header>
       <main>
+        <nav class="page-nav" aria-label="Navegação principal">
+          <a href="#memorias">Memórias</a>
+          <a href="#capsulas">Cápsulas</a>
+          <a href="#integracoes">Conexões</a>
+        </nav>
         <section class="intro">
-          <p class="eyebrow">SEU JARDIM PESSOAL</p>
+          <p class="eyebrow">SEU ARQUIVO PESSOAL</p>
           <h1>
-            A vida acontece.
+            Sua vida,
             <br />
-            <em>Guarde o que floresce.</em>
+            <em>em detalhes.</em>
           </h1>
-          <p class="lead">
-            Pequenas descobertas, dias especiais e pensamentos
-            <br class="desktop" /> que merecem ficar. Tudo tem lugar aqui.
-          </p>
+          <p class="lead">O que você vive, ouve e quer lembrar.</p>
           <div class="sync" role="status">
             <span class="dot" />
             {status()}
@@ -203,84 +228,104 @@ function App() {
           </div>
         </section>
         <WeatherCard db={db} memories={memories()} onChanged={() => void sync()} />
+        <div class="new-memory-bar">
+          <p>Uma nota, uma foto, uma mensagem.</p>
+          <button class="new-memory" onClick={openComposer}>
+            + Nova memória
+          </button>
+        </div>
         <div class="layout">
-          <section class="composer">
-            <div class="section-title">
-              <span>01 / CULTIVAR</span>
-              <span>✺</span>
-            </div>
-            <h2>O que você quer lembrar?</h2>
-            <form onSubmit={save}>
-              <label for="title">Dê um nome a esse momento</label>
-              <input
-                value={draftTitle()}
-                onInput={(event) => setDraftTitle(event.currentTarget.value)}
-                id="title"
-                name="title"
-                placeholder="Uma coisa boa de hoje…"
-                required
-                maxlength={160}
-              />
-              <label for="body">Sua memória</label>
-              <textarea
-                value={draftBody()}
-                onInput={(event) => setDraftBody(event.currentTarget.value)}
-                id="body"
-                name="body"
-                placeholder="Escreva sem pressa."
-                rows={6}
-                required
-                maxlength={20000}
-              />
-              <label for="tags">
-                Tags <span class="muted">· separadas por vírgula</span>
-              </label>
-              <input
-                value={draftTags()}
-                onInput={(event) => setDraftTags(event.currentTarget.value)}
-                id="tags"
-                name="tags"
-                placeholder="vida, descobertas, gratidão"
-              />
-              {!editing() ? (
-                <MediaComposer
-                  files={files()}
-                  onChange={setFiles}
-                  onRecordingChange={setRecording}
-                />
-              ) : null}
-              <button class="primary" disabled={busy() || recording()}>
-                {busy() ? 'Guardando…' : editing() ? 'Salvar edição' : 'Plantar uma memória'}{' '}
-                <span aria-hidden="true">↗</span>
-              </button>
-              {editing() ? (
-                <button
-                  type="button"
-                  class="subtle"
-                  onClick={() => {
-                    setEditing(null);
-                    setDraftTitle('');
-                    setDraftBody('');
-                    setDraftTags('');
-                  }}
-                >
-                  Cancelar edição
+          <dialog
+            class="memory-dialog"
+            ref={(element) => {
+              composerDialog = element;
+            }}
+            onClose={() => setComposerOpen(false)}
+            onCancel={() => setComposerOpen(false)}
+            aria-labelledby="composer-heading"
+          >
+            <section class="composer">
+              <div class="section-title">
+                <span>{editing() ? 'EDITAR MEMÓRIA' : 'NOVA MEMÓRIA'}</span>
+                <button class="subtle" type="button" onClick={closeComposer}>
+                  Fechar editor
                 </button>
+              </div>
+              <h2 id="composer-heading">O que você quer lembrar?</h2>
+              <form onSubmit={save}>
+                <label for="title">Dê um nome a esse momento</label>
+                <input
+                  value={draftTitle()}
+                  onInput={(event) => setDraftTitle(event.currentTarget.value)}
+                  id="title"
+                  name="title"
+                  placeholder="Um título para lembrar…"
+                  required={!files().length}
+                  maxlength={160}
+                />
+                <label for="body">Sua memória</label>
+                <textarea
+                  value={draftBody()}
+                  onInput={(event) => setDraftBody(event.currentTarget.value)}
+                  id="body"
+                  name="body"
+                  placeholder="Escreva aqui…"
+                  rows={4}
+                  required={!files().length}
+                  maxlength={20000}
+                />
+                <label for="tags">
+                  Tags <span class="muted">· separadas por vírgula</span>
+                </label>
+                <input
+                  value={draftTags()}
+                  onInput={(event) => setDraftTags(event.currentTarget.value)}
+                  id="tags"
+                  name="tags"
+                  placeholder="vida, descobertas, gratidão"
+                />
+                {!editing() ? (
+                  <MediaComposer
+                    active={composerOpen()}
+                    files={files()}
+                    onChange={setFiles}
+                    onRecordingChange={setRecording}
+                  />
+                ) : null}
+                <button class="primary" disabled={busy() || recording()}>
+                  {busy() ? 'Guardando…' : editing() ? 'Salvar edição' : 'Salvar memória'}{' '}
+                  <span aria-hidden="true">↗</span>
+                </button>
+                {editing() ? (
+                  <button
+                    type="button"
+                    class="subtle"
+                    onClick={() => {
+                      setEditing(null);
+                      setDraftTitle('');
+                      setDraftBody('');
+                      setDraftTags('');
+                    }}
+                  >
+                    Cancelar edição
+                  </button>
+                ) : null}
+                <p class="footnote">
+                  Salva primeiro neste dispositivo. Sincronizada quando houver conexão.
+                </p>
+              </form>
+              {error() ? (
+                <p role="alert" class="error">
+                  {error()}
+                </p>
               ) : null}
-              <p class="footnote">
-                Salva primeiro neste dispositivo. Sincronizada quando houver conexão.
-              </p>
-            </form>
-            {error() ? (
-              <p role="alert" class="error">
-                {error()}
-              </p>
-            ) : null}
-          </section>
+            </section>
+          </dialog>
           <Timeline
             memories={memories()}
             db={db}
             onEdit={(memory) => {
+              openComposer();
               setEditing(memory);
               setDraftTitle(memory.title);
               setDraftBody(memory.body);
@@ -301,10 +346,10 @@ function App() {
         <DiaryTools db={db} onChanged={() => void sync()} />
         <Devices />
         <details class="composer">
-          <summary>🌻 Girassol · componentes</summary>
+          <summary>Girassol · componentes</summary>
           <Card label="Galeria Girassol">
             <Badge>Design system</Badge>
-            <h2>Pequenos detalhes, boas raízes.</h2>
+            <h2>Cores, formas e interação.</h2>
             <label for="girassol-example">Campo de exemplo</label>
             <Input id="girassol-example" placeholder="Seu próximo momento" />
             <Button onClick={() => setStatus('Girassol · componentes Solid 2 ativos')}>
@@ -313,7 +358,7 @@ function App() {
           </Card>
         </details>
         <footer>
-          JARDIM <span>Feito para lembrar de viver.</span> 🌱
+          JARDIM <span>Seu arquivo. Seu tempo.</span>
         </footer>
       </main>
     </>

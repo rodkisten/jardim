@@ -3,7 +3,13 @@ import { z, type Memory } from '@rodkisten/jardim-contracts';
 import type { GardenDB } from '@rodkisten/jardim-local-db';
 import { fetchProtocol } from '@rodkisten/jardim-local-db/transport';
 const Status = z.object({
-  spotify: z.object({ configured: z.boolean(), connected: z.boolean() }),
+  spotify: z.object({
+    configured: z.boolean(),
+    connected: z.boolean(),
+    clientId: z.string().optional(),
+    redirectUri: z.string().optional(),
+    missing: z.string().nullable().optional(),
+  }),
   tmdb: z.object({ configured: z.boolean() }),
 });
 const Results = z.object({
@@ -40,11 +46,24 @@ export function Integrations(props: { db: GardenDB; memories: Memory[]; onChange
     [results, setResults] = createSignal<z.infer<typeof Results>['results']>([]),
     [selected, setSelected] = createSignal<z.infer<typeof Results>['results'][number] | null>(null),
     [kind, setKind] = createSignal('filme'),
-    [cultureTitle, setCultureTitle] = createSignal('');
+    [cultureTitle, setCultureTitle] = createSignal(''),
+    [clientId, setClientId] = createSignal('');
+  let clientEdited = false;
+  const oauthResult = new URLSearchParams(location.search).get('spotify');
+  if (oauthResult === 'denied')
+    setMessage('Autorização cancelada no Spotify. Você pode tentar novamente.');
+  if (oauthResult === 'failed')
+    setMessage(
+      'Spotify não concluiu a conexão. Confira o Client ID, o endereço de retorno e os usuários autorizados na aplicação.',
+    );
   async function load() {
     try {
       const response = await fetchProtocol('/v2/integrations');
-      if (response.ok) setStatus(Status.parse(await response.json()));
+      if (response.ok) {
+        const next = Status.parse(await response.json());
+        setStatus(next);
+        if (!clientEdited) setClientId(next.spotify.clientId || '');
+      }
     } catch {
       setMessage('Offline · importação e registros manuais continuam disponíveis.');
     }
@@ -58,8 +77,14 @@ export function Integrations(props: { db: GardenDB; memories: Memory[]; onChange
         action === 'disconnect' ? '/v2/spotify' : `/v2/spotify/${action}`,
         { method: action === 'disconnect' ? 'DELETE' : 'POST' },
       );
-      if (!response.ok)
-        throw Error('Não foi possível conectar o Spotify. Confira a configuração da aplicação.');
+      if (!response.ok) {
+        const data = z.object({ error: z.string().optional() }).safeParse(await response.json());
+        throw Error(
+          data.success && data.data.error
+            ? data.data.error
+            : 'Spotify indisponível. Confira a configuração e tente novamente.',
+        );
+      }
       if (action === 'start') {
         const result = z
           .object({
@@ -82,6 +107,37 @@ export function Integrations(props: { db: GardenDB; memories: Memory[]; onChange
       setMessage(error instanceof Error ? error.message : 'Falha na integração.');
     } finally {
       setBusy(false);
+    }
+  }
+  async function configureSpotify(event: SubmitEvent) {
+    event.preventDefault();
+    if (busy()) return;
+    const id = String(new FormData(event.currentTarget as HTMLFormElement).get('clientId')).trim();
+    setBusy(true);
+    try {
+      const response = await fetchProtocol('/v2/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spotifyClientId: id }),
+      });
+      if (!response.ok) throw Error('Use o Client ID de 32 caracteres, sem o Client Secret.');
+      clientEdited = false;
+      await load();
+      setMessage('Aplicação salva. Agora toque em Conectar Spotify para autorizar sua conta.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Não foi possível salvar.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function copyRedirect() {
+    try {
+      await navigator.clipboard.writeText(
+        status()?.spotify.redirectUri || location.origin + '/v2/spotify/callback',
+      );
+      setMessage('Endereço de retorno copiado.');
+    } catch {
+      setMessage('Copie o endereço de retorno exibido abaixo.');
     }
   }
   async function importSpotify(event: Event) {
@@ -195,6 +251,15 @@ export function Integrations(props: { db: GardenDB; memories: Memory[]; onChange
     <details
       id="integracoes"
       class="composer"
+      open={
+        oauthResult === 'denied' || oauthResult === 'failed' || location.hash === '#integracoes'
+      }
+      ref={(element) => {
+        if (location.hash === '#integracoes') {
+          element.open = true;
+          void load();
+        }
+      }}
       onToggle={(event) => {
         if (event.currentTarget.open) void load();
       }}
@@ -227,6 +292,48 @@ export function Integrations(props: { db: GardenDB; memories: Memory[]; onChange
           Conectar Spotify
         </button>
       )}
+      <details class="spotify-setup" open={!!status() && !status()!.spotify.configured}>
+        <summary>Configurar aplicação Spotify</summary>
+        <p>
+          Cadastre uma aplicação no{' '}
+          <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer">
+            Spotify for Developers
+          </a>
+          . Adicione este endereço em Redirect URIs:
+        </p>
+        <code>{status()?.spotify.redirectUri || location.origin + '/v2/spotify/callback'}</code>
+        <button type="button" class="subtle" onClick={() => void copyRedirect()}>
+          Copiar endereço de retorno
+        </button>
+        <form onSubmit={configureSpotify}>
+          <label for="spotify-client">Client ID do Spotify</label>
+          <input
+            id="spotify-client"
+            name="clientId"
+            value={clientId()}
+            onInput={(event) => {
+              clientEdited = true;
+              setClientId(event.currentTarget.value);
+            }}
+            required
+            pattern="[a-fA-F0-9]{32}"
+            minlength={32}
+            maxlength={32}
+            autocomplete="off"
+            spellcheck={false}
+          />
+          <button class="primary" disabled={busy()}>
+            Salvar aplicação Spotify
+          </button>
+        </form>
+        <p class="footnote">
+          Use somente o Client ID. A conexão usa PKCE e não pede Client Secret. Se a aplicação
+          estiver em desenvolvimento, sua conta deve estar autorizada no painel Spotify.
+        </p>
+        {status()?.spotify.missing === 'encryption_key' ? (
+          <p role="status">A chave de criptografia ainda precisa ser configurada no servidor.</p>
+        ) : null}
+      </details>
       <p>
         Até 50 músicas recentes por consulta. Podcasts e o histórico completo podem ter lacunas.
       </p>

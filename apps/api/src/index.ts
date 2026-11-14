@@ -1,3 +1,4 @@
+import { preferences } from './preferences';
 import {
   integrationStatus,
   spotifyStart,
@@ -106,6 +107,15 @@ async function handle(request: Request, env: Env): Promise<Response> {
       status: 303,
       headers: { Location: '/', 'Set-Cookie': cookie('', 0) },
     });
+  }
+  if (path === '/v2/preferences') {
+    if (request.method === 'GET') return preferences(env);
+    if (request.method === 'PUT') {
+      const text = await limitedBody(request, 2048);
+      return text === null
+        ? json({ error: 'Configuração muito grande' }, 413)
+        : preferences(env, text);
+    }
   }
   if (path === '/v2/integrations' && request.method === 'GET') return integrationStatus(env);
   if (path === '/v2/spotify/start' && request.method === 'POST') return spotifyStart(env);
@@ -267,7 +277,7 @@ export default {
     result.headers.set('X-Frame-Options', 'DENY');
     result.headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     );
     return result;
   },

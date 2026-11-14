@@ -1,3 +1,4 @@
+import { memorySource, sources } from './timeline';
 import { Attachment } from './Attachment';
 import { createSignal } from 'solid-js';
 import { z, Snapshot } from '@rodkisten/jardim-contracts';
@@ -41,14 +42,17 @@ export function MemoryCard(props: {
         )?.[0]
       : undefined;
   return (
-    <article class="memory">
-      <time datetime={props.memory.createdAt}>
-        {new Intl.DateTimeFormat('pt-BR', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        }).format(new Date(props.memory.createdAt))}
-      </time>
+    <article class="memory" data-source={memorySource(props.memory)}>
+      <div class="memory-topline">
+        <span class="source-badge">{sources[memorySource(props.memory)]}</span>
+        <time datetime={props.memory.createdAt}>
+          {new Intl.DateTimeFormat('pt-BR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }).format(new Date(props.memory.createdAt))}
+        </time>
+      </div>
       <h3>{props.memory.title}</h3>
       <p>
         {props.memory.body.replace(/\[anexo:[a-f0-9-]{36}\]/g, '').replace(/\[clima:.*\]/g, '')}

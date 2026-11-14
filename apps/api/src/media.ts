@@ -8,6 +8,11 @@ export async function media(request: Request, env: Env, id: string) {
   if (!z.uuid().safeParse(id).success) return new Response('ID inválido', { status: 400 });
   if (request.method === 'PUT') {
     const type = (request.headers.get('Content-Type') || '').split(';')[0].toLowerCase();
+    const duration = request.headers.has('X-Media-Duration')
+      ? Number(request.headers.get('X-Media-Duration'))
+      : undefined;
+    if (duration !== undefined && (!Number.isFinite(duration) || duration <= 0 || duration > 86400))
+      return Response.json({ error: 'Duração inválida' }, { status: 400 });
     if (!allowed.has(type))
       return Response.json({ error: 'Formato não permitido' }, { status: 415 });
     if (Number(request.headers.get('Content-Length') || 0) > MAX)
@@ -45,7 +50,7 @@ export async function media(request: Request, env: Env, id: string) {
     const stored = await env.MEDIA.put(id, bytes, {
       onlyIf: { etagDoesNotMatch: '*' },
       httpMetadata: { contentType: type },
-      customMetadata: { sha256: digest },
+      customMetadata: { sha256: digest, ...(duration ? { duration: String(duration) } : {}) },
     });
     if (!stored) {
       const winner = await env.MEDIA.head(id);
@@ -63,6 +68,10 @@ export async function media(request: Request, env: Env, id: string) {
       'Accept-Ranges': 'bytes',
       ETag: head.httpEtag,
     });
+    // Recorder WebM may omit duration. Preserve the bounded recording hint without altering original bytes.
+    const duration = Number(head.customMetadata?.duration);
+    if (Number.isFinite(duration) && duration > 0 && duration <= 86400)
+      headers.set('X-Media-Duration', String(duration));
     // Explicit single-range handling supports Safari's media probes without buffering the original.
     const range = request.headers.get('range');
     let start = 0,

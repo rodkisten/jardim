@@ -17,7 +17,10 @@ export class GardenDB extends Dexie {
   mutations!: EntityTable<Mutation, 'memoryId'>;
   versions!: EntityTable<Snapshot & { memoryId: string }, 'memoryId'>;
   conflicts!: EntityTable<{ memoryId: string; operation: Mutation; remote: Snapshot }, 'memoryId'>;
-  attachments!: EntityTable<{ id: string; blob: Blob; name: string; uploaded: number }, 'id'>;
+  attachments!: EntityTable<
+    { id: string; blob: Blob; name: string; uploaded: number; duration?: number },
+    'id'
+  >;
   capsules!: EntityTable<{ id: string; payload: Capsule; uploaded: number }, 'id'>;
   constructor(name = 'jardim-v1') {
     super(name);
@@ -32,12 +35,14 @@ export class GardenDB extends Dexie {
   }
   async plant(
     input: { title: string; body: string; tags: string[] },
-    files: { blob: Blob; name: string }[] = [],
+    files: { blob: Blob; name: string; duration?: number }[] = [],
   ) {
     if (
       files.length > 5 ||
       files.some(
         (file) =>
+          (file.duration !== undefined &&
+            (!Number.isFinite(file.duration) || file.duration <= 0 || file.duration > 86400)) ||
           file.blob.size > 12 * 1024 * 1024 ||
           !file.blob.size ||
           !(mediaTypes as readonly string[]).includes(file.blob.type.split(';')[0].toLowerCase()),

@@ -5,7 +5,7 @@ export const loginPage = (error = false) => /* HTML */ `
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
     <title>Entre no Jardim</title>
-    <meta name="theme-color" content="#f4f1e9" />
+    <meta name="theme-color" content="#faf9fc" />
     <link rel="stylesheet" href="/theme.css" />
     <script src="/theme.js"></script>
     <style>
@@ -14,9 +14,11 @@ export const loginPage = (error = false) => /* HTML */ `
       }
       body {
         margin: 0;
-        background: var(--g-background);
+        background:
+          radial-gradient(ellipse at 20% 0, var(--g-blue), transparent 50%),
+          radial-gradient(ellipse at 95% 0, var(--g-pink), transparent 55%), var(--g-background);
         color: var(--g-text);
-        font: 17px system-ui;
+        font: 16px var(--g-font);
         min-height: 100dvh;
         display: grid;
         place-items: center;
@@ -30,7 +32,8 @@ export const loginPage = (error = false) => /* HTML */ `
         font-size: 48px;
       }
       h1 {
-        font: 64px Georgia;
+        font: 700 54px var(--g-font-heading);
+        letter-spacing: -2px;
         margin: 16px 0;
       }
       p {
@@ -66,12 +69,12 @@ export const loginPage = (error = false) => /* HTML */ `
       }
     </style>
     <main>
-      <span aria-hidden="true">🌱</span>
+      <span aria-hidden="true" style="color:var(--g-accent)">✦</span>
       <h1>Jardim</h1>
       <p>
-        Um lugar tranquilo para cultivar
+        Seu arquivo de memórias.
         <br />
-        as memórias da sua vida.
+        Fotos, notas e sons da sua vida.
       </p>
       <form method="post" action="/auth/login">
         <label for="password">Sua senha</label>
@@ -85,10 +88,10 @@ export const loginPage = (error = false) => /* HTML */ `
           autofocus
         />
         ${error ? '<p role="alert">Senha incorreta. Tente novamente.</p>' : ''}
-        <button>Entrar no meu jardim →</button>
+        <button>Entrar no Jardim →</button>
       </form>
       <button type="button" data-login-theme>◐ Tema: Sistema</button>
-      <small>Seu espaço pessoal. Uma memória de cada vez.</small>
+      <small>Seu espaço pessoal. No seu tempo.</small>
     </main>
   </html>
 `;

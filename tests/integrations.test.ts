@@ -109,10 +109,18 @@ test('weather requests stay on fixed origins, validate location and preserve mod
   const upstream: typeof fetch = async (input) => {
     const url = new URL(String(input));
     expect(url.hostname).toBe('api.open-meteo.com');
-    expect(url.searchParams.get('timezone')).toBe('UTC');
+    expect(url.searchParams.get('timezone')).toBe('auto');
+    expect(url.searchParams.get('forecast_days')).toBe('1');
+    expect(url.searchParams.get('current')).toBeNull();
     return Response.json({
-      timezone: 'GMT',
-      current: { time: '2026-11-13T12:15', temperature_2m: 24.3, weather_code: 2, is_day: 1 },
+      timezone: 'America/Sao_Paulo',
+      daily: {
+        time: ['2026-11-13'],
+        temperature_2m_min: [18.5],
+        temperature_2m_max: [27],
+        weather_code: [2],
+        precipitation_probability_max: [40],
+      },
     });
   };
   const response = await weather(
@@ -120,10 +128,12 @@ test('weather requests stay on fixed origins, validate location and preserve mod
     upstream,
   );
   expect(await response.json()).toMatchObject({
-    kind: 'model_estimate',
-    temperature: 24.3,
-    modelTime: '2026-11-13T12:15Z',
-    timezone: 'UTC',
+    kind: 'forecast',
+    minimum: 18.5,
+    maximum: 27,
+    rainChance: 40,
+    date: '2026-11-13',
+    timezone: 'America/Sao_Paulo',
   });
   expect(
     (

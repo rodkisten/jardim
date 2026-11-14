@@ -11,6 +11,10 @@ const browser = await chromium.launch({
     '--use-fake-ui-for-media-stream',
   ],
 });
+async function openEditor(page) {
+  if (!(await page.getByRole('dialog').isVisible()))
+    await page.getByRole('button', { name: '+ Nova memória', exact: true }).click();
+}
 let pageForFailure;
 try {
   const context = await browser.newContext({
@@ -37,26 +41,73 @@ try {
   console.log('E2E: login');
   await page.goto(origin);
   await page.getByLabel('Sua senha').fill('wrong');
-  await page.getByRole('button', { name: 'Entrar no meu jardim' }).click();
+  await page.getByRole('button', { name: 'Entrar no Jardim' }).click();
   await page.getByRole('alert').waitFor();
   await page.getByLabel('Sua senha').fill('local-test-only');
-  await page.getByRole('button', { name: 'Entrar no meu jardim' }).click();
-  await page.getByText('O que você quer lembrar?').waitFor();
+  await page.getByRole('button', { name: 'Entrar no Jardim' }).click();
+  await page.getByRole('button', { name: '+ Nova memória', exact: true }).waitFor();
   console.log('E2E: manual dark theme and persisted preference');
   await page.getByRole('button', { name: 'Tema: Sistema. Alterar tema', exact: true }).click();
   await page.getByRole('button', { name: 'Tema: Claro. Alterar tema', exact: true }).click();
   assert.equal(
     await page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor),
-    'rgb(23, 32, 25)',
+    'rgb(23, 22, 29)',
   );
   await page.reload();
   await page.getByRole('button', { name: 'Tema: Escuro. Alterar tema', exact: true }).waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark');
   await page.getByRole('button', { name: 'Tema: Escuro. Alterar tema', exact: true }).click();
+  console.log('E2E: daily weather keeps the city across reload');
+  const weatherDate = await page.evaluate(() => {
+    const date = new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  });
+  let citySearches = 0;
+  await page.route('**/v2/weather/search?*', async (route) => {
+    citySearches++;
+    await route.fulfill({
+      json: { cities: [{ label: 'Simonésia, MG, Brasil', latitude: -20.12, longitude: -42.01 }] },
+    });
+  });
+  await page.route('**/v2/weather?*', async (route) =>
+    route.fulfill({
+      json: {
+        date: weatherDate,
+        minimum: 18,
+        maximum: 26,
+        code: 2,
+        rainChance: 35,
+        retrievedAt: new Date().toISOString(),
+        source: 'Open-Meteo',
+        kind: 'forecast',
+        latitude: -20.12,
+        longitude: -42.01,
+        timezone: 'America/Sao_Paulo',
+      },
+    }),
+  );
+  await page.getByText('Escolher cidade', { exact: true }).click();
+  await page.getByLabel('Cidade', { exact: true }).fill('Simonésia');
+  await page.getByRole('button', { name: 'Buscar cidade', exact: true }).click();
+  await page.getByRole('button', { name: 'Simonésia, MG, Brasil', exact: true }).click();
+  await page.getByText('Previsão do dia', { exact: false }).waitFor();
+  await page.reload();
+  await page.getByText('Simonésia, MG, Brasil', { exact: true }).waitFor();
+  await page.getByText('Previsão do dia', { exact: false }).waitFor();
+  assert.equal(citySearches, 1);
+  assert.equal(await page.getByRole('dialog').isVisible(), false);
   const title = 'Teste de integração ' + Date.now();
+  await openEditor(page);
+  await page.getByLabel('Dê um nome a esse momento').fill('Rascunho preservado');
+  await page.getByRole('button', { name: 'Fechar editor', exact: true }).click();
+  await openEditor(page);
+  assert.equal(
+    await page.getByLabel('Dê um nome a esse momento').inputValue(),
+    'Rascunho preservado',
+  );
   await page.getByLabel('Dê um nome a esse momento').fill(title);
   await page.getByLabel('Sua memória', { exact: true }).fill('Memória de teste local');
-  await page.getByRole('button', { name: 'Plantar uma memória' }).click();
+  await page.getByRole('button', { name: 'Salvar memória' }).click();
   await page.getByRole('heading', { name: title }).waitFor();
   await page.getByText('Tudo sincronizado', { exact: false }).waitFor();
   console.log('E2E: service worker and offline reload');
@@ -84,9 +135,10 @@ try {
   }
 
   await context.setOffline(true);
+  await openEditor(page);
   await page.getByLabel('Dê um nome a esse momento').fill(title + ' offline');
   await page.getByLabel('Sua memória', { exact: true }).fill('Salva sem rede');
-  await page.getByRole('button', { name: 'Plantar uma memória' }).click();
+  await page.getByRole('button', { name: 'Salvar memória' }).click();
   await page.getByRole('heading', { name: title + ' offline' }).waitFor();
   await page.reload();
   await page.getByRole('heading', { name: title + ' offline' }).waitFor();
@@ -101,7 +153,7 @@ try {
   console.log('E2E: second device');
   await tab.goto(origin);
   await tab.getByLabel('Sua senha').fill('local-test-only');
-  await tab.getByRole('button', { name: 'Entrar no meu jardim' }).click();
+  await tab.getByRole('button', { name: 'Entrar no Jardim' }).click();
   await tab.getByRole('heading', { name: title + ' offline' }).waitFor();
   await page.getByRole('searchbox').fill('inexistente');
   await page.getByText('Ainda não encontramos por aqui.').waitFor();
@@ -154,6 +206,7 @@ try {
     .locator('article.memory')
     .filter({ has: page.getByRole('heading', { name: title, exact: true }) });
   await original.getByRole('button', { name: 'Editar', exact: true }).click();
+  await openEditor(page);
   await page.getByLabel('Dê um nome a esse momento').fill(title + ' editada');
   await page.getByRole('button', { name: 'Salvar edição', exact: true }).click();
   await page.getByRole('heading', { name: title + ' editada', exact: true }).waitFor();
@@ -171,6 +224,7 @@ try {
     .getByRole('heading', { name: title + ' editada', exact: true })
     .waitFor({ state: 'hidden' });
   console.log('E2E: attachment upload and remote byte range');
+  await openEditor(page);
   await page.getByLabel('Dê um nome a esse momento').fill('Anexo E2E');
   await page.getByLabel('Sua memória', { exact: true }).fill('Foto com original preservado');
   await page.locator('#media-files').setInputFiles({
@@ -181,7 +235,7 @@ try {
       'base64',
     ),
   });
-  await page.getByRole('button', { name: 'Plantar uma memória', exact: false }).click();
+  await page.getByRole('button', { name: 'Salvar memória', exact: false }).click();
   await page.getByRole('heading', { name: 'Anexo E2E', exact: true }).waitFor();
   await page.getByText('Tudo sincronizado', { exact: false }).waitFor();
   await tab.getByRole('button', { name: 'Atualizar', exact: true }).click();
@@ -196,21 +250,64 @@ try {
   assert.equal(partial.status(), 206);
   assert.equal((await partial.body()).length, 8);
   console.log('E2E: voice recording with synthetic microphone');
+  await openEditor(page);
   await page.getByRole('button', { name: 'Gravar voz', exact: true }).click();
   await page.getByText('Gravando · até 30 segundos', { exact: true }).waitFor();
   await page.waitForTimeout(350);
   await page.getByRole('button', { name: 'Parar gravação', exact: true }).click();
   await page.getByRole('button', { name: 'Remover anexo', exact: true }).waitFor();
+  await page.getByRole('img', { name: 'Forma de onda do áudio', exact: true }).waitFor();
+  await openEditor(page);
   await page.getByLabel('Dê um nome a esse momento').fill('Voz E2E');
   await page.getByLabel('Sua memória', { exact: true }).fill('Áudio sintético de teste');
-  await page.getByRole('button', { name: 'Plantar uma memória', exact: false }).click();
+  await page.getByRole('button', { name: 'Salvar memória', exact: false }).click();
   await page.getByRole('heading', { name: 'Voz E2E', exact: true }).waitFor();
   await page.getByText('Tudo sincronizado', { exact: false }).waitFor();
+  console.log('E2E: audio playback and circular video recording');
+  const voiceCard = page
+    .locator('article.memory')
+    .filter({ has: page.getByRole('heading', { name: 'Voz E2E', exact: true }) });
+  await voiceCard.getByRole('button', { name: 'Reproduzir áudio', exact: true }).click();
+  await voiceCard.getByRole('img', { name: 'Forma de onda do áudio', exact: true }).waitFor();
+  await openEditor(page);
+  await page.getByRole('button', { name: 'Gravar vídeo circular', exact: true }).click();
+  await page.getByRole('status').filter({ hasText: 'Gravando · até 30 segundos' }).waitFor();
+  await page.getByRole('button', { name: 'Pausar gravação', exact: true }).click();
+  await page.getByText('Gravação pausada', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Retomar gravação', exact: true }).click();
+  await page.waitForTimeout(700);
+  await page.getByRole('button', { name: 'Parar gravação', exact: true }).click();
+  await page.getByRole('button', { name: 'Reproduzir vídeo', exact: true }).waitFor();
+  await page.getByLabel('Dê um nome a esse momento').fill('Vídeo E2E');
+  await page.getByRole('button', { name: 'Salvar memória', exact: false }).click();
+  await page.getByRole('heading', { name: 'Vídeo E2E', exact: true }).waitFor();
+  const videoCard = page
+    .locator('article.memory')
+    .filter({ has: page.getByRole('heading', { name: 'Vídeo E2E', exact: true }) });
+  await videoCard.getByRole('button', { name: 'Reproduzir vídeo', exact: true }).click();
+  await videoCard.getByRole('button', { name: 'Ampliar vídeo', exact: true }).click();
+  await videoCard.getByRole('button', { name: 'Recolher vídeo', exact: true }).waitFor();
   console.log('E2E: cultural entry and sealed capsule');
   await page.getByText('Cultura, Spotify e conexões', { exact: true }).click();
   await page.getByLabel('Título', { exact: true }).fill('Filme E2E');
   await page.getByRole('button', { name: 'Guardar registro cultural', exact: true }).click();
   await page.getByRole('heading', { name: 'Filme · Filme E2E', exact: true }).waitFor();
+  console.log('E2E: Spotify setup and PKCE start');
+  await page.getByLabel('Client ID do Spotify', { exact: true }).fill('a'.repeat(32));
+  await page.getByRole('button', { name: 'Salvar aplicação Spotify', exact: true }).click();
+  await page.getByText('pronto para conectar', { exact: false }).waitFor();
+  assert.equal(
+    await page.getByRole('button', { name: 'Conectar Spotify', exact: true }).isEnabled(),
+    true,
+  );
+  const oauthStart = await context.request.post(origin + '/v2/spotify/start', {
+    headers: { Origin: origin },
+  });
+  assert.equal(oauthStart.status(), 200);
+  const oauthUrl = new URL((await oauthStart.json()).url);
+  assert.equal(oauthUrl.origin, 'https://accounts.spotify.com');
+  assert.equal(oauthUrl.searchParams.get('client_id'), 'a'.repeat(32));
+  assert.equal(oauthUrl.searchParams.get('code_challenge_method'), 'S256');
   console.log('E2E: periods, anniversary and source groups');
   const previousYear = new Date();
   previousYear.setUTCFullYear(previousYear.getUTCFullYear() - 1);

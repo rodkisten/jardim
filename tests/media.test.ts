@@ -7,14 +7,17 @@ import { synchronizeDiary } from '@rodkisten/jardim-local-db/revisions';
 
 test('private immutable media uploads validate size/type and serve Safari byte ranges', async () => {
   const remote = createTestDatabase();
-  const files = new Map<string, { bytes: ArrayBuffer; type: string; sha256: string }>();
+  const files = new Map<
+    string,
+    { bytes: ArrayBuffer; type: string; sha256: string; duration?: string }
+  >();
   const MEDIA = {
     head: async (id: string) => {
       const file = files.get(id);
       return file
         ? {
             size: file.bytes.byteLength,
-            customMetadata: { sha256: file.sha256 },
+            customMetadata: { sha256: file.sha256, duration: file.duration },
             httpMetadata: { contentType: file.type },
             httpEtag: '"test"',
           }
@@ -23,13 +26,17 @@ test('private immutable media uploads validate size/type and serve Safari byte r
     put: async (
       id: string,
       bytes: ArrayBuffer,
-      options: { httpMetadata: { contentType: string }; customMetadata: { sha256: string } },
+      options: {
+        httpMetadata: { contentType: string };
+        customMetadata: { sha256: string; duration?: string };
+      },
     ) => {
       if (files.has(id)) return null;
       files.set(id, {
         bytes,
         type: options.httpMetadata.contentType,
         sha256: options.customMetadata.sha256,
+        duration: options.customMetadata.duration,
       });
       return { key: id };
     },
@@ -69,7 +76,8 @@ test('private immutable media uploads validate size/type and serve Safari byte r
         headers: { origin, cookie, 'Content-Type': type, ...headers },
         body,
       });
-    expect((await put('123456')).status).toBe(201);
+    expect((await put('123456', 'audio/mp4', { 'X-Media-Duration': '3.5' })).status).toBe(201);
+    expect((await put('123456', 'audio/mp4', { 'X-Media-Duration': 'Infinity' })).status).toBe(400);
     expect((await put('123456')).status).toBe(200);
     expect((await put('different')).status).toBe(409);
     expect((await put('123456', 'image/png')).status).toBe(409);
@@ -88,6 +96,7 @@ test('private immutable media uploads validate size/type and serve Safari byte r
     expect((await request(path, { headers: { cookie, Range: 'bytes=0-1,3-4' } })).status).toBe(416);
     const head = await request(path, { method: 'HEAD', headers: { cookie } });
     expect(head.headers.get('Content-Length')).toBe('6');
+    expect(head.headers.get('X-Media-Duration')).toBe('3.5');
     expect(await head.text()).toBe('');
   } finally {
     remote.close();
@@ -97,13 +106,14 @@ test('attachment, memory and outbox persist atomically; failed upload retains by
   const db = new GardenDB(crypto.randomUUID());
   try {
     const memory = await db.plant({ title: 'Áudio', body: 'Gravação', tags: [] }, [
-      { blob: new Blob(['recording'], { type: 'audio/mp4' }), name: 'voz.mp4' },
+      { blob: new Blob(['recording'], { type: 'audio/mp4' }), name: 'voz.mp4', duration: 3.5 },
     ]);
     expect(memory.body).toMatch(/\[anexo:[a-f0-9-]{36}\]/);
     const file = (await db.attachments.toArray())[0];
     db.close();
     await db.open();
     expect(await (await db.attachments.get(file.id))!.blob.text()).toBe('recording');
+    expect((await db.attachments.get(file.id))!.duration).toBe(3.5);
     await expect(
       synchronizeDiary(db, async () => new Response('', { status: 503 })),
     ).rejects.toThrow('Anexos preservados');

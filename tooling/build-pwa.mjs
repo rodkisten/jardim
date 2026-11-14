@@ -62,12 +62,12 @@ await writeFile(
     start_url: '/',
     scope: '/',
     display: 'standalone',
-    background_color: '#f7f5ed',
-    theme_color: '#244739',
+    background_color: '#faf9fc',
+    theme_color: '#5b46b3',
     icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
   }),
 );
 await writeFile(
   new URL('icon.svg', root),
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#244739"/><path d="M96 150V83M96 118C35 122 35 50 35 50s61-6 61 68M96 97c0-52 62-56 62-56s8 61-62 56" stroke="#eee9b0" stroke-width="9" fill="none"/></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="44" fill="#faf9fc"/><rect x="43" y="43" width="48" height="48" rx="14" fill="#a58bdc"/><rect x="101" y="43" width="48" height="48" rx="14" fill="#ea93b9"/><rect x="43" y="101" width="48" height="48" rx="14" fill="#85aeec"/><rect x="101" y="101" width="48" height="48" rx="14" fill="#eea087"/></svg>',
 );

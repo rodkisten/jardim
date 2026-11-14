@@ -15,6 +15,7 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   Object.defineProperty(globalThis, 'fetch', {
     configurable: true,
     value: async (_url: unknown, init?: RequestInit) => {
+      if (String(_url).includes('/v2/preferences')) return Response.json({});
       if (init?.method === 'POST') {
         const batch = Push.parse(JSON.parse(String(init.body)));
         posted++;
@@ -37,7 +38,7 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   // Vite output is a self-contained browser module with no imports.
   window.eval(code);
   await new Promise((r) => setTimeout(r, 150));
-  expect(document.querySelector('h1')?.textContent).toContain('A vida acontece.');
+  expect(document.querySelector('h1')?.textContent).toContain('Sua vida,');
   const theme = document.querySelector<HTMLButtonElement>('.theme-switch')!;
   theme.click();
   await new Promise((resolve) => setTimeout(resolve, 30));
@@ -48,6 +49,10 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   expect(theme.getAttribute('aria-label')).toContain('Escuro');
   theme.click();
   await new Promise((resolve) => setTimeout(resolve, 30));
+
+  document.querySelector<HTMLButtonElement>('.new-memory')!.click();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  expect(document.querySelector('dialog')?.hasAttribute('open')).toBe(true);
 
   let released = 0;
   const oldMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
@@ -72,6 +77,30 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   )!;
   voice.click();
   await expect.poll(() => released, { timeout: 1000 }).toBeGreaterThan(0);
+  // Closing while the permission prompt is pending must release late streams,
+  // without constructing a recorder or attaching an abandoned recording.
+  let resolvePermission!: (value: unknown) => void;
+  const permission = new Promise((resolve) => {
+    resolvePermission = resolve;
+  });
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: { getUserMedia: () => permission },
+  });
+  const before = released;
+  Array.from(document.querySelectorAll('button'))
+    .find((button) => button.textContent === 'Gravar voz')!
+    .click();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  Array.from(document.querySelectorAll('button'))
+    .find((button) => button.textContent === 'Fechar editor')!
+    .click();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  resolvePermission({ getTracks: () => [{ stop: () => released++ }] });
+  await expect.poll(() => released, { timeout: 1000 }).toBeGreaterThan(before);
+  expect(document.querySelector('dialog')?.hasAttribute('open')).toBe(false);
+  document.querySelector<HTMLButtonElement>('.new-memory')!.click();
+  await new Promise((resolve) => setTimeout(resolve, 30));
   if (oldMediaDevices) Object.defineProperty(navigator, 'mediaDevices', oldMediaDevices);
   else Reflect.deleteProperty(navigator, 'mediaDevices');
   if (oldRecorder) Object.defineProperty(globalThis, 'MediaRecorder', oldRecorder);

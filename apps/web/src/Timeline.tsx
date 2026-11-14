@@ -36,19 +36,19 @@ export function Timeline(props: {
     });
   const groups = () => groupMemories(selected(), timeZone, grouping());
   return (
-    <section class="timeline" aria-label="Suas memórias">
+    <section id="memorias" class="timeline" aria-label="Suas memórias">
       <div class="section-title">
-        <span>02 / FLORESCER</span>
+        <span>MEMÓRIAS</span>
         <span>{props.memories.length} MEMÓRIAS</span>
       </div>
-      <h2>O que já criou raízes</h2>
+      <h2>Seu arquivo</h2>
       <label class="sr-only" for="search">
         Buscar memórias
       </label>
       <input
         id="search"
         type="search"
-        placeholder="Buscar no seu jardim…"
+        placeholder="Buscar nas memórias…"
         value={query()}
         onInput={(event) => setQuery(event.currentTarget.value)}
       />
@@ -189,11 +189,11 @@ export function Timeline(props: {
           ))
         ) : (
           <div class="empty">
-            <span aria-hidden="true">☘</span>
+            <span aria-hidden="true">＋</span>
             <h3>
               {props.memories.length
                 ? 'Ainda não encontramos por aqui.'
-                : 'Todo jardim começa com uma semente.'}
+                : 'Seu arquivo começa aqui.'}
             </h3>
             <p>
               {props.memories.length

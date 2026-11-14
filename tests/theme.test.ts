@@ -52,7 +52,7 @@ test('early bootstrap restores theme, follows system changes and remains usable 
     expect(root.dataset.theme).toBe(blocked ? 'light' : 'system');
     media.matches = true;
     handlers.get('media:change')!();
-    expect(meta.get('content')).toBe(blocked ? '#f4f1e9' : '#172019');
+    expect(meta.get('content')).toBe(blocked ? '#faf9fc' : '#17161d');
     if (!blocked) {
       stored = 'light';
       handlers.get('storage')!({ key: 'jardim.theme' });
