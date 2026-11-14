@@ -36,7 +36,7 @@ try {
   );
 
   const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('pageerror', (e) => { errors.push(e.stack || e.message); console.error('E2E uncaught browser error:', e.stack || e.message); });
   const origin = process.env.TEST_ORIGIN || 'https://localhost:8787';
   console.log('E2E: login');
   await page.goto(origin);
