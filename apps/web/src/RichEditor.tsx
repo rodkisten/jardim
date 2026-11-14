@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup, onMount } from 'solid-js';
+import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -31,7 +31,8 @@ export function RichEditor(props: {
     command(editor);
     refresh();
   };
-  onMount(() => {
+  createEffect(() => {
+    if (!host || editor) return;
     editor = new Editor({
       element: host,
       content: props.document ?? props.value,
@@ -55,8 +56,9 @@ export function RichEditor(props: {
       onSelectionUpdate: refresh,
       onTransaction: refresh,
     });
-    onCleanup(() => editor?.destroy());
+    refresh();
   });
+  onCleanup(() => editor?.destroy());
   createEffect(() => {
     const value = props.value;
     const document = props.document;
