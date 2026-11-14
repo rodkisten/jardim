@@ -85,7 +85,8 @@ jobs:
           git switch -C "$BRANCH"
           git add -A
           git commit -m "style: apply Prettier formatting"
-          git push --force-with-lease origin "HEAD:refs/heads/$BRANCH" || git push origin "HEAD:refs/heads/$BRANCH"
+          git fetch origin "$BRANCH" || true
+          git push --force-with-lease origin "HEAD:refs/heads/$BRANCH"
 
           existing_pr="$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')"
           if [ -n "$existing_pr" ]; then
