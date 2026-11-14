@@ -45,7 +45,20 @@ try {
   await page.getByRole('alert').waitFor();
   await page.getByLabel('Sua senha').fill('local-test-only');
   await page.getByRole('button', { name: 'Entrar no Jardim' }).click();
-  await page.getByRole('button', { name: 'Criar memória', exact: true }).waitFor();
+  try {
+    await page.getByRole('button', { name: 'Criar memória', exact: true }).waitFor();
+  } catch (error) {
+    console.error('E2E post-login diagnostics:', JSON.stringify({
+      url: page.url(),
+      title: await page.title(),
+      body: (await page.locator('body').innerText().catch(() => '')).slice(0, 4000),
+      buttons: await page.getByRole('button').evaluateAll((nodes) =>
+        nodes.map((node) => ({ text: node.textContent?.trim(), ariaLabel: node.getAttribute('aria-label'), visible: !!node.getClientRects().length }))
+      ),
+      pageErrors: errors,
+    }, null, 2));
+    throw error;
+  }
   console.log('E2E: manual dark theme and persisted preference');
   await page.getByRole('button', { name: 'Tema: Sistema. Alterar tema', exact: true }).click();
   await page.getByRole('button', { name: 'Tema: Claro. Alterar tema', exact: true }).click();
