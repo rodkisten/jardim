@@ -96,6 +96,8 @@ Implementação de referência: commit `feat: ship editable multimedia diary wit
 
 **Rascunhos e verificação remota:** campos de título do diário, cultura e cápsulas preservam a edição em atualizações reativas. O teste do bundle compilado verifica essa preservação. `tests/remote-smoke.py` valida a implantação com leituras autenticadas, sem criar ou remover memórias; usa a senha exclusivamente de um arquivo local ignorado pelo Git.
 
+**Publicação · 14/11/2026:** código `835f95d968ca9ff92f2b522f28c6973b03376d8b` publicado em https://jardim.migos.club após [CI 43538231161](https://github.com/rodkisten/jardim/actions/runs/43538231161) concluir `check` e `e2e` com sucesso. Foram 38 testes locais em 15 arquivos, mais o fluxo Chromium completo: tema persistido, offline com recarga, dois dispositivos, edição/lixeira, upload e byte range, gravação sintética, registro cultural, cápsula sincronizada, PNG 1200×630, backup e logout. O upload inclui o Wasm Prisma e o binding R2 privado; a senha foi preservada. Migrações 0003–0005 foram aplicadas e registradas, preservando a memória preexistente. A validação HTTP do QA passou sem escrita em memórias.
+
 ### Limites atuais
 
 A exportação JSON contém as memórias presentes no dispositivo; **não é backup integral** de anexos, lixeira, histórico de revisões, tokens ou cápsulas. A exclusão é lógica, com conteúdo recuperável na lixeira; apagamento permanente e retenção de objetos órfãos ainda precisam de implementação. Upload é limitado e intermediado pelo Worker; upload multipart direto/assinado com retomada de partes permanece pendente.
