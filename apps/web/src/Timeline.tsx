@@ -53,8 +53,8 @@ export function Timeline(props: {
         onInput={(event) => setQuery(event.currentTarget.value)}
       />
       <div class={styles.filters}>
-        <label for="timeline-period">
-          Período
+        <div>
+          <label for="timeline-period">Período</label>
           <select
             id="timeline-period"
             value={period()}
@@ -67,9 +67,9 @@ export function Timeline(props: {
             <option value="year">Ano</option>
             <option value="anniversary">Neste dia</option>
           </select>
-        </label>
-        <label for="timeline-source">
-          Fonte
+        </div>
+        <div>
+          <label for="timeline-source">Fonte</label>
           <select
             id="timeline-source"
             value={source()}
@@ -80,9 +80,9 @@ export function Timeline(props: {
               <option value={key}>{label}</option>
             ))}
           </select>
-        </label>
-        <label for="timeline-anchor">
-          Dia de referência
+        </div>
+        <div>
+          <label for="timeline-anchor">Dia de referência</label>
           <input
             id="timeline-anchor"
             type="date"
@@ -99,9 +99,9 @@ export function Timeline(props: {
               }
             }}
           />
-        </label>
-        <label for="timeline-group">
-          Agrupar por
+        </div>
+        <div>
+          <label for="timeline-group">Agrupar por</label>
           <select
             id="timeline-group"
             value={grouping()}
@@ -110,7 +110,7 @@ export function Timeline(props: {
             <option value="day">Dia</option>
             <option value="source">Fonte</option>
           </select>
-        </label>
+        </div>
       </div>
       <div class={styles.navigation} role="group" aria-label="Navegar no tempo">
         <button
