@@ -10,6 +10,7 @@ export function CommandPalette(props: {
 }) {
   const [open, setOpen] = createSignal(false);
   const [query, setQuery] = createSignal('');
+  const [selected, setSelected] = createSignal(0);
   let dialog!: HTMLDialogElement;
   let input!: HTMLInputElement;
   const commands = [
@@ -29,7 +30,7 @@ export function CommandPalette(props: {
     return [...actions, ...memories].slice(0, 10);
   };
   const close = () => { dialog?.close(); setOpen(false); };
-  const show = () => { setQuery(''); setOpen(true); };
+  const show = () => { setQuery(''); setSelected(0); setOpen(true); };
   const execute = (action: () => void) => { close(); action(); };
   createEffect(() => {
     if (open() && !dialog?.open) {
@@ -47,25 +48,28 @@ export function CommandPalette(props: {
   onCleanup(() => window.removeEventListener('keydown', keyboard));
   return <>
     <button type="button" class="command-trigger" onClick={show} aria-label="Abrir comandos e busca">
-      <span>⌕</span><span>Buscar ou executar…</span><kbd>⌘ K</kbd>
+      <span aria-hidden="true">⌕</span><span>Buscar ou executar…</span><kbd>⌘ K</kbd>
     </button>
     <dialog ref={dialog} class="command-dialog" aria-label="Comandos rápidos" onClose={() => setOpen(false)} onCancel={() => setOpen(false)}>
       <div class="command-input-row">
         <span aria-hidden="true">⌕</span>
-        <input ref={input} type="search" aria-label="Buscar comandos ou memórias" placeholder="Buscar memórias ou executar comando…" value={query()} onInput={(event) => setQuery(event.currentTarget.value)}
+        <input ref={input} type="search" role="combobox" aria-autocomplete="list" aria-expanded={open()} aria-controls="command-results" aria-activedescendant={matches()[selected()] ? `command-option-${selected()}` : undefined} aria-label="Buscar comandos ou memórias" placeholder="Buscar memórias ou executar comando…" value={query()} onInput={(event) => { setQuery(event.currentTarget.value); setSelected(0); }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && matches()[0]) { event.preventDefault(); execute(matches()[0].action); }
+            const items = matches();
+            if (event.key === 'ArrowDown' && items.length) { event.preventDefault(); setSelected((selected() + 1) % items.length); }
+            if (event.key === 'ArrowUp' && items.length) { event.preventDefault(); setSelected((selected() - 1 + items.length) % items.length); }
+            if (event.key === 'Enter' && items[selected()]) { event.preventDefault(); execute(items[selected()].action); }
           }} />
         <button type="button" onClick={close} aria-label="Fechar">Esc</button>
       </div>
-      <div class="command-results" role="listbox" aria-label="Resultados">
+      <div id="command-results" class="command-results" role="listbox" aria-label="Resultados">
         <For each={matches()} fallback={<p class="command-empty">Nenhum resultado encontrado.</p>}>
-          {(item) => <button type="button" role="option" aria-selected="false" onClick={() => execute(item.action)}>
+          {(item, index) => <button id={`command-option-${index()}`} type="button" role="option" aria-selected={selected() === index()} classList={{ 'command-selected': selected() === index() }} onMouseEnter={() => setSelected(index())} onClick={() => execute(item.action)}>
             <span class="command-result-icon" aria-hidden="true">↗</span><span>{item.label}</span>
           </button>}
         </For>
       </div>
-      <p class="command-hint">Enter abre o primeiro resultado · Esc fecha</p>
+      <p class="command-hint">↑ ↓ navegar · Enter selecionar · Esc fechar</p>
     </dialog>
   </>;
 }
