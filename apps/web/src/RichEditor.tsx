@@ -18,6 +18,8 @@ export function RichEditor(props: {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  document?: Record<string, unknown> | null;
+  onDocumentChange?: (document: Record<string, unknown>) => void;
 }) {
   let host!: HTMLDivElement;
   let editor: Editor | undefined;
@@ -32,7 +34,7 @@ export function RichEditor(props: {
   onMount(() => {
     editor = new Editor({
       element: host,
-      content: { type: 'doc', content: [{ type: 'paragraph', content: props.value ? [{ type: 'text', text: props.value }] : [] }] },
+      content: props.document ?? props.value,
       extensions: [
         StarterKit.configure({ link: false, underline: false, taskList: false, taskItem: false }),
         Link.configure({ openOnClick: false, autolink: true, defaultProtocol: 'https' }),
@@ -46,6 +48,7 @@ export function RichEditor(props: {
         Placeholder.configure({ placeholder: 'O que você quer guardar deste dia?' }),
       ],
       onUpdate: ({ editor: instance }) => {
+        props.onDocumentChange?.(instance.getJSON());
         props.onChange(instance.getText({ blockSeparator: '\n' }));
         refresh();
       },
@@ -56,8 +59,12 @@ export function RichEditor(props: {
   });
   createEffect(() => {
     const value = props.value;
-    if (editor && editor.getText({ blockSeparator: '\n' }) !== value) {
-      editor.commands.setContent(value, { emitUpdate: false });
+    const document = props.document;
+    if (!editor) return;
+    // External resets (switching memories) must replace the document; ordinary
+    // typing must not reset marks, selection, undo history or list structure.
+    if (editor.getText({ blockSeparator: '\\n' }) !== value) {
+      editor.commands.setContent(document ?? value, { emitUpdate: false });
       refresh();
     }
   });
