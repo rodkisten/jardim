@@ -1,10 +1,27 @@
 export { z } from 'zod';
 import { z } from 'zod';
+// Restrict rich text to JSON-compatible values. HTML is never accepted on the wire.
+const RichValue: z.ZodType<unknown> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(RichValue),
+    z.record(z.string(), RichValue),
+  ]),
+);
+export const RichDocument = z
+  .object({ type: z.literal('doc'), content: z.array(RichValue).optional() })
+  .strict()
+  .refine((value) => JSON.stringify(value).length <= 80000, 'Documento muito grande');
+export type RichDocument = z.infer<typeof RichDocument>;
 export const Memory = z
   .object({
     id: z.uuid(),
     title: z.string().trim().min(1).max(160),
     body: z.string().trim().min(1).max(20000),
+    richDocument: RichDocument.optional(),
     createdAt: z.iso.datetime(),
     tags: z.array(z.string().trim().min(1).max(40)).max(12),
   })
