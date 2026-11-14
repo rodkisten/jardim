@@ -7,8 +7,9 @@ export function ThemeSwitch() {
   const update = () => applyTheme(mode(), media.matches);
   const crossTab = (event: StorageEvent) => {
     if (event.key === themeKey || event.key === null) {
-      setMode(storedTheme());
-      update();
+      const next = storedTheme();
+      setMode(next);
+      applyTheme(next, media.matches);
     }
   };
   update();
@@ -22,7 +23,8 @@ export function ThemeSwitch() {
     const modes: ThemeMode[] = ['system', 'light', 'dark'];
     const next = modes[(modes.indexOf(mode()) + 1) % modes.length];
     setMode(next);
-    update();
+    // Solid 2 schedules reactive snapshots; apply the chosen value without reading the previous signal.
+    applyTheme(next, media.matches);
     try {
       localStorage.setItem(themeKey, next);
     } catch {

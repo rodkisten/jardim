@@ -48,3 +48,11 @@ jobs:
           test "$ready" = 1
           export CHROMIUM_PATH="$(node --input-type=module -e 'import { chromium } from "@playwright/test"; console.log(chromium.executablePath())')"
           timeout 300s node tests/browser.mjs
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jardim-browser-check
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 3

@@ -15,6 +15,17 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   window.eval(code);
   await new Promise((r) => setTimeout(r, 150));
   expect(document.querySelector('h1')?.textContent).toContain('A vida acontece.');
+  const theme = document.querySelector<HTMLButtonElement>('.theme-switch')!;
+  theme.click();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  expect(document.documentElement.dataset.theme).toBe('light');
+  theme.click();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  expect(document.documentElement.dataset.theme).toBe('dark');
+  expect(theme.getAttribute('aria-label')).toContain('Escuro');
+  theme.click();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+
   const title = document.querySelector<HTMLInputElement>('#title')!;
   title.value = 'Uma nova memória';
   document.querySelector<HTMLTextAreaElement>('#body')!.value = 'Um momento importante';

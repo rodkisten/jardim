@@ -11,6 +11,7 @@ const browser = await chromium.launch({
     '--use-fake-ui-for-media-stream',
   ],
 });
+let pageForFailure;
 try {
   const context = await browser.newContext({
     ignoreHTTPSErrors: true,
@@ -19,6 +20,7 @@ try {
   context.setDefaultTimeout(20000);
   context.setDefaultNavigationTimeout(30000);
   const page = await context.newPage();
+  pageForFailure = page;
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   const origin = process.env.TEST_ORIGIN || 'https://localhost:8787';
@@ -212,6 +214,12 @@ try {
   console.log(
     'PASS: wrong password, login, create, offline save + offline reload, reconnect, second device, search, mobile width, YouTube capture + retry + revocation, logout; no browser errors',
   );
+} catch (error) {
+  if (pageForFailure)
+    await pageForFailure
+      .screenshot({ path: 'test-results/failure.png', fullPage: true })
+      .catch(() => {});
+  throw error;
 } finally {
   await browser.close();
 }
