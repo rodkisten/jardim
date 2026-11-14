@@ -1,0 +1,104 @@
+name: "📦 Update pnpm lockfile"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "How should the lockfile update be published?"
+        type: choice
+        required: true
+        default: pr
+        options:
+          - pr
+          - main
+  schedule:
+    - cron: "17 8 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: jardim-lockfile-update
+  cancel-in-progress: false
+
+jobs:
+  update-lockfile:
+    name: Update and validate lockfile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Update lockfile without running install scripts
+        run: pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
+
+      - name: Validate frozen lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Detect changes
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No lockfile changes."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- pnpm-lock.yaml
+          fi
+
+      - name: Commit directly to main
+        if: steps.changes.outputs.changed == 'true' && inputs.mode == 'main' && github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore(deps): refresh pnpm lockfile"
+          git push origin HEAD:main
+
+      - name: Open or update pull request
+        if: steps.changes.outputs.changed == 'true' && (inputs.mode != 'main' || github.event_name != 'workflow_dispatch')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: automation/update-pnpm-lockfile
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add pnpm-lock.yaml
+          git commit -m "chore(deps): refresh pnpm lockfile"
+          git push --force-with-lease origin "HEAD:refs/heads/$BRANCH"
+
+          existing_pr="$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" --title "chore(deps): refresh pnpm lockfile" --body "Automated pnpm lockfile refresh. Validated with a frozen install."
+          else
+            gh pr create --base main --head "$BRANCH" --title "chore(deps): refresh pnpm lockfile" --body "Automated pnpm lockfile refresh. Validated with a frozen install."
+          fi
+
+      - name: Summary
+        if: always()
+        env:
+          CHANGED: ${{ steps.changes.outputs.changed }}
+        run: |
+          if [ "$CHANGED" = "false" ]; then
+            echo "### ✅ Lockfile already up to date" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$CHANGED" = "true" ]; then
+            echo "### 📦 Lockfile updated" >> "$GITHUB_STEP_SUMMARY"
+          fi
