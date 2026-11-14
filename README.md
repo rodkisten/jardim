@@ -98,6 +98,19 @@ Implementação de referência: commit `feat: ship editable multimedia diary wit
 
 **Publicação · 14/11/2026:** código `835f95d968ca9ff92f2b522f28c6973b03376d8b` publicado em https://jardim.migos.club após [CI 43538231161](https://github.com/rodkisten/jardim/actions/runs/43538231161) concluir `check` e `e2e` com sucesso. Foram 38 testes locais em 15 arquivos, mais o fluxo Chromium completo: tema persistido, offline com recarga, dois dispositivos, edição/lixeira, upload e byte range, gravação sintética, registro cultural, cápsula sincronizada, PNG 1200×630, backup e logout. O upload inclui o Wasm Prisma e o binding R2 privado; a senha foi preservada. Migrações 0003–0005 foram aplicadas e registradas, preservando a memória preexistente. A validação HTTP do QA passou sem escrita em memórias.
 
+### Continuação · navegação temporal
+
+- [x] Visões Tudo, Dia, Semana, Mês, Ano e Neste dia, com busca e fonte combinadas.
+- [x] Semana de segunda a domingo; navegação anterior/próximo por período e retorno para Hoje.
+- [x] Agrupar por dia ou fonte: Diário, YouTube, Spotify, Cultura e Clima. A classificação usa as tags dos registros; não implica autenticação ou cobertura completa da fonte.
+- [x] Datas calculadas no fuso IANA do dispositivo, indicado na interface. Registros próximos da meia-noite respeitam esse fuso; os instantes originais permanecem intactos.
+- [x] “Neste dia” mostra somente anos anteriores ao dia de referência; 29 de fevereiro não é convertido em outra data.
+- [x] Contagem do resultado versus total disponível e indicação de limites de cobertura local, sem confundir filtro vazio com diário vazio.
+
+As opções ficam em uma grade de duas colunas para celular, com navegação acessível por nome e botões de pelo menos 44 px. O filtro é local e funciona offline. Trocar o fuso do dispositivo pode mudar o agrupamento; ainda não há um fuso histórico por memória. Não houve mudança de schema ou migração nesta etapa.
+
+Validação: `tests/timeline.test.ts` cobre fuso, limites da semana entre anos, fontes, busca, aniversários, ano bissexto, navegação de fim de mês e ordenação de instantes com precisão fracionária. O Chromium verifica períodos e agrupamento por fonte com uma lembrança sintética de outro ano em D1 local.
+
 ### Limites atuais
 
 A exportação JSON contém as memórias presentes no dispositivo; **não é backup integral** de anexos, lixeira, histórico de revisões, tokens ou cápsulas. A exclusão é lógica, com conteúdo recuperável na lixeira; apagamento permanente e retenção de objetos órfãos ainda precisam de implementação. Upload é limitado e intermediado pelo Worker; upload multipart direto/assinado com retomada de partes permanece pendente.
@@ -170,13 +183,16 @@ O **Jardim** é uma combinação de diário, lifelog, álbum multimídia, catál
 
 ### Timeline e card do dia
 
-- [ ] Timeline por dia, semana, mês e ano; agrupamento por sessão e fonte.
+- [x] Timeline por dia, semana, mês e ano; agrupamento por dia e fonte.
+- [ ] Agrupamento por sessão de atividade.
 - [ ] Cards de navegação, vídeos, músicas, fotos, interações, lugares e memórias.
 - [ ] Card diário com fotos, destaques, diário, clima e trilha sonora.
 - [ ] Temas climáticos (sol, chuva, nuvens, tempestade, neblina e noite) usando dados de clima persistidos.
 - [ ] Registrar fuso horário, fonte, instante e tipo de dado meteorológico (previsão, observação, histórico).
-- [ ] Navegação “Neste dia” e retrospectivas anuais.
-- [ ] Busca textual, filtros, datas e busca em linguagem natural opcional.
+- [x] Navegação “Neste dia” com datas documentadas em anos anteriores.
+- [ ] Retrospectivas anuais com narrativa e estatísticas.
+- [x] Busca textual combinada com período, datas e fonte.
+- [ ] Busca em linguagem natural opcional.
 - [ ] Grafo de entidades e relações com proveniência.
 
 ### Diário e mídia pessoal

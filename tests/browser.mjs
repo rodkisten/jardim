@@ -16,6 +16,7 @@ try {
   const context = await browser.newContext({
     ignoreHTTPSErrors: true,
     viewport: { width: 390, height: 844 },
+    timezoneId: 'America/Sao_Paulo',
   });
   context.setDefaultTimeout(20000);
   context.setDefaultNavigationTimeout(30000);
@@ -210,6 +211,50 @@ try {
   await page.getByLabel('Título', { exact: true }).fill('Filme E2E');
   await page.getByRole('button', { name: 'Guardar registro cultural', exact: true }).click();
   await page.getByRole('heading', { name: 'Filme · Filme E2E', exact: true }).waitFor();
+  console.log('E2E: periods, anniversary and source groups');
+  const previousYear = new Date();
+  previousYear.setUTCFullYear(previousYear.getUTCFullYear() - 1);
+  const seeded = await context.request.post(origin + '/v1/sync/push', {
+    headers: { Origin: origin },
+    data: {
+      operations: [
+        {
+          operationId: crypto.randomUUID(),
+          memory: {
+            id: crypto.randomUUID(),
+            title: 'Trilha de outro ano E2E',
+            body: 'Metadados sintéticos de uma lembrança musical',
+            tags: ['spotify'],
+            createdAt: previousYear.toISOString(),
+          },
+        },
+      ],
+    },
+  });
+  assert.equal(seeded.status(), 200);
+  await page.getByRole('button', { name: 'Atualizar', exact: true }).click();
+  await page.getByRole('heading', { name: 'Trilha de outro ano E2E', exact: true }).waitFor();
+  await page.getByLabel('Fonte', { exact: true }).selectOption('culture');
+  await page.getByRole('heading', { name: 'Filme · Filme E2E', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Voz E2E', exact: true }).waitFor({ state: 'hidden' });
+  for (const period of ['day', 'week', 'month', 'year']) {
+    await page.getByLabel('Período', { exact: true }).selectOption(period);
+    await page.getByRole('heading', { name: 'Filme · Filme E2E', exact: true }).waitFor();
+  }
+  await page.getByLabel('Fonte', { exact: true }).selectOption('spotify');
+  await page.getByRole('button', { name: 'Neste dia', exact: true }).click();
+  await page.getByRole('heading', { name: 'Trilha de outro ano E2E', exact: true }).waitFor();
+  await page.getByLabel('Agrupar por', { exact: true }).selectOption('source');
+  await page.getByRole('region', { name: 'Spotify', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Período anterior', exact: true }).click();
+  await page
+    .getByRole('heading', { name: 'Ainda não encontramos por aqui.', exact: true })
+    .waitFor();
+  await page.getByRole('button', { name: 'Próximo período', exact: true }).click();
+  await page.getByRole('heading', { name: 'Trilha de outro ano E2E', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Limpar filtros', exact: true }).click();
+  await page.getByRole('heading', { name: 'Voz E2E', exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.getByText('Cápsula mensal do Jardim', { exact: true }).click();
   await page.getByLabel('Nome da cápsula').fill('Cápsula E2E');
   await page.getByRole('button', { name: 'Selar uma nova versão privada', exact: true }).click();

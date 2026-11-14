@@ -1,0 +1,47 @@
+.filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.75rem;
+}
+.filters label,
+.filters input,
+.filters select {
+  min-width: 0;
+}
+.filters select,
+.filters input {
+  margin-top: 0.5rem;
+}
+.navigation,
+.results {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.navigation button {
+  min-height: 44px;
+}
+.navigation button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.results p {
+  font-size: 0.8rem;
+  color: var(--g-muted);
+}
+.groupTitle {
+  border-bottom: 1px solid var(--g-border);
+  padding: 1rem 0;
+  color: var(--g-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.groupTitle span {
+  font-weight: normal;
+  color: var(--g-muted);
+}
+.group {
+  margin-top: 1rem;
+}

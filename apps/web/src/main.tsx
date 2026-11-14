@@ -10,7 +10,7 @@ import { Button, Input, Card, Badge } from '@rodkisten/girassol';
 import './style.css';
 import { Devices } from './Devices';
 import { ThemeSwitch } from './ThemeSwitch';
-import { MemoryCard } from './MemoryCard';
+import { Timeline } from './Timeline';
 import { DiaryTools } from './DiaryTools';
 import { Capsules } from './Capsules';
 import { WeatherCard } from './WeatherCard';
@@ -22,7 +22,6 @@ function App() {
   const [memories, setMemories] = createSignal<Memory[]>([]),
     [pending, setPending] = createSignal(0),
     [status, setStatus] = createSignal('Preparando seu jardim…'),
-    [query, setQuery] = createSignal(''),
     [busy, setBusy] = createSignal(false),
     [error, setError] = createSignal(''),
     [editing, setEditing] = createSignal<Memory | null>(null),
@@ -30,8 +29,6 @@ function App() {
     [draftTitle, setDraftTitle] = createSignal(''),
     [draftBody, setDraftBody] = createSignal(''),
     [draftTags, setDraftTags] = createSignal(''),
-    [day, setDay] = createSignal(''),
-    [source, setSource] = createSignal('all'),
     [files, setFiles] = createSignal<PendingFile[]>([]),
     [recording, setRecording] = createSignal(false);
   let syncing = false,
@@ -168,16 +165,6 @@ function App() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  const filtered = () =>
-    memories().filter(
-      (m) =>
-        (!day() || new Date(m.createdAt).toLocaleDateString('en-CA') === day()) &&
-        (source() === 'all' ||
-          (source() === 'youtube' ? m.tags.includes('youtube') : !m.tags.includes('youtube'))) &&
-        `${m.title} ${m.body} ${m.tags.join(' ')}`
-          .toLocaleLowerCase('pt-BR')
-          .includes(query().toLocaleLowerCase('pt-BR')),
-    );
   return (
     <>
       <header>
@@ -290,85 +277,24 @@ function App() {
               </p>
             ) : null}
           </section>
-          <section class="timeline">
-            <div class="section-title">
-              <span>02 / FLORESCER</span>
-              <span>{memories().length} MEMÓRIAS</span>
-            </div>
-            <h2>O que já criou raízes</h2>
-            <label class="sr-only" for="search">
-              Buscar memórias
-            </label>
-            <input
-              id="search"
-              type="search"
-              placeholder="Buscar no seu jardim…"
-              value={query()}
-              onInput={(e) => setQuery(e.currentTarget.value)}
-            />
-            <div class="filters">
-              <label>
-                Dia
-                <input type="date" value={day()} onInput={(e) => setDay(e.currentTarget.value)} />
-              </label>
-              <label>
-                Fonte
-                <select value={source()} onChange={(e) => setSource(e.currentTarget.value)}>
-                  <option value="all">Todas</option>
-                  <option value="diary">Diário</option>
-                  <option value="youtube">YouTube</option>
-                </select>
-              </label>
-              <button
-                class="subtle"
-                onClick={() => {
-                  setDay('');
-                  setSource('all');
-                  setQuery('');
-                }}
-              >
-                Limpar filtros
-              </button>
-            </div>
-            <div class="entries">
-              {filtered().length ? (
-                filtered().map((memory) => (
-                  <MemoryCard
-                    memory={memory}
-                    onEdit={() => {
-                      setEditing(memory);
-                      setDraftTitle(memory.title);
-                      setDraftBody(memory.body);
-                      setDraftTags(memory.tags.join(', '));
-                      document.getElementById('title')?.focus();
-                    }}
-                    onDelete={() =>
-                      void db
-                        .change(memory.id, null)
-                        .then(() => sync())
-                        .catch(() => setError('Não foi possível mover para a lixeira.'))
-                    }
-                    db={db}
-                    onChanged={() => void sync()}
-                  />
-                ))
-              ) : (
-                <div class="empty">
-                  <span aria-hidden="true">☘</span>
-                  <h3>
-                    {query()
-                      ? 'Ainda não encontramos por aqui.'
-                      : 'Todo jardim começa com uma semente.'}
-                  </h3>
-                  <p>
-                    {query()
-                      ? 'Experimente outra palavra.'
-                      : 'Sua primeira memória pode ser um pensamento, uma descoberta ou só um pedacinho do dia.'}
-                  </p>
-                </div>
-              )}
-            </div>
-          </section>
+          <Timeline
+            memories={memories()}
+            db={db}
+            onEdit={(memory) => {
+              setEditing(memory);
+              setDraftTitle(memory.title);
+              setDraftBody(memory.body);
+              setDraftTags(memory.tags.join(', '));
+              document.getElementById('title')?.focus();
+            }}
+            onDelete={(memory) =>
+              void db
+                .change(memory.id, null)
+                .then(() => sync())
+                .catch(() => setError('Não foi possível mover para a lixeira.'))
+            }
+            onChanged={() => void sync()}
+          />
         </div>
         <Integrations db={db} memories={memories()} onChanged={() => void sync()} />
         <Capsules db={db} memories={memories()} onChanged={() => void sync()} />
