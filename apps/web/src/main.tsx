@@ -49,7 +49,13 @@ function App() {
     [draftDocument, setDraftDocument] = createSignal<Record<string, unknown> | null>(restoredDraft.document),
     [files, setFiles] = createSignal<PendingFile[]>([]),
     [recording, setRecording] = createSignal(false),
-    [composerOpen, setComposerOpen] = createSignal(false);
+    [composerOpen, setComposerOpen] = createSignal(false),
+    [searchOpen, setSearchOpen] = createSignal(false),
+    [searchQuery, setSearchQuery] = createSignal('');
+  const filteredMemories = () => {
+    const query = searchQuery().trim().toLocaleLowerCase('pt-BR');
+    return query ? memories().filter((memory) => [memory.title, memory.body, ...memory.tags].some((value) => value.toLocaleLowerCase('pt-BR').includes(query))) : memories();
+  };
   // Persist text drafts only; binary attachments remain in the local media queue.
   // Editing an existing memory must never overwrite the new-memory draft.
   createEffect(() => {
@@ -255,12 +261,33 @@ function App() {
           </form>
         </div>
       </header>
+      <div class="workspace-layout">
+        <aside class="workspace-sidebar" aria-label="Seções do Jardim">
+          <span class="workspace-sidebar-label">WORKSPACE</span>
+          <a href="#memorias">▤ <span>Memórias</span></a>
+          <a href="#capsulas">◷ <span>Cápsulas</span></a>
+          <a href="#integracoes">◇ <span>Conexões</span></a>
+          <div class="workspace-sidebar-divider" />
+          <button type="button" onClick={() => setSearchOpen(!searchOpen())}>⌕ <span>Buscar</span></button>
+          <button type="button" onClick={startNewMemory}>＋ <span>Nova memória</span></button>
+          <span class="workspace-sidebar-bottom">{pending() ? `${pending()} pendente(s)` : 'Tudo em seu lugar'}</span>
+        </aside>
       <main class="app-main">
         <nav class="page-nav" aria-label="Navegação principal">
           <a href="#memorias">Memórias</a>
           <a href="#capsulas">Cápsulas</a>
           <a href="#integracoes">Conexões</a>
         </nav>
+        {searchOpen() ? (
+          <section class="workspace-search" role="search">
+            <label for="memory-search">Buscar memórias</label>
+            <div class="workspace-search-row">
+              <input id="memory-search" type="search" value={searchQuery()} onInput={(event) => setSearchQuery(event.currentTarget.value)} placeholder="Título, texto ou tag…" />
+              <button type="button" class="subtle" onClick={() => { setSearchQuery(''); setSearchOpen(false); }}>Fechar</button>
+            </div>
+            <span class="muted">{filteredMemories().length} resultado(s) na timeline</span>
+          </section>
+        ) : null}
         <section class="intro">
           <p class="eyebrow">JARDIM / VISÃO GERAL</p>
           <h1>
@@ -367,7 +394,7 @@ function App() {
             </section>
           </dialog>
           <Timeline
-            memories={memories()}
+            memories={filteredMemories()}
             db={db}
             onEdit={(memory) => {
               setEditing(memory);
@@ -407,6 +434,14 @@ function App() {
           JARDIM <span>Seu arquivo. Seu tempo.</span>
         </footer>
       </main>
+      </div>
+      <nav class="mobile-bottom-nav" aria-label="Acesso rápido">
+        <a href="#memorias"><span aria-hidden="true">▤</span>Memórias</a>
+        <a href="#capsulas"><span aria-hidden="true">◷</span>Cápsulas</a>
+        <button type="button" class="mobile-create" onClick={startNewMemory} aria-label="Criar memória">＋</button>
+        <a href="#integracoes"><span aria-hidden="true">◇</span>Conexões</a>
+        <button type="button" onClick={() => { setSearchOpen(true); document.querySelector('.workspace-search')?.scrollIntoView({ behavior: 'smooth' }); }}><span aria-hidden="true">⌕</span>Buscar</button>
+      </nav>
     </>
   );
 }
