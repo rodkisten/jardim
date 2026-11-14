@@ -49,6 +49,6 @@
     "@rodkisten/jardim-cards": "workspace:*"
   },
   "engines": {
-    "node": ">=24.11.0 <25"
+    "node": ">=24.11.0 <27"
   }
 }
