@@ -17,6 +17,7 @@ import { WeatherCard } from './WeatherCard';
 import { Integrations } from './Integrations';
 import { MediaComposer, type PendingFile } from './MediaComposer';
 import { RichEditor } from './RichEditor';
+import { CommandPalette } from './CommandPalette';
 import { synchronizeDiary } from '@rodkisten/jardim-local-db/revisions';
 const db = new GardenDB();
 const DRAFT_KEY = 'jardim:composer-draft:v1';
@@ -252,6 +253,7 @@ function App() {
         </a>
         <div class="actions header-actions">
           <span class="header-context">Workspace pessoal</span>
+          <CommandPalette memories={memories()} onCreate={startNewMemory} onSearch={(query) => { setSearchQuery(query); setSearchOpen(true); document.getElementById("memorias")?.scrollIntoView({ behavior: "smooth" }); }} onNavigate={(section) => document.getElementById(section)?.scrollIntoView({ behavior: "smooth" })} />
           <ThemeSwitch />
           <button class="subtle" onClick={() => void exportData()}>
             Exportar
