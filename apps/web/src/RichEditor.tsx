@@ -37,7 +37,7 @@ export function RichEditor(props: {
       element: host,
       content: props.document ?? props.value,
       extensions: [
-        StarterKit.configure({ link: false, underline: false, taskList: false, taskItem: false }),
+        StarterKit.configure({ link: false, underline: false }),
         Link.configure({ openOnClick: false, autolink: true, defaultProtocol: 'https' }),
         Underline,
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
@@ -57,7 +57,7 @@ export function RichEditor(props: {
       onTransaction: refresh,
     });
     refresh();
-  });
+  }, undefined);
   onCleanup(() => editor?.destroy());
   createEffect(() => {
     const value = props.value;
@@ -69,13 +69,13 @@ export function RichEditor(props: {
       editor.commands.setContent(document ?? value, { emitUpdate: false });
       refresh();
     }
-  });
+  }, undefined);
   createEffect(() => {
     const disabled = props.disabled;
     editor?.setEditable(!disabled);
-  });
+  }, undefined);
   const action = (label: string, fn: (editor: Editor) => void, active?: (editor: Editor) => boolean) => (
-    <button type="button" aria-label={label} aria-pressed={editor && active ? active(editor) : undefined}
+    <button type="button" aria-label={label} aria-pressed={editor && active ? String(active(editor)) : undefined}
       class="rich-action" onClick={() => run(fn)}>{label}</button>
   );
   return (
@@ -88,7 +88,7 @@ export function RichEditor(props: {
         {action('Sublinhado', (e) => e.chain().focus().toggleUnderline().run(), (e) => e.isActive('underline'))}
         {action('Lista', (e) => e.chain().focus().toggleBulletList().run(), (e) => e.isActive('bulletList'))}
         {action('Checklist', (e) => e.chain().focus().toggleTaskList().run(), (e) => e.isActive('taskList'))}
-        <button type="button" class="rich-action" aria-expanded={more()} onClick={() => setMore(!more())}>Mais ···</button>
+        <button type="button" class="rich-action" aria-expanded={String(more())} onClick={() => setMore(!more())}>Mais ···</button>
       </div>
       {more() ? <div class="rich-toolbar" role="toolbar" aria-label="Formatação avançada">
         {action('Título', (e) => e.chain().focus().toggleHeading({ level: 2 }).run())}
