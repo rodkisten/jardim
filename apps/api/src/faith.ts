@@ -26,10 +26,10 @@ function mysteryFor(date: string) {
 function todayBrazil() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 }
-const unavailable = (resource: string) => ({ status: 'unavailable', resource, items: [], reason: 'Fonte de conteúdo integral ainda não configurada ou validada; nenhum texto foi inventado.' });
+const unavailable = (resource: string): { status: 'unavailable'; resource: string; items: never[]; reason: string } => ({ status: 'unavailable', resource, items: [], reason: 'Fonte de conteúdo integral ainda não configurada ou validada; nenhum texto foi inventado.' });
 type JsonRecord = Record<string, unknown>;
 const record = (value: unknown): value is JsonRecord => !!value && typeof value === 'object' && !Array.isArray(value);
-async function resource(url: string, name: string, fetcher: typeof fetch) {
+async function resource(url: string, name: string, fetcher: typeof fetch): Promise<{ status: 'available'; source: string; data: JsonRecord } | ReturnType<typeof unavailable>> {
   try {
     const data = await externalJson(url, {}, fetcher);
     if (!record(data)) throw Error('Formato de resposta inesperado');
