@@ -1,3 +1,4 @@
+import { faith } from './faith';
 import { preferences } from './preferences';
 import {
   integrationStatus,
@@ -93,7 +94,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
   const token = sessionToken(request);
   const session = token ? await findSession(env.DB, await hash(token), Date.now()) : null;
   if (!session)
-    return path.startsWith('/v1/') || path.startsWith('/v2/')
+    return path.startsWith('/v1/') || path.startsWith('/v2/') || path.startsWith('/faith')
       ? json({ error: 'Autenticação necessária' }, 401)
       : new Response(loginPage(), {
           status: 200,
@@ -108,6 +109,10 @@ async function handle(request: Request, env: Env): Promise<Response> {
       headers: { Location: '/', 'Set-Cookie': cookie('', 0) },
     });
   }
+  if ((path === '/faith' || path.startsWith('/faith/')) && request.method === 'GET')
+    return faith(url);
+  if (path.startsWith('/faith/') || path === '/faith')
+    return json({ error: 'Método inválido' }, 405);
   if (path === '/v2/preferences') {
     if (request.method === 'GET') return preferences(env);
     if (request.method === 'PUT') {
