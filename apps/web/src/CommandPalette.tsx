@@ -50,10 +50,10 @@ export function CommandPalette(props: {
     <button type="button" class="command-trigger" onClick={show} aria-label="Abrir comandos e busca">
       <span aria-hidden="true">⌕</span><span>Buscar ou executar…</span><kbd>⌘ K</kbd>
     </button>
-    <dialog ref={dialog} class="command-dialog" aria-label="Comandos rápidos" onClose={() => setOpen(false)} onCancel={() => setOpen(false)}>
+    <dialog ref={(element) => { dialog = element; }} class="command-dialog" aria-label="Comandos rápidos" onClose={() => setOpen(false)} onCancel={() => setOpen(false)}>
       <div class="command-input-row">
         <span aria-hidden="true">⌕</span>
-        <input ref={input} type="search" role="combobox" aria-autocomplete="list" aria-expanded={open()} aria-controls="command-results" aria-activedescendant={matches()[selected()] ? `command-option-${selected()}` : undefined} aria-label="Buscar comandos ou memórias" placeholder="Buscar memórias ou executar comando…" value={query()} onInput={(event) => { setQuery(event.currentTarget.value); setSelected(0); }}
+        <input ref={(element) => { input = element; }} type="search" role="combobox" aria-autocomplete="list" aria-expanded={open()} aria-controls="command-results" aria-activedescendant={matches()[selected()] ? `command-option-${selected()}` : undefined} aria-label="Buscar comandos ou memórias" placeholder="Buscar memórias ou executar comando…" value={query()} onInput={(event) => { setQuery(event.currentTarget.value); setSelected(0); }}
           onKeyDown={(event) => {
             const items = matches();
             if (event.key === 'ArrowDown' && items.length) { event.preventDefault(); setSelected((selected() + 1) % items.length); }
