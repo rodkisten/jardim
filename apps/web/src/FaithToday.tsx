@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, Show } from 'solid-js';
+import { createEffect, createSignal, onCleanup, For, Show } from 'solid-js';
 import './FaithToday.css';
 
 type Entry = Record<string, unknown>;
@@ -51,7 +51,7 @@ export function FaithToday() {
     }).finally(() => {
       if (!controller.signal.aborted) setLoading(false);
     });
-    return () => controller.abort();
+    onCleanup(() => controller.abort());
   });
   const refetch = () => setRefreshKey((value) => value + 1);
   return <section id="fe" class="faith-today" aria-labelledby="faith-heading">
