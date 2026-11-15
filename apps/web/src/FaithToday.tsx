@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup, For, Show } from 'solid-js';
+import { createEffect, createSignal, For, Show } from 'solid-js';
 import './FaithToday.css';
 
 type Entry = Record<string, unknown>;
@@ -35,24 +35,25 @@ export function FaithToday() {
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal(false);
   const [refreshKey, setRefreshKey] = createSignal(0);
-  createEffect(() => {
-    const selectedDate = date();
-    refreshKey();
-    const controller = new AbortController();
-    setLoading(true);
-    setError(false);
-    void loadFaith(selectedDate).then((result) => {
-      if (!controller.signal.aborted) setData(result);
-    }).catch(() => {
-      if (!controller.signal.aborted) {
-        setData(null);
-        setError(true);
-      }
-    }).finally(() => {
-      if (!controller.signal.aborted) setLoading(false);
-    });
-    onCleanup(() => controller.abort());
-  });
+  createEffect(
+    () => [date(), refreshKey()] as const,
+    ([selectedDate]) => {
+      const controller = new AbortController();
+      setLoading(true);
+      setError(false);
+      void loadFaith(selectedDate).then((result) => {
+        if (!controller.signal.aborted) setData(result);
+      }).catch(() => {
+        if (!controller.signal.aborted) {
+          setData(null);
+          setError(true);
+        }
+      }).finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+      return () => controller.abort();
+    },
+  );
   const refetch = () => setRefreshKey((value) => value + 1);
   return <section id="fe" class="faith-today" aria-labelledby="faith-heading">
     <div class="faith-heading">
@@ -82,7 +83,7 @@ export function FaithToday() {
       </article>
       <article class="faith-panel"><p class="eyebrow">SANTOS DO DIA</p><h3>Vidas que inspiram</h3>
         <div class="faith-saints"><For each={faith().saints.items || []} fallback={<p class="muted">Santos e imagens indisponíveis nesta data.</p>}>{(saint) => <div class="faith-saint">
-          <Show when={typeof saint.image === 'string' && saint.image.startsWith('https://')}><img src={saint.image as string} alt={text(saint.name)} loading="lazy" referrerPolicy="no-referrer" /></Show>
+          <Show when={typeof saint.image === 'string' && saint.image.startsWith('https://')}><img src={saint.image as string} alt={text(saint.name)} loading="lazy" referrerpolicy="no-referrer" /></Show>
           <div><h4>{text(saint.name) || 'Santo do dia'}</h4><p>{text(saint.biography)}</p><Show when={text(saint.prayer)}><details><summary>Oração</summary><p>{text(saint.prayer)}</p></details></Show></div>
         </div>}</For></div>
       </article>
