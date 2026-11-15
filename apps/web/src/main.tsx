@@ -1,4 +1,4 @@
-import { ErrorBoundary, createEffect, createSignal, onCleanup } from 'solid-js';
+import { Errored, createEffect, createSignal, onCleanup } from 'solid-js';
 import { render } from '@solidjs/web';
 import { liveQuery } from 'dexie';
 import { GardenDB } from '@rodkisten/jardim-local-db';
@@ -467,15 +467,16 @@ function reportBoundaryError(error: Error) {
   }).__gardenDock?.add?.('Error', 'SolidJS ErrorBoundary: ' + error.message, error.stack || '');
 }
 
-function AppErrorFallback(props: { error: Error; reset: () => void }) {
-  createEffect(() => reportBoundaryError(props.error));
+function AppErrorFallback(props: { error: () => unknown; reset: () => void }) {
+  const currentError = () => { const value = props.error(); return value instanceof Error ? value : new Error(String(value)); };
+  createEffect(() => reportBoundaryError(currentError()));
   return (
     <main role="alert" style={{ 'min-height': '100dvh', display: 'grid', 'place-items': 'center', padding: '24px', background: 'var(--color-background, #171923)', color: 'var(--color-text, #f5f5fa)', 'font-family': 'system-ui, sans-serif' }}>
       <section style={{ width: 'min(100%, 480px)', padding: '24px', 'border-radius': '16px', border: '1px solid #52566b', background: '#242736' }}>
         <p style={{ color: '#f7a1b6', 'font-weight': '700' }}>Jardim · Erro na interface</p>
         <h1 style={{ 'font-size': '1.5rem' }}>Não foi possível mostrar esta tela.</h1>
         <p>Suas memórias locais não foram apagadas. Você pode tentar novamente ou consultar o diagnóstico.</p>
-        <details><summary>Detalhes técnicos</summary><pre style={{ 'white-space': 'pre-wrap', 'overflow-wrap': 'anywhere', 'font-size': '12px' }}>{props.error.stack || props.error.message}</pre></details>
+        <details><summary>Detalhes técnicos</summary><pre style={{ 'white-space': 'pre-wrap', 'overflow-wrap': 'anywhere', 'font-size': '12px' }}>{currentError().stack || currentError().message}</pre></details>
         <div style={{ display: 'flex', gap: '8px', 'flex-wrap': 'wrap', 'margin-top': '20px' }}>
           <button type="button" onClick={props.reset}>Tentar novamente</button>
           <button type="button" onClick={() => (window as Window & { __gardenDock?: { open?: () => void } }).__gardenDock?.open?.()}>Abrir diagnóstico</button>
@@ -487,7 +488,7 @@ function AppErrorFallback(props: { error: Error; reset: () => void }) {
 }
 
 render(
-  () => <ErrorBoundary fallback={(error, reset) => <AppErrorFallback error={error} reset={reset} />}><App /></ErrorBoundary>,
+  () => <Errored fallback={(error, reset) => <AppErrorFallback error={error} reset={reset} />}><App /></Errored>,
   document.getElementById('root')!,
 );
 
