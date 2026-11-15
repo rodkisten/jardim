@@ -108,15 +108,14 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   const title = document.querySelector<HTMLInputElement>('#title')!;
   title.value = 'Uma nova memória';
   title.dispatchEvent(new InputEvent('input', { bubbles: true }));
-  const body = document.querySelector<HTMLTextAreaElement>('#body')!;
-  body.value = 'Um momento importante';
-  body.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  // Tiptap replaces the old #body textarea with a ProseMirror editor.
+  // This smoke test verifies that the editor mounts; rich editing is tested separately.
+  expect(document.querySelector('.rich-content .ProseMirror[contenteditable]')).not.toBeNull();
   const draftSearch = document.querySelector<HTMLInputElement>('#search')!;
   draftSearch.value = 'outra atualização';
   draftSearch.dispatchEvent(new InputEvent('input', { bubbles: true }));
   await new Promise((resolve) => setTimeout(resolve, 30));
   expect(title.value).toBe('Uma nova memória');
-  expect(body.value).toBe('Um momento importante');
   draftSearch.value = '';
   draftSearch.dispatchEvent(new InputEvent('input', { bubbles: true }));
   title.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
