@@ -69,7 +69,7 @@ function App() {
     }, { rootMargin: '-18% 0px -52% 0px', threshold: [0, 0.1, 0.3, 0.6] });
     sections.forEach((section) => observer.observe(section));
     onCleanup(() => observer.disconnect());
-  });
+  }, undefined);
   // Persist text drafts only; binary attachments remain in the local media queue.
   // Editing an existing memory must never overwrite the new-memory draft.
   createEffect(() => {
@@ -81,7 +81,7 @@ function App() {
     } catch {
       // Private browsing or exhausted storage must not block writing.
     }
-  });
+  }, undefined);
   let composerDialog: HTMLDialogElement | undefined;
   function openComposer() {
     if (composerDialog?.open) return;
@@ -469,7 +469,7 @@ function reportBoundaryError(error: Error) {
 
 function AppErrorFallback(props: { error: () => unknown; reset: () => void }) {
   const currentError = () => { const value = props.error(); return value instanceof Error ? value : new Error(String(value)); };
-  createEffect(() => reportBoundaryError(currentError()));
+  createEffect(() => reportBoundaryError(currentError()), undefined);
   return (
     <main role="alert" style={{ 'min-height': '100dvh', display: 'grid', 'place-items': 'center', padding: '24px', background: 'var(--color-background, #171923)', color: 'var(--color-text, #f5f5fa)', 'font-family': 'system-ui, sans-serif' }}>
       <section style={{ width: 'min(100%, 480px)', padding: '24px', 'border-radius': '16px', border: '1px solid #52566b', background: '#242736' }}>
