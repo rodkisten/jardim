@@ -221,7 +221,11 @@ function App() {
       form.reset();
       closeComposer();
       void sync();
-    } catch {
+    } catch (cause) {
+      console.error('[Jardim] Falha ao salvar memória', cause);
+      (window as Window & { __gardenDock?: { add?: (kind: string, message: string, detail?: string) => void } }).__gardenDock?.add?.(
+        'Error', 'Falha ao salvar memória', cause instanceof Error ? cause.stack ?? cause.message : String(cause),
+      );
       setError(
         'Não foi possível guardar. Confira título, texto, até 12 tags e até 5 anexos de 12 MiB.',
       );
