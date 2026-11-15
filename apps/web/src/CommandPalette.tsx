@@ -32,12 +32,12 @@ export function CommandPalette(props: {
   const close = () => { dialog?.close(); setOpen(false); };
   const show = () => { setQuery(''); setSelected(0); setOpen(true); };
   const execute = (action: () => void) => { close(); action(); };
-  createEffect(() => {
-    if (open() && !dialog?.open) {
+  createEffect(open, (isOpen) => {
+    if (isOpen && !dialog?.open) {
       dialog?.showModal();
       queueMicrotask(() => input?.focus());
     }
-  }, undefined);
+  });
   const keyboard = (event: KeyboardEvent) => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
@@ -53,7 +53,7 @@ export function CommandPalette(props: {
     <dialog ref={(element) => { dialog = element; }} class="command-dialog" aria-label="Comandos rápidos" onClose={() => setOpen(false)} onCancel={() => setOpen(false)}>
       <div class="command-input-row">
         <span aria-hidden="true">⌕</span>
-        <input ref={(element) => { input = element; }} type="search" role="combobox" aria-autocomplete="list" aria-expanded={String(open())} aria-controls="command-results" aria-activedescendant={matches()[selected()] ? `command-option-${selected()}` : undefined} aria-label="Buscar comandos ou memórias" placeholder="Buscar memórias ou executar comando…" value={query()} onInput={(event) => { setQuery(event.currentTarget.value); setSelected(0); }}
+        <input ref={(element) => { input = element; }} type="search" role="combobox" aria-autocomplete="list" aria-expanded={open() ? 'true' : 'false'} aria-controls="command-results" aria-activedescendant={matches()[selected()] ? `command-option-${selected()}` : undefined} aria-label="Buscar comandos ou memórias" placeholder="Buscar memórias ou executar comando…" value={query()} onInput={(event) => { setQuery(event.currentTarget.value); setSelected(0); }}
           onKeyDown={(event) => {
             const items = matches();
             if (event.key === 'ArrowDown' && items.length) { event.preventDefault(); setSelected((selected() + 1) % items.length); }
@@ -64,7 +64,7 @@ export function CommandPalette(props: {
       </div>
       <div id="command-results" class="command-results" role="listbox" aria-label="Resultados">
         <For each={matches()} fallback={<p class="command-empty">Nenhum resultado encontrado.</p>}>
-          {(item, index) => <button id={`command-option-${index()}`} type="button" role="option" aria-selected={String(selected() === index())} class={selected() === index() ? 'command-selected' : undefined} onMouseEnter={() => setSelected(index())} onClick={() => execute(item.action)}>
+          {(item, index) => <button id={`command-option-${index()}`} type="button" role="option" aria-selected={selected() === index() ? 'true' : 'false'} class={selected() === index() ? 'command-selected' : undefined} onMouseEnter={() => setSelected(index())} onClick={() => execute(item.action)}>
             <span class="command-result-icon" aria-hidden="true">↗</span><span>{item.label}</span>
           </button>}
         </For>
