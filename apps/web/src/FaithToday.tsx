@@ -1,4 +1,4 @@
-import { createResource, createSignal, For, Show } from 'solid-js';
+import { createEffect, createSignal, For, Show } from 'solid-js';
 import './FaithToday.css';
 
 type Entry = Record<string, unknown>;
@@ -31,14 +31,36 @@ function readings(items: unknown): { label: string; content: string }[] {
 }
 export function FaithToday() {
   const [date, setDate] = createSignal(today());
-  const [data, { refetch }] = createResource(date, loadFaith);
+  const [data, setData] = createSignal<FaithData | null>(null);
+  const [loading, setLoading] = createSignal(false);
+  const [error, setError] = createSignal(false);
+  const [refreshKey, setRefreshKey] = createSignal(0);
+  createEffect(() => {
+    const selectedDate = date();
+    refreshKey();
+    const controller = new AbortController();
+    setLoading(true);
+    setError(false);
+    void loadFaith(selectedDate).then((result) => {
+      if (!controller.signal.aborted) setData(result);
+    }).catch(() => {
+      if (!controller.signal.aborted) {
+        setData(null);
+        setError(true);
+      }
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    });
+    return () => controller.abort();
+  });
+  const refetch = () => setRefreshKey((value) => value + 1);
   return <section id="fe" class="faith-today" aria-labelledby="faith-heading">
     <div class="faith-heading">
       <div><p class="eyebrow">HOJE / FÉ</p><h2 id="faith-heading">Fé, no seu tempo.</h2><p class="muted">Liturgia, santos e terço em um só lugar.</p></div>
       <div class="faith-actions"><input type="date" aria-label="Data da liturgia" value={date()} onInput={(event) => setDate(event.currentTarget.value)} /><button type="button" class="subtle" onClick={() => void refetch()}>Atualizar</button></div>
     </div>
-    <Show when={data.loading}><p role="status">Carregando a liturgia…</p></Show>
-    <Show when={data.error}><p role="alert">Não foi possível carregar. Verifique sua conexão e tente atualizar.</p></Show>
+    <Show when={loading()}><p role="status">Carregando a liturgia…</p></Show>
+    <Show when={error()}><p role="alert">Não foi possível carregar. Verifique sua conexão e tente atualizar.</p></Show>
     <Show when={data()}>{(faith) => <>
       <div class="faith-grid">
         <article class="faith-panel">
