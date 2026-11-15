@@ -1,3 +1,4 @@
+import { externalJson } from './external';
 /** Personal Catholic resources for Jardim. No external text is presented as verified liturgy. */
 const mysteries = {
   joyful: ['A Anunciação do Anjo a Maria','A Visitação de Maria a Isabel','O Nascimento de Jesus','A Apresentação de Jesus no Templo','A Perda e o Encontro de Jesus no Templo'],
@@ -26,7 +27,18 @@ function todayBrazil() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 }
 const unavailable = (resource: string) => ({ status: 'unavailable', resource, items: [], reason: 'Fonte de conteúdo integral ainda não configurada ou validada; nenhum texto foi inventado.' });
-export async function faith(url: URL): Promise<Response> {
+type JsonRecord = Record<string, unknown>;
+const record = (value: unknown): value is JsonRecord => !!value && typeof value === 'object' && !Array.isArray(value);
+async function resource(url: string, name: string, fetcher: typeof fetch) {
+  try {
+    const data = await externalJson(url, {}, fetcher);
+    if (!record(data)) throw Error('Formato de resposta inesperado');
+    return { status: 'available', source: url, data };
+  } catch {
+    return unavailable(name);
+  }
+}
+export async function faith(url: URL, fetcher: typeof fetch = fetch): Promise<Response> {
   const path = url.pathname.replace(/\/$/, '') || '/faith';
   const suffix = path.slice('/faith'.length);
   const explicit = /^\/(\d{4}-\d{2}-\d{2})$/.exec(suffix)?.[1];
@@ -36,9 +48,25 @@ export async function faith(url: URL): Promise<Response> {
   if (!validDate(date)) return Response.json({ error: 'Data inválida: use AAAA-MM-DD' }, { status: 400 });
   const key = mysteryFor(date);
   const rosary = { date, type: key, mysteries: mysteries[key], prayers, sequence: ['signOfCross','creed','ourFather','hailMary × 3','gloryBe','5 decades: ourFather, hailMary × 10, gloryBe, fatima','hailHolyQueen'] };
-  const calendar = { date, status: 'unavailable', reason: 'Calendário litúrgico oficial ainda não conectado.' };
-  const readings = unavailable('readings');
-  const saints = unavailable('saints');
+  const [year, month, day] = date.split('-').map(Number);
+  const liturgyUrl = new URL('https://liturgia.up.railway.app/v2/');
+  liturgyUrl.search = new URLSearchParams({ dia: String(day), mes: String(month), ano: String(year) }).toString();
+  const saintsUrl = `https://api.ordinarium.com.br/santo-do-dia/dia=${day}&mes=${month}`;
+  const needsReadings = suffix === '' || !!explicit || suffix === '/readings' || suffix === '/calendar';
+  const needsSaints = suffix === '' || !!explicit || suffix === '/saints';
+  const [liturgy, saintsRaw] = await Promise.all([
+    needsReadings ? resource(liturgyUrl.toString(), 'readings', fetcher) : Promise.resolve(unavailable('readings')),
+    needsSaints ? resource(saintsUrl, 'saints', fetcher) : Promise.resolve(unavailable('saints')),
+  ]);
+  const readings = liturgy.status === 'available' && record(liturgy.data) && record(liturgy.data.leituras)
+    ? { status: 'available', source: liturgy.source, items: liturgy.data.leituras }
+    : unavailable('readings');
+  const calendar = liturgy.status === 'available' && record(liturgy.data)
+    ? { date, status: 'available', source: liturgy.source, celebration: liturgy.data.liturgia ?? null, color: liturgy.data.cor ?? null, prayers: liturgy.data.oracoes ?? null, antiphons: liturgy.data.antifonas ?? null, liturgicalSeason: null }
+    : { date, status: 'unavailable', reason: 'Calendário litúrgico indisponível.' };
+  const saints = saintsRaw.status === 'available' && record(saintsRaw.data) && Array.isArray(saintsRaw.data.results)
+    ? { status: 'available', source: saintsRaw.source, items: saintsRaw.data.results.filter(record).map(s => ({ name: s.nome ?? null, image: s.imagem ?? null, biography: s.historia ?? null, reflection: s.reflexao ?? null, prayer: s.oracao ?? null, imageLicense: 'unverified' })) }
+    : unavailable('saints');
   const result = suffix === '/rosary' ? rosary : suffix === '/prayers' ? prayers : suffix === '/readings' ? readings : suffix === '/saints' ? saints : suffix === '/calendar' ? calendar : { date, rosary, calendar, readings, saints, prayers };
   return Response.json(result, { headers: { 'Content-Language': 'pt-BR' } });
 }
