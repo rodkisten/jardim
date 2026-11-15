@@ -23,6 +23,7 @@ test('Prisma D1 reads the existing migration without changing memory IDs or curs
       revision: 1,
       deletedAt: null,
       revisionOperation: null,
+      richDocument: null,
     });
     expect(await findReceipts(binding, [id, crypto.randomUUID()])).toEqual([{ id, operationId }]);
     expect(sqlite.prepare('SELECT rowid,* FROM memories').get()).toEqual(before);
