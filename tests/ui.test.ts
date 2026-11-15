@@ -52,7 +52,7 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
 
   document.querySelector<HTMLButtonElement>('.new-memory')!.click();
   await new Promise((resolve) => setTimeout(resolve, 30));
-  expect(document.querySelector('dialog')?.hasAttribute('open')).toBe(true);
+  expect(document.querySelector('dialog.memory-dialog')?.hasAttribute('open')).toBe(true);
 
   let released = 0;
   const oldMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
@@ -98,7 +98,7 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   await new Promise((resolve) => setTimeout(resolve, 30));
   resolvePermission({ getTracks: () => [{ stop: () => released++ }] });
   await expect.poll(() => released, { timeout: 1000 }).toBeGreaterThan(before);
-  expect(document.querySelector('dialog')?.hasAttribute('open')).toBe(false);
+  expect(document.querySelector('dialog.memory-dialog')?.hasAttribute('open')).toBe(false);
   document.querySelector<HTMLButtonElement>('.new-memory')!.click();
   await new Promise((resolve) => setTimeout(resolve, 30));
   if (oldMediaDevices) Object.defineProperty(navigator, 'mediaDevices', oldMediaDevices);
