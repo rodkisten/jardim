@@ -33,6 +33,10 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
       });
     },
   });
+  // Seed a valid text draft: rich-editor keyboard interactions need a dedicated browser test.
+  localStorage.setItem('jardim:composer-draft:v1', JSON.stringify({
+    title: '', body: 'Um momento importante', tags: '', document: null,
+  }));
   const file = readdirSync('dist/web/assets').find((f) => f.endsWith('.js'))!;
   const code = readFileSync('dist/web/assets/' + file, 'utf8');
   // Vite output is a self-contained browser module with no imports.
