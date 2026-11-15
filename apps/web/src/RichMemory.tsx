@@ -1,5 +1,5 @@
 import { For, Show } from 'solid-js';
-import type { JSX } from 'solid-js';
+import type { JSX } from '@solidjs/web';
 import type { Memory } from '@rodkisten/jardim-contracts';
 
 /** Render a small allowlist of Tiptap nodes. Never inject stored HTML. */
