@@ -16,7 +16,9 @@ concurrency:
 jobs:
   deploy:
     name: Build, migrate D1 and deploy Worker
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      !contains(fromJSON('["renovate[bot]","dependabot[bot]","renovate","dependabot"]'), github.actor)
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -55,7 +57,19 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm exec wrangler d1 migrations apply jardim --remote
 
+      - name: Skip obsolete deployments
+        id: freshness
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          LATEST_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [[ "$EXPECTED_SHA" != "$LATEST_SHA" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Newer main commit exists; skipping obsolete deployment." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Deploy Cloudflare Worker
+        if: steps.freshness.outputs.skip != 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
