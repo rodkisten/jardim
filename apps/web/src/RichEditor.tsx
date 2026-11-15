@@ -106,7 +106,7 @@ export function RichEditor(props: {
         })}
         {action('Remover formatação', (e) => e.chain().focus().unsetAllMarks().clearNodes().run())}
       </div> : null}
-      <div ref={host} class="rich-content" aria-label="Sua memória" />
+      <div ref={(element) => { host = element; }} class="rich-content" aria-label="Sua memória" />
       <div class="rich-footer" aria-live="polite">{revision() >= 0 ? editor?.storage.characterCount.characters() ?? props.value.length : 0} / 20000</div>
     </div>
   );
