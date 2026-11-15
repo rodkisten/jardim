@@ -1,6 +1,709 @@
 <!doctype html>
 <html lang="pt-BR">
   <head>
+    
+<script>
+(() => {
+  "use strict";
+
+  if (window.__errorInspector) return;
+
+  const MAX = 500;
+  const entries = [];
+  const originals = {};
+  let root, shadow, list, counter, search, filter = "all";
+  let highlighter = null;
+  let scheduled = false;
+  let capturing = false;
+
+  const now = () => new Date().toISOString();
+
+  function serialize(value, seen = new WeakSet(), depth = 0) {
+    if (value instanceof Error) {
+      return {
+        name: value.name,
+        message: value.message,
+        stack: value.stack,
+        cause: value.cause === undefined
+          ? undefined
+          : serialize(value.cause, seen, depth + 1)
+      };
+    }
+
+    if (typeof value === "bigint") return String(value) + "n";
+    if (typeof value === "function") return `[Function ${value.name}]`;
+    if (typeof value === "symbol") return String(value);
+    if (typeof value === "undefined") return "[undefined]";
+    if (value === null || typeof value !== "object") return value;
+    if (depth > 5) return "[Max depth]";
+    if (seen.has(value)) return "[Circular]";
+
+    seen.add(value);
+
+    try {
+      if (value instanceof Element) {
+        return value.outerHTML.slice(0, 2000);
+      }
+
+      if (Array.isArray(value)) {
+        return value.slice(0, 50).map(v =>
+          serialize(v, seen, depth + 1)
+        );
+      }
+
+      return Object.fromEntries(
+        Object.keys(value).slice(0, 50).map(key => {
+          try {
+            return [key, serialize(value[key], seen, depth + 1)];
+          } catch {
+            return [key, "[Unreadable]"];
+          }
+        })
+      );
+    } catch {
+      return String(value);
+    }
+  }
+
+  function stringify(value) {
+    try {
+      return typeof value === "string"
+        ? value
+        : JSON.stringify(serialize(value), null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+
+  function redact(value) {
+    return String(value)
+      .replace(
+        /((?:authorization|cookie|set-cookie|token|secret|password|api[_-]?key)\s*[:=]\s*)[^\s,;]+/gi,
+        "$1[REDACTED]"
+      )
+      .replace(
+        /(Bearer\s+)[A-Za-z0-9._~+/-]+/gi,
+        "$1[REDACTED]"
+      );
+  }
+
+  function add(type, source, message, detail = "") {
+    if (capturing) return;
+    capturing = true;
+
+    try {
+      const entry = {
+        id: crypto.randomUUID?.() || String(Date.now() + Math.random()),
+        time: now(),
+        type,
+        source,
+        message: redact(message),
+        detail: redact(detail),
+        url: location.href
+      };
+
+      entries.push(entry);
+      if (entries.length > MAX) entries.shift();
+
+      if (type === "error") {
+        root?.classList.add("has-errors");
+      }
+
+      scheduleRender();
+    } finally {
+      capturing = false;
+    }
+  }
+
+  // Global JS errors and failed resources.
+  window.addEventListener("error", event => {
+    if (event instanceof ErrorEvent) {
+      add(
+        "error",
+        "window.error",
+        event.message,
+        event.error?.stack ||
+          `${event.filename}:${event.lineno}:${event.colno}`
+      );
+    } else {
+      const target = event.target;
+      if (!target || target === window) return;
+
+      add(
+        "error",
+        "resource",
+        `Failed to load ${target.tagName || "resource"}`,
+        target.src || target.href || target.outerHTML || ""
+      );
+    }
+  }, true);
+
+  window.addEventListener("unhandledrejection", event => {
+    add(
+      "error",
+      "promise",
+      stringify(event.reason),
+      event.reason?.stack || ""
+    );
+  });
+
+  window.addEventListener("securitypolicyviolation", event => {
+    add(
+      "error",
+      "CSP",
+      event.violatedDirective,
+      JSON.stringify({
+        blockedURI: event.blockedURI,
+        sourceFile: event.sourceFile,
+        lineNumber: event.lineNumber,
+        disposition: event.disposition
+      }, null, 2)
+    );
+  });
+
+  // Console interception.
+  for (const method of ["error", "warn", "assert", "trace"]) {
+    originals[method] = console[method];
+
+    console[method] = function (...args) {
+      try {
+        if (method !== "assert" || args[0] === false) {
+          const values = method === "assert" ? args.slice(1) : args;
+          const message = values.map(stringify).join(" ");
+          const stack = values
+            .filter(v => v instanceof Error)
+            .map(v => v.stack)
+            .join("\n");
+
+          add(
+            method === "warn" ? "warn" : "error",
+            `console.${method}`,
+            message || method,
+            stack || (method === "trace" ? new Error().stack : "")
+          );
+        }
+      } catch {}
+
+      return originals[method].apply(this, args);
+    };
+  }
+
+  // Fetch interception.
+  if (typeof window.fetch === "function") {
+    const nativeFetch = window.fetch;
+    originals.fetch = nativeFetch;
+
+    window.fetch = async function (...args) {
+      const start = performance.now();
+      const request = args[0];
+      const url = request instanceof Request ? request.url : String(request);
+      const method = args[1]?.method ||
+        (request instanceof Request ? request.method : "GET");
+
+      try {
+        const response = await nativeFetch.apply(this, args);
+
+        if (!response.ok) {
+          add(
+            "error",
+            "fetch",
+            `${method} ${response.status} ${response.statusText}`,
+            JSON.stringify({
+              url,
+              status: response.status,
+              durationMs: Math.round(performance.now() - start)
+            }, null, 2)
+          );
+        }
+
+        return response;
+      } catch (error) {
+        add(
+          "error",
+          "fetch",
+          `${method} ${url}`,
+          stringify(error)
+        );
+        throw error;
+      }
+    };
+  }
+
+  // XMLHttpRequest interception.
+  const XHR = window.XMLHttpRequest;
+  if (XHR?.prototype) {
+    const nativeOpen = XHR.prototype.open;
+    const nativeSend = XHR.prototype.send;
+    const requests = new WeakMap();
+
+    XHR.prototype.open = function (method, url, ...rest) {
+      requests.set(this, { method, url: String(url) });
+      return nativeOpen.call(this, method, url, ...rest);
+    };
+
+    XHR.prototype.send = function (...args) {
+      const meta = requests.get(this) || {};
+      const start = performance.now();
+
+      this.addEventListener("loadend", () => {
+        if (this.status >= 400 || this.status === 0) {
+          add(
+            "error",
+            "xhr",
+            `${meta.method || "GET"} ${this.status || "NETWORK ERROR"}`,
+            JSON.stringify({
+              url: meta.url,
+              status: this.status,
+              durationMs: Math.round(performance.now() - start)
+            }, null, 2)
+          );
+        }
+      }, { once: true });
+
+      return nativeSend.apply(this, args);
+    };
+  }
+
+  // Rendering.
+  function scheduleRender() {
+    if (scheduled) return;
+    scheduled = true;
+
+    requestAnimationFrame(() => {
+      scheduled = false;
+      render();
+    });
+  }
+
+  function escapeHTML(text) {
+    return String(text).replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+  }
+
+  function highlight(text) {
+    if (!highlighter) return escapeHTML(text);
+
+    try {
+      return highlighter.highlightAuto(
+        text,
+        ["javascript", "json", "xml", "bash"]
+      ).value;
+    } catch {
+      return escapeHTML(text);
+    }
+  }
+
+  function render() {
+    if (!shadow || !list) return;
+
+    const query = search?.value.toLowerCase() || "";
+    const visible = entries.filter(entry =>
+      (filter === "all" || entry.type === filter) &&
+      (!query || JSON.stringify(entry).toLowerCase().includes(query))
+    );
+
+    const errors = entries.filter(e => e.type === "error").length;
+    const warnings = entries.filter(e => e.type === "warn").length;
+
+    counter.textContent = `${errors} errors · ${warnings} warnings`;
+
+    list.replaceChildren();
+
+    for (const entry of visible.slice().reverse()) {
+      const item = document.createElement("details");
+      item.className = `entry ${entry.type}`;
+
+      const summary = document.createElement("summary");
+
+      const time = document.createElement("time");
+      time.textContent = new Date(entry.time).toLocaleTimeString();
+
+      const source = document.createElement("span");
+      source.className = "source";
+      source.textContent = entry.source;
+
+      const message = document.createElement("span");
+      message.className = "message";
+      message.textContent = entry.message;
+
+      summary.append(time, source, message);
+      item.append(summary);
+
+      const code = document.createElement("pre");
+      const inner = document.createElement("code");
+      inner.className = "hljs";
+      inner.innerHTML = highlight(
+        entry.detail || entry.message
+      );
+      code.append(inner);
+      item.append(code);
+
+      const copy = document.createElement("button");
+      copy.className = "copy";
+      copy.textContent = "Copy details";
+      copy.addEventListener("click", () => {
+        navigator.clipboard?.writeText(
+          JSON.stringify(entry, null, 2)
+        ).catch(() => {});
+      });
+
+      item.append(copy);
+      list.append(item);
+    }
+
+    if (!visible.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = entries.length
+        ? "No matching events"
+        : "No errors captured yet";
+      list.append(empty);
+    }
+  }
+
+  function mount() {
+    if (root || !document.documentElement) return;
+
+    root = document.createElement("div");
+    root.id = "__error-inspector";
+    root.style.cssText =
+      "position:fixed;inset:0;z-index:2147483647;pointer-events:none";
+
+    shadow = root.attachShadow({ mode: "open" });
+
+    const style = document.createElement("style");
+    style.textContent = `
+      :host {
+        all: initial;
+        color-scheme: dark;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      * { box-sizing: border-box; }
+
+      button, input { font: inherit; }
+
+      button {
+        cursor: pointer;
+        color: inherit;
+        background: #272b37;
+        border: 1px solid #424858;
+        border-radius: 3px;
+        padding: 2px 3px;
+      }
+
+      button:active { opacity: .7; }
+
+      .launcher {
+        pointer-events: auto;
+        position: fixed;
+        right: 7px;
+        bottom: calc(7px + env(safe-area-inset-bottom));
+        background: #20242e;
+        color: #f4f4f6;
+        border: 1px solid #515769;
+        box-shadow: 0 8px 30px #0008;
+        border-radius: 100px;
+        padding: 6px 8px;
+        font-weight: 600;
+        z-index: 2;
+      }
+
+      .has-errors .launcher {
+        border-color: #ff647c;
+        color: #ff8597;
+      }
+
+      .panel {
+        pointer-events: auto;
+        position: fixed;
+        right: 6px;
+        bottom: calc(32px + env(safe-area-inset-bottom));
+        width: min(720px, calc(100vw - 24px));
+        height: min(65dvh, 650px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 7px;
+        border: 1px solid #444b5b;
+        background: #161920;
+        color: #e4e8f1;
+        box-shadow: 0 18px 70px #000b;
+      }
+
+      .panel[hidden] { display: none; }
+
+      header {
+        padding: 6px;
+        background: #20242e;
+        border-bottom: 1px solid #343a47;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      header strong { font-size: 13px; }
+      header small { color: #a5adbf; font-size: 10px; }
+
+      .toolbar {
+        display: flex;
+        gap: 6px;
+        padding: 9px;
+        border-bottom: 1px solid #343a47;
+        flex-wrap: wrap;
+      }
+
+      .toolbar input {
+        flex: 1;
+        min-width: 100px;
+        background: #101319;
+        color: white;
+        border: 1px solid #414858;
+        border-radius: 8px;
+        padding: 8px;
+        outline: none;
+      }
+
+      .toolbar button { font-size: 11px; }
+
+      .toolbar button.active {
+        background: #465b87;
+        border-color: #7895d2;
+      }
+
+      .events {
+        flex: 1;
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 8px;
+      }
+
+      .entry {
+        border: 1px solid #343a47;
+        border-left: 3px solid #ff647c;
+        border-radius: 8px;
+        margin-bottom: 7px;
+        background: #1c2029;
+        overflow: hidden;
+      }
+
+      .entry.warn { border-left-color: #f5bb56; }
+
+      summary {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px;
+        cursor: pointer;
+        font-size: 11px;
+        overflow-wrap: anywhere;
+      }
+
+      time { color: #8e98ac; }
+      .source { color: #91b9ff; font-weight: 700; }
+      .message { color: #f1c1c8; flex: 1; min-width: 130px; }
+      .warn .message { color: #f5d79d; }
+
+      pre {
+        margin: 0;
+        padding: 12px;
+        overflow: auto;
+        background: #101319;
+        border-top: 1px solid #343a47;
+        font-size: 11px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        user-select: text;
+        -webkit-user-select: text;
+      }
+
+      .hljs { color: #c9d1d9; }
+      .hljs-keyword, .hljs-selector-tag { color: #ff7bba; }
+      .hljs-string, .hljs-attr { color: #a5d6ff; }
+      .hljs-number, .hljs-literal { color: #79c0ff; }
+      .hljs-title, .hljs-function { color: #d2a8ff; }
+      .hljs-comment { color: #8b949e; }
+      .hljs-built_in, .hljs-type { color: #ffa657; }
+
+      .copy {
+        margin: 8px;
+        font-size: 10px;
+      }
+
+      .empty {
+        padding: 35px 12px;
+        color: #8e98ac;
+        text-align: center;
+        font-size: 12px;
+      }
+
+      @media (max-width: 600px) {
+        .panel {
+          right: 0;
+          bottom: 0;
+          width: 100vw;
+          height: 75dvh;
+          border-radius: 16px 16px 0 0;
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .launcher {
+          right: 10px;
+          bottom: calc(10px + env(safe-area-inset-bottom));
+        }
+      }
+    `;
+
+    const launcher = document.createElement("button");
+    launcher.className = "launcher";
+    launcher.textContent = "⚡ Errors";
+
+    const panel = document.createElement("section");
+    panel.className = "panel";
+    panel.hidden = true;
+
+    const header = document.createElement("header");
+    const heading = document.createElement("div");
+    heading.innerHTML = "<strong>⚡ Error Inspector</strong>";
+
+    counter = document.createElement("small");
+    counter.style.display = "block";
+    counter.textContent = "0 errors · 0 warnings";
+    heading.append(counter);
+
+    const close = document.createElement("button");
+    close.textContent = "✕";
+    close.title = "Close panel";
+
+    header.append(heading, close);
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "toolbar";
+
+    search = document.createElement("input");
+    search.placeholder = "Search errors...";
+    search.addEventListener("input", scheduleRender);
+    toolbar.append(search);
+
+    for (const type of ["all", "error", "warn"]) {
+      const button = document.createElement("button");
+      button.textContent = type.toUpperCase();
+      if (type === "all") button.classList.add("active");
+
+      button.addEventListener("click", () => {
+        filter = type;
+        toolbar.querySelectorAll("button").forEach(b =>
+          b.classList.remove("active")
+        );
+        button.classList.add("active");
+        render();
+      });
+
+      toolbar.append(button);
+    }
+
+    const exportButton = document.createElement("button");
+    exportButton.textContent = "Export";
+    exportButton.addEventListener("click", () => {
+      const blob = new Blob(
+        [JSON.stringify(entries, null, 2)],
+        { type: "application/json" }
+      );
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `errors-${Date.now()}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    const clearButton = document.createElement("button");
+    clearButton.textContent = "Clear";
+    clearButton.addEventListener("click", () => {
+      entries.length = 0;
+      root.classList.remove("has-errors");
+      render();
+    });
+
+    toolbar.append(exportButton, clearButton);
+
+    list = document.createElement("div");
+    list.className = "events";
+
+    panel.append(header, toolbar, list);
+    shadow.append(style, launcher, panel);
+
+    launcher.addEventListener("click", () => {
+      panel.hidden = !panel.hidden;
+      launcher.hidden = !panel.hidden;
+      if (!panel.hidden) render();
+    });
+
+    close.addEventListener("click", () => {
+      panel.hidden = true;
+      launcher.hidden = false;
+    });
+
+    document.documentElement.append(root);
+    render();
+  }
+
+  window.__errorInspector = {
+    entries,
+    open() {
+      mount();
+      shadow.querySelector(".panel").hidden = false;
+      shadow.querySelector(".launcher").hidden = true;
+      render();
+    },
+    clear() {
+      entries.length = 0;
+      root?.classList.remove("has-errors");
+      render();
+    },
+    capture(error, source = "manual") {
+      add("error", source, stringify(error), error?.stack || "");
+    }
+  };
+
+  if (document.documentElement) {
+    mount();
+  } else {
+    document.addEventListener("DOMContentLoaded", mount, { once: true });
+  }
+
+  // Highlighting loads asynchronously; error hooks are already active.
+  import("https://esm.sh/highlight.js@11.11.1/lib/core")
+    .then(async ({ default: hljs }) => {
+      const languages = await Promise.all([
+        import("https://esm.sh/highlight.js@11.11.1/lib/languages/javascript"),
+        import("https://esm.sh/highlight.js@11.11.1/lib/languages/json"),
+        import("https://esm.sh/highlight.js@11.11.1/lib/languages/xml"),
+        import("https://esm.sh/highlight.js@11.11.1/lib/languages/bash")
+      ]);
+
+      ["javascript", "json", "xml", "bash"].forEach((name, i) => {
+        hljs.registerLanguage(name, languages[i].default);
+      });
+
+      highlighter = hljs;
+      scheduleRender();
+    })
+    .catch(error => {
+      add("warn", "inspector", "Highlighting unavailable", error.message);
+    });
+})();
+</script>
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#faf9fc" />
