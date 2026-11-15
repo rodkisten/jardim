@@ -69,5 +69,5 @@ export async function faith(url: URL, fetcher: typeof fetch = fetch): Promise<Re
     ? { status: 'available', source: saintsRaw.source, items: saintsRaw.data.results.filter(record).map(s => ({ name: s.nome ?? null, image: s.imagem ?? null, biography: s.historia ?? null, reflection: s.reflexao ?? null, prayer: s.oracao ?? null, imageLicense: 'unverified' })) }
     : unavailable('saints');
   const result = suffix === '/rosary' ? rosary : suffix === '/prayers' ? prayers : suffix === '/readings' ? readings : suffix === '/saints' ? saints : suffix === '/calendar' ? calendar : { date, rosary, calendar, readings, saints, prayers };
-  return Response.json(result, { headers: { 'Content-Language': 'pt-BR', 'Cache-Control': 'private, max-age=300' } });
+  return Response.json(result, { headers: { 'Content-Language': 'pt-BR', 'Cache-Control': 'no-store' } });
 }
