@@ -7,6 +7,7 @@ const mysteries = {
   luminous: ['O Batismo de Jesus no Jordão','As Bodas de Caná','O Anúncio do Reino de Deus','A Transfiguração de Jesus','A Instituição da Eucaristia'],
 } as const;
 const prayers = {
+  creed: 'Creio em Deus Pai todo-poderoso, criador do céu e da terra; e em Jesus Cristo, seu único Filho, nosso Senhor; que foi concebido pelo poder do Espírito Santo; nasceu da Virgem Maria, padeceu sob Pôncio Pilatos, foi crucificado, morto e sepultado; desceu à mansão dos mortos; ressuscitou ao terceiro dia; subiu aos céus; está sentado à direita de Deus Pai todo-poderoso, donde há de vir a julgar os vivos e os mortos. Creio no Espírito Santo; na santa Igreja Católica; na comunhão dos santos; na remissão dos pecados; na ressurreição da carne; na vida eterna. Amém.',
   signOfCross: 'Em nome do Pai, e do Filho, e do Espírito Santo. Amém.',
   ourFather: 'Pai nosso que estais nos céus, santificado seja o vosso nome; venha a nós o vosso Reino; seja feita a vossa vontade, assim na terra como no céu. O pão nosso de cada dia nos dai hoje; perdoai-nos as nossas ofensas, assim como nós perdoamos a quem nos tem ofendido; e não nos deixeis cair em tentação, mas livrai-nos do mal. Amém.',
   hailMary: 'Ave Maria, cheia de graça, o Senhor é convosco; bendita sois vós entre as mulheres, e bendito é o fruto do vosso ventre, Jesus. Santa Maria, Mãe de Deus, rogai por nós, pecadores, agora e na hora de nossa morte. Amém.',
@@ -68,5 +69,5 @@ export async function faith(url: URL, fetcher: typeof fetch = fetch): Promise<Re
     ? { status: 'available', source: saintsRaw.source, items: saintsRaw.data.results.filter(record).map(s => ({ name: s.nome ?? null, image: s.imagem ?? null, biography: s.historia ?? null, reflection: s.reflexao ?? null, prayer: s.oracao ?? null, imageLicense: 'unverified' })) }
     : unavailable('saints');
   const result = suffix === '/rosary' ? rosary : suffix === '/prayers' ? prayers : suffix === '/readings' ? readings : suffix === '/saints' ? saints : suffix === '/calendar' ? calendar : { date, rosary, calendar, readings, saints, prayers };
-  return Response.json(result, { headers: { 'Content-Language': 'pt-BR' } });
+  return Response.json(result, { headers: { 'Content-Language': 'pt-BR', 'Cache-Control': 'private, max-age=300' } });
 }
