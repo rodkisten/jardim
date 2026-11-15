@@ -60,7 +60,7 @@ function App() {
     return query ? memories().filter((memory) => [memory.title, memory.body, ...memory.tags].some((value) => value.toLocaleLowerCase('pt-BR').includes(query))) : memories();
   };
   // Track the visible workspace section without polling scroll position.
-  createEffect(() => {
+  createEffect(() => true, () => {
     const ids = ['memorias', 'capsulas', 'integracoes'];
     const sections = ids.map((id) => document.getElementById(id)).filter((element): element is HTMLElement => !!element);
     const observer = new IntersectionObserver((entries) => {
@@ -69,19 +69,18 @@ function App() {
     }, { rootMargin: '-18% 0px -52% 0px', threshold: [0, 0.1, 0.3, 0.6] });
     sections.forEach((section) => observer.observe(section));
     onCleanup(() => observer.disconnect());
-  }, undefined);
+  });
   // Persist text drafts only; binary attachments remain in the local media queue.
   // Editing an existing memory must never overwrite the new-memory draft.
-  createEffect(() => {
-    if (editing()) return;
-    const draft = { title: draftTitle(), body: draftBody(), tags: draftTags(), document: draftDocument() };
+  createEffect(() => ({ editing: editing(), title: draftTitle(), body: draftBody(), tags: draftTags(), document: draftDocument() }), ({ editing, ...draft }) => {
+    if (editing) return;
     try {
       if (draft.title || draft.body || draft.tags) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       else localStorage.removeItem(DRAFT_KEY);
     } catch {
       // Private browsing or exhausted storage must not block writing.
     }
-  }, undefined);
+  });
   let composerDialog: HTMLDialogElement | undefined;
   function openComposer() {
     if (composerDialog?.open) return;
@@ -469,7 +468,7 @@ function reportBoundaryError(error: Error) {
 
 function AppErrorFallback(props: { error: () => unknown; reset: () => void }) {
   const currentError = () => { const value = props.error(); return value instanceof Error ? value : new Error(String(value)); };
-  createEffect(() => reportBoundaryError(currentError()), undefined);
+  createEffect(currentError, reportBoundaryError);
   return (
     <main role="alert" style={{ 'min-height': '100dvh', display: 'grid', 'place-items': 'center', padding: '24px', background: 'var(--color-background, #171923)', color: 'var(--color-text, #f5f5fa)', 'font-family': 'system-ui, sans-serif' }}>
       <section style={{ width: 'min(100%, 480px)', padding: '24px', 'border-radius': '16px', border: '1px solid #52566b', background: '#242736' }}>
