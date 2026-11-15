@@ -119,8 +119,12 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   draftSearch.value = '';
   draftSearch.dispatchEvent(new InputEvent('input', { bubbles: true }));
   title.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-  await new Promise((r) => setTimeout(r, 250));
-  expect(document.querySelector('.memory h3')?.textContent).toBe('Uma nova memória');
+  await expect.poll(() => {
+    const saved = document.querySelector('.memory h3')?.textContent;
+    if (saved) return saved;
+    const error = document.querySelector('.memory-dialog [role="alert"]')?.textContent;
+    return error ? `Save error: ${error}` : 'Waiting for saved memory';
+  }, { timeout: 1500 }).toBe('Uma nova memória');
   // The save happened while the initial pull was in flight. It must be sent without waiting 30 seconds.
   expect(posted).toBe(0);
   releaseInitial(Response.json({ snapshots: [], cursor: 0, hasMore: false }));
