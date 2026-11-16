@@ -2,8 +2,9 @@ packages:
   - apps/*
   - packages/*
 
-onlyBuiltDependencies:
-  - '@prisma/engines'
-  - prisma
-  - esbuild
-  - workerd
+# pnpm 11+ requires explicit approvals; onlyBuiltDependencies is ignored.
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+  esbuild: true
+  workerd: true
