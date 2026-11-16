@@ -2,7 +2,7 @@
   "name": "jardim",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@12.21.0",
   "scripts": {
     "dev": "turbo run dev --filter=@rodkisten/jardim-web",
     "dev:api": "wrangler dev --local-protocol https",
@@ -23,7 +23,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply jardim --remote"
   },
   "devDependencies": {
-    "@babel/core": "7.29.13",
+    "@babel/core": "8.1.2",
     "@cloudflare/workers-types": "5.20261112.1",
     "@types/babel__core": "7.20.5",
     "@types/node": "26.6.6",
@@ -32,7 +32,7 @@
     "fake-indexeddb": "6.2.8",
     "happy-dom": "21.0.4",
     "prettier": "3.10.1",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vite": "8.3.8",
     "vitest": "5.1.0",
     "wrangler": "4.161.0",
@@ -49,6 +49,6 @@
     "@rodkisten/jardim-cards": "workspace:*"
   },
   "engines": {
-    "node": ">=24.11.0 <25"
+    "node": ">=24.11.0 <27"
   }
 }
