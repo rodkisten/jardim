@@ -63,10 +63,10 @@ export async function faith(url: URL, fetcher: typeof fetch = fetch): Promise<Re
     ? { status: 'available', source: liturgy.source, items: liturgy.data.leituras }
     : unavailable('readings');
   const calendar = liturgy.status === 'available' && record(liturgy.data)
-    ? { date, status: 'available', source: liturgy.source, celebration: liturgy.data.liturgia ?? null, color: liturgy.data.cor ?? null, prayers: liturgy.data.oracoes ?? null, antiphons: liturgy.data.antifonas ?? null, liturgicalSeason: null }
+    ? { date, status: 'available', source: liturgy.source, celebration: liturgy.data.liturgia ?? null, color: liturgy.data.cor ?? null, prayers: liturgy.data.oracoes ?? null, antiphons: liturgy.data.antifonas ?? null, liturgicalSeason: liturgy.data.tempo ?? liturgy.data.tempoLiturgico ?? null }
     : { date, status: 'unavailable', reason: 'Calendário litúrgico indisponível.' };
   const saints = saintsRaw.status === 'available' && record(saintsRaw.data) && Array.isArray(saintsRaw.data.results)
-    ? { status: 'available', source: saintsRaw.source, items: saintsRaw.data.results.filter(record).map(s => ({ name: s.nome ?? null, image: s.imagem ?? null, biography: s.historia ?? null, reflection: s.reflexao ?? null, prayer: s.oracao ?? null, imageLicense: 'unverified' })) }
+    ? { status: 'available', source: saintsRaw.source, items: saintsRaw.data.results.filter(record).map(s => ({ name: s.nome ?? null, image: typeof s.imagem === 'string' && /^https:\/\//.test(s.imagem) ? s.imagem : null, biography: s.historia ?? null, reflection: s.reflexao ?? null, prayer: s.oracao ?? null, imageLicense: 'unverified' })) }
     : unavailable('saints');
   const result = suffix === '/rosary' ? rosary : suffix === '/prayers' ? prayers : suffix === '/readings' ? readings : suffix === '/saints' ? saints : suffix === '/calendar' ? calendar : { date, rosary, calendar, readings, saints, prayers };
   return Response.json(result, { headers: { 'Content-Language': 'pt-BR', 'Cache-Control': 'no-store' } });

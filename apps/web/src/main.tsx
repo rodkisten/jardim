@@ -14,6 +14,7 @@ import { Timeline } from './Timeline';
 import { DiaryTools } from './DiaryTools';
 import { Capsules } from './Capsules';
 import { WeatherCard } from './WeatherCard';
+import { FaithToday } from './FaithToday';
 import { Integrations } from './Integrations';
 import { MediaComposer, type PendingFile } from './MediaComposer';
 import { RichEditor } from './RichEditor';
@@ -61,7 +62,7 @@ function App() {
   };
   // Track the visible workspace section without polling scroll position.
   createEffect(() => true, () => {
-    const ids = ['memorias', 'capsulas', 'integracoes'];
+    const ids = ['hoje', 'fe', 'memorias', 'capsulas', 'integracoes'];
     const sections = ids.map((id) => document.getElementById(id)).filter((element): element is HTMLElement => !!element);
     const observer = new IntersectionObserver((entries) => {
       const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
@@ -282,6 +283,8 @@ function App() {
       <div class="workspace-layout">
         <aside class="workspace-sidebar" aria-label="Seções do Jardim">
           <span class="workspace-sidebar-label">WORKSPACE</span>
+          <a href="#hoje" aria-current={activeSection() === 'hoje' || activeSection() === 'fe' ? 'location' : undefined}><span>Hoje</span></a>
+          <a href="#fe"><span>Fé</span></a>
           <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}><NavIcon name="memories" /> <span>Memórias</span></a>
           <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}><NavIcon name="capsules" /> <span>Cápsulas</span></a>
           <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}><NavIcon name="connections" /> <span>Conexões</span></a>
@@ -292,6 +295,7 @@ function App() {
         </aside>
       <main class="app-main">
         <nav class="page-nav" aria-label="Navegação principal">
+          <a href="#hoje">Hoje</a><a href="#fe">Fé</a>
           <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}>Memórias</a>
           <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}>Cápsulas</a>
           <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}>Conexões</a>
@@ -323,7 +327,7 @@ function App() {
             </button>
           </div>
         </section>
-        <WeatherCard db={db} memories={memories()} onChanged={() => void sync()} />
+        <section id="hoje" aria-label="Hoje"><WeatherCard db={db} memories={memories()} onChanged={() => void sync()} /><FaithToday /></section>
         <div class="new-memory-bar">
           <div class="memory-bar-heading"><span class="eyebrow">SUAS MEMÓRIAS</span><p>Uma nota, uma foto, uma mensagem.</p></div>
           <button class="new-memory" onClick={startNewMemory}>
@@ -454,6 +458,7 @@ function App() {
       </main>
       </div>
       <nav class="mobile-bottom-nav" aria-label="Acesso rápido">
+        <a href="#hoje">Hoje</a>
         <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}><NavIcon name="memories" />Memórias</a>
         <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}><NavIcon name="capsules" />Cápsulas</a>
         <button type="button" class="mobile-create" onClick={startNewMemory} aria-label="Criar memória"><NavIcon name="plus" size={25} /></button>
