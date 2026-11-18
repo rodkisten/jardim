@@ -15,8 +15,7 @@ on:
     - cron: "37 8 * * 1"
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: jardim-prettier-main
@@ -27,10 +26,19 @@ jobs:
     name: Format and publish changes
     runs-on: ubuntu-latest
     steps:
+      - name: Authenticate Ploocky GitHub App
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BOT_APP_ID || vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
+          token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
 
       - name: Set up pnpm
@@ -67,8 +75,8 @@ jobs:
         if: steps.changes.outputs.changed == 'true' && github.event_name == 'workflow_dispatch' && inputs.mode == 'main'
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
           git add -A
           git commit -m "style: apply Prettier formatting [skip ci]"
           git push origin HEAD:main
@@ -76,12 +84,12 @@ jobs:
       - name: Open or update formatting PR
         if: steps.changes.outputs.changed == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'pr')
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           BRANCH: automation/prettier-format
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
           git switch -C "$BRANCH"
           git add -A
           git commit -m "style: apply Prettier formatting"
