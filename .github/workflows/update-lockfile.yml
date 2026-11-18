@@ -15,8 +15,7 @@ on:
     - cron: "17 8 * * 1"
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: jardim-lockfile-update
@@ -27,10 +26,19 @@ jobs:
     name: Update and validate lockfile
     runs-on: ubuntu-latest
     steps:
+      - name: Authenticate Ploocky GitHub App
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BOT_APP_ID || vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
+          token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
 
       - name: Set up pnpm
@@ -65,8 +73,8 @@ jobs:
       - name: Commit directly to main
         if: steps.changes.outputs.changed == 'true' && inputs.mode == 'main' && github.event_name == 'workflow_dispatch'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
           git add pnpm-lock.yaml
           git commit -m "chore(deps): refresh pnpm lockfile"
           git push origin HEAD:main
@@ -74,12 +82,12 @@ jobs:
       - name: Open or update pull request
         if: steps.changes.outputs.changed == 'true' && (inputs.mode != 'main' || github.event_name != 'workflow_dispatch')
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           BRANCH: automation/update-pnpm-lockfile
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
           git add pnpm-lock.yaml
           git commit -m "chore(deps): refresh pnpm lockfile"
