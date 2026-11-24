@@ -1,3 +1,4 @@
+import { IntegrationsPage } from "../pages/Integrations";
 import { SettingsPage } from "../pages/Settings";
 import { SyncStatus } from "../components/SyncStatus";
 import { Conflicts } from "../pages/Conflicts";
@@ -34,5 +35,6 @@ const search = createRoute({getParentRoute:()=>root,path:"/search",component:Sea
 const detail = createRoute({getParentRoute:()=>root,path:"/memories/$id",component:()=> <MemoryDetail id={detail.useParams().id}/>});
 const conflicts = createRoute({getParentRoute:()=>root,path:"/conflicts",component:Conflicts});
 const settings = createRoute({getParentRoute:()=>root,path:"/settings",component:SettingsPage});
-export const router = createRouter({routeTree:root.addChildren([home,timeline,diary,capsules,search,detail,conflicts,settings]),history:createHashHistory()});
+const integrations = createRoute({getParentRoute:()=>root,path:"/integrations",component:IntegrationsPage});
+export const router = createRouter({routeTree:root.addChildren([home,timeline,diary,capsules,search,detail,conflicts,settings,integrations]),history:createHashHistory()});
 declare module "@tanstack/react-router" { interface Register { router: typeof router } }
