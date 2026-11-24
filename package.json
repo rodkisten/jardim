@@ -7,7 +7,7 @@
     "dev": "turbo run dev --filter=@rodkisten/jardim-web",
     "dev:api": "wrangler dev --local-protocol https",
     "build": "turbo run build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && pnpm typecheck:react",
     "test": "vitest run",
     "lint": "eslint .",
     "check": "eslint . && turbo run build && wrangler types && tsc --noEmit && vitest run",
@@ -20,7 +20,8 @@
     "db:generate": "prisma generate --schema packages/database/prisma/schema.prisma",
     "db:validate": "prisma validate --schema packages/database/prisma/schema.prisma",
     "db:migrate:local": "wrangler d1 migrations apply jardim --local",
-    "db:migrate:remote": "wrangler d1 migrations apply jardim --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply jardim --remote",
+    "typecheck:react": "tsc -p tsconfig.react.json"
   },
   "devDependencies": {
     "@babel/core": "7.29.13",

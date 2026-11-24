@@ -32,8 +32,10 @@
   "scripts": {
     "build": "vite build --config ../../vite.config.ts",
     "dev": "vite --config ../../vite.config.ts --host 0.0.0.0",
-    "dev:react": "vite --config ../../vite.react.config.ts --host 0.0.0.0",
-    "build:react": "vite build --config ../../vite.react.config.ts"
+    "dev:react": "vite --config ../../vite.config.ts --host 0.0.0.0",
+    "build:react": "vite build --config ../../vite.config.ts",
+    "build:legacy": "vite build --config ../../vite.legacy.config.ts",
+    "dev:legacy": "vite --config ../../vite.legacy.config.ts --host 0.0.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
