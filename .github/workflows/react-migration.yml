@@ -32,12 +32,12 @@ jobs:
       - name: React TypeScript
         id: types
         continue-on-error: true
-        run: pnpm typecheck:react 2>&1 | tee react-types.log
+        run: set -o pipefail; pnpm typecheck:react 2>&1 | tee react-types.log
         shell: bash
       - name: React production build
         id: build
         continue-on-error: true
-        run: pnpm --filter @rodkisten/jardim-web build 2>&1 | tee react-build.log
+        run: set -o pipefail; pnpm --filter @rodkisten/jardim-web build 2>&1 | tee react-build.log
         shell: bash
       - name: Upload diagnostics
         if: always()
