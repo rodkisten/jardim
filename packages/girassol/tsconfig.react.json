@@ -11,5 +11,9 @@
   "include": [
     "src/react/**/*.ts",
     "src/react/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ]
 }
