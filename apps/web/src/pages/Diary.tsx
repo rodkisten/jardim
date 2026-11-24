@@ -15,7 +15,7 @@ export function Diary() {
       const input={title:draft.title,body:draft.body,tags:[...new Set(draft.tags.split(",").map(tag=>tag.trim()).filter(Boolean))],richDocument:draft.document??undefined};
       Memory.parse({...input,id:crypto.randomUUID(),createdAt:new Date().toISOString()});
       await db.plant(input,files.map(blob=>({blob,name:blob.name})));
-      try{localStorage.removeItem(DRAFT_KEY);}catch{}
+      try{localStorage.removeItem(DRAFT_KEY);}catch { /* Optional operation failed; retain the existing local state. */ }
       await navigate({to:"/timeline"});
     }catch(error){setError(error instanceof Error?error.message:"Não foi possível salvar.");}finally{setBusy(false);}
   }

@@ -3,7 +3,7 @@ import type { Memory } from "@rodkisten/jardim-contracts";
 type Node = {type?:unknown;text?:unknown;attrs?:unknown;marks?:unknown;content?:unknown};
 const nodes=(value:unknown):Node[]=>Array.isArray(value)?value.filter((item):item is Node=>!!item&&typeof item==="object"&&!Array.isArray(item)).slice(0,500):[];
 const attrs=(node:Node):Record<string,unknown>=>node.attrs&&typeof node.attrs==="object"&&!Array.isArray(node.attrs)?node.attrs as Record<string,unknown>:{};
-function safeLink(value:unknown){if(typeof value!=="string")return;try{const url=new URL(value);if(["https:","http:","mailto:"].includes(url.protocol))return url.href;}catch{}}
+function safeLink(value:unknown){if(typeof value!=="string")return;try{const url=new URL(value);if(["https:","http:","mailto:"].includes(url.protocol))return url.href;}catch { /* Optional operation failed; retain the existing local state. */ }}
 function RichNode({node,depth=0}:{node:Node;depth?:number}):ReactNode {
   const children=depth>=12?null:nodes(node.content).map((child,i)=><RichNode key={i} node={child} depth={depth+1}/>);
   switch(node.type){

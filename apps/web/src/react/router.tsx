@@ -1,14 +1,6 @@
-import { IntegrationsPage } from "../pages/Integrations";
-import { SettingsPage } from "../pages/Settings";
 import { SyncStatus } from "../components/SyncStatus";
-import { Conflicts } from "../pages/Conflicts";
-import { Capsules } from "../pages/Capsules";
-import { MemoryDetail } from "../pages/MemoryDetail";
-import { Diary } from "../pages/Diary";
 import { Home } from "../pages/Home";
-import { Timeline } from "../pages/Timeline";
-import { SearchMemories } from "../pages/Search";
-import { createRootRoute, createRoute, createRouter, Link, Outlet, createHashHistory } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter, Link, Outlet, createHashHistory, lazyRouteComponent } from "@tanstack/react-router";
 import { House, CalendarDays, BookOpen, Layers, Search, Flower2, Settings } from "lucide-react";
 const items = [
   { to: "/", label: "Hoje", icon: House },
@@ -28,13 +20,14 @@ function Shell() {
 }
 const root = createRootRoute({component:Shell});
 const home = createRoute({getParentRoute:()=>root,path:"/",component:Home});
-const timeline = createRoute({getParentRoute:()=>root,path:"/timeline",component:Timeline});
-const diary = createRoute({getParentRoute:()=>root,path:"/diary",component:Diary});
-const capsules = createRoute({getParentRoute:()=>root,path:"/capsules",component:Capsules});
-const search = createRoute({getParentRoute:()=>root,path:"/search",component:SearchMemories});
-const detail = createRoute({getParentRoute:()=>root,path:"/memories/$id",component:()=> <MemoryDetail id={detail.useParams().id}/>});
-const conflicts = createRoute({getParentRoute:()=>root,path:"/conflicts",component:Conflicts});
-const settings = createRoute({getParentRoute:()=>root,path:"/settings",component:SettingsPage});
-const integrations = createRoute({getParentRoute:()=>root,path:"/integrations",component:IntegrationsPage});
-export const router = createRouter({routeTree:root.addChildren([home,timeline,diary,capsules,search,detail,conflicts,settings,integrations]),history:createHashHistory()});
+const timeline = createRoute({getParentRoute:()=>root,path:"/timeline",component:lazyRouteComponent(()=>import("../pages/Timeline"),"Timeline")});
+const diary = createRoute({getParentRoute:()=>root,path:"/diary",component:lazyRouteComponent(()=>import("../pages/Diary"),"Diary")});
+const capsules = createRoute({getParentRoute:()=>root,path:"/capsules",component:lazyRouteComponent(()=>import("../pages/Capsules"),"Capsules")});
+const search = createRoute({getParentRoute:()=>root,path:"/search",component:lazyRouteComponent(()=>import("../pages/Search"),"SearchMemories")});
+const LazyMemoryDetail = lazyRouteComponent(()=>import("../pages/MemoryDetail"),"MemoryDetail");
+const detail = createRoute({getParentRoute:()=>root,path:"/memories/$id",component:()=> <LazyMemoryDetail id={detail.useParams().id}/>});
+const conflicts = createRoute({getParentRoute:()=>root,path:"/conflicts",component:lazyRouteComponent(()=>import("../pages/Conflicts"),"Conflicts")});
+const settings = createRoute({getParentRoute:()=>root,path:"/settings",component:lazyRouteComponent(()=>import("../pages/Settings"),"SettingsPage")});
+const integrations = createRoute({getParentRoute:()=>root,path:"/integrations",component:lazyRouteComponent(()=>import("../pages/Integrations"),"IntegrationsPage")});
+export const router = createRouter({routeTree:root.addChildren([home,timeline,diary,capsules,search,detail,conflicts,settings,integrations]),history:createHashHistory(),defaultPendingComponent:()=> <div role="status" className="py-8 text-center text-sm text-muted-foreground">Carregando…</div>,defaultPreload:"intent"});
 declare module "@tanstack/react-router" { interface Register { router: typeof router } }
