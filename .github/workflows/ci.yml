@@ -23,5 +23,9 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm check
+      - uses: rodkisten/github/src/console-run@9d04949ee92f45bd4d9affe88a2e0104b82c97c8
+        with:
+          command: pnpm install --frozen-lockfile
+      - uses: rodkisten/github/src/console-run@9d04949ee92f45bd4d9affe88a2e0104b82c97c8
+        with:
+          command: pnpm check
