@@ -40,8 +40,8 @@ jobs:
           if(!/^\d+$/.test(pr)) throw new Error('Invalid PR');
           writeFileSync('wrangler.preview.json',JSON.stringify({
             name:'jardim-preview-pr'+pr,compatibility_date:'2026-11-24',
-            workers_dev:false,preview_urls:false,
-            assets:{directory:'./dist/web',not_found_handling:'single-page-application'},
+            workers_dev:false,preview_urls:false,main:'apps/api/src/preview.ts',
+            assets:{directory:'./dist/web',binding:'ASSETS',not_found_handling:'single-page-application',run_worker_first:['/faith','/faith/*']},
             routes:[{pattern:'pr'+pr+'.jardim.migos.club',custom_domain:true}]
           }));
           writeFileSync('preview-alias.js','export default {fetch(request){const url=new URL(request.url);url.hostname="pr'+pr+'.jardim.migos.club";return Response.redirect(url.toString(),302)}}');
@@ -57,6 +57,7 @@ jobs:
         run: |
           curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 10 "https://pr${PR}.jardim.migos.club/" -o /tmp/jardim-preview.html
           grep -q 'id="root"' /tmp/jardim-preview.html
+          curl --fail --silent --show-error "https://pr${PR}.jardim.migos.club/faith/rosary" | jq -e '.mysteries | length == 5'
           echo "### 🌻 https://pr${PR}.jardim.migos.club/" >> "$GITHUB_STEP_SUMMARY"
       - name: Update preview comment
         env:

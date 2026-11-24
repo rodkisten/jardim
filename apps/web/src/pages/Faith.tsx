@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Card, CardContent, Input } from "@rodkisten/girassol/react";
 import { Cross, BookOpen, CalendarDays, Heart } from "lucide-react";
-import { isPreview } from "../utils/preview";
 import { today, validDate, mysteryFor, mysteries, prayers, readings, text, rosaryNames, type FaithData } from "../utils/faith";
 const names:Record<string,string>={creed:"Creio",signOfCross:"Sinal da cruz",ourFather:"Pai-nosso",hailMary:"Ave Maria",gloryBe:"Glória ao Pai",fatima:"Oração de Fátima",hailHolyQueen:"Salve Rainha"};
 export function Faith(){
  const [date,setDate]=useState(today());
- const query=useQuery({queryKey:["faith",date],enabled:!isPreview&&validDate(date),queryFn:async({signal}):Promise<FaithData>=>{const r=await fetch("/faith/"+encodeURIComponent(date),{signal,credentials:"same-origin"});if(!r.ok||!r.headers.get("content-type")?.includes("application/json"))throw new Error("Liturgia indisponível");return r.json();}});
+ const query=useQuery({queryKey:["faith",date],enabled:validDate(date),staleTime:3600000,queryFn:async({signal}):Promise<FaithData>=>{const r=await fetch("/faith/"+encodeURIComponent(date),{signal,credentials:"same-origin"});if(!r.ok||!r.headers.get("content-type")?.includes("application/json"))throw new Error("Liturgia indisponível");return r.json();}});
  const key=mysteryFor(validDate(date)?date:today()), rosary=query.data?.rosary??{type:key,mysteries:mysteries[key],prayers};
  const data=query.data;
  return <section className="space-y-4"><div><p className="text-xs uppercase tracking-wide text-primary">Hoje / Fé</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Fé, no seu tempo.</h1><p className="text-sm text-muted-foreground">Liturgia, santos e terço em um só lugar.</p></div>
