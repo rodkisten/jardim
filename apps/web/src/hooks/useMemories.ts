@@ -1,8 +1,7 @@
-import { GardenDB } from "@rodkisten/jardim-local-db";
+import { db } from "../utils/db";
 import { liveQuery } from "dexie";
 import { useEffect, useState } from "react";
 import type { Memory } from "@rodkisten/jardim-contracts";
-export const db = new GardenDB();
 type State = { memories: Memory[]; loading: boolean; error: string | null };
 export function useMemories() {
   const [state, setState] = useState<State>({memories: [], loading: true, error: null});

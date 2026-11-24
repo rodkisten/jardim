@@ -1,4 +1,6 @@
-import { Home, Timeline, SearchMemories } from "./memories";
+import { Home } from "../pages/Home";
+import { Timeline } from "../pages/Timeline";
+import { SearchMemories } from "../pages/Search";
 import { createRootRoute, createRoute, createRouter, Link, Outlet, createHashHistory } from "@tanstack/react-router";
 import { House, CalendarDays, BookOpen, Layers, Search, Flower2 } from "lucide-react";
 const items = [
