@@ -1,3 +1,4 @@
+import { Capsules } from "../pages/Capsules";
 import { MemoryDetail } from "../pages/MemoryDetail";
 import { Diary } from "../pages/Diary";
 import { Home } from "../pages/Home";
@@ -22,11 +23,10 @@ function Shell() {
   </div>;
 }
 const root = createRootRoute({component:Shell});
-function Pending({title}:{title:string}) {return <section><h1 className="text-2xl font-semibold">{title}</h1><p className="mt-2 text-sm text-muted-foreground">Interface em migração. Seus dados continuam no Jardim original.</p></section>}
 const home = createRoute({getParentRoute:()=>root,path:"/",component:Home});
 const timeline = createRoute({getParentRoute:()=>root,path:"/timeline",component:Timeline});
 const diary = createRoute({getParentRoute:()=>root,path:"/diary",component:Diary});
-const capsules = createRoute({getParentRoute:()=>root,path:"/capsules",component:()=> <Pending title="Cápsulas" />});
+const capsules = createRoute({getParentRoute:()=>root,path:"/capsules",component:Capsules});
 const search = createRoute({getParentRoute:()=>root,path:"/search",component:SearchMemories});
 const detail = createRoute({getParentRoute:()=>root,path:"/memories/$id",component:()=> <MemoryDetail id={detail.useParams().id}/>});
 export const router = createRouter({routeTree:root.addChildren([home,timeline,diary,capsules,search,detail]),history:createHashHistory()});
