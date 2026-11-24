@@ -1,3 +1,4 @@
+import { Home, Timeline, SearchMemories } from "./memories";
 import { createRootRoute, createRoute, createRouter, Link, Outlet, createHashHistory } from "@tanstack/react-router";
 import { House, CalendarDays, BookOpen, Layers, Search, Flower2 } from "lucide-react";
 const items = [
@@ -18,10 +19,10 @@ function Shell() {
 }
 const root = createRootRoute({component:Shell});
 function Pending({title}:{title:string}) {return <section><h1 className="text-2xl font-semibold">{title}</h1><p className="mt-2 text-sm text-muted-foreground">Interface em migração. Seus dados continuam no Jardim original.</p></section>}
-const home = createRoute({getParentRoute:()=>root,path:"/",component:()=> <Pending title="Seu jardim, hoje" />});
-const timeline = createRoute({getParentRoute:()=>root,path:"/timeline",component:()=> <Pending title="Timeline" />});
+const home = createRoute({getParentRoute:()=>root,path:"/",component:Home});
+const timeline = createRoute({getParentRoute:()=>root,path:"/timeline",component:Timeline});
 const diary = createRoute({getParentRoute:()=>root,path:"/diary",component:()=> <Pending title="Diário" />});
 const capsules = createRoute({getParentRoute:()=>root,path:"/capsules",component:()=> <Pending title="Cápsulas" />});
-const search = createRoute({getParentRoute:()=>root,path:"/search",component:()=> <Pending title="Buscar" />});
+const search = createRoute({getParentRoute:()=>root,path:"/search",component:SearchMemories});
 export const router = createRouter({routeTree:root.addChildren([home,timeline,diary,capsules,search]),history:createHashHistory()});
 declare module "@tanstack/react-router" { interface Register { router: typeof router } }
