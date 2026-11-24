@@ -1,0 +1,39 @@
+name: Jardim PR preview
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+permissions:
+  contents: read
+concurrency:
+  group: jardim-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  preview:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck:react
+      - run: pnpm --filter @rodkisten/jardim-web build -- --base=/jardim/pr-${{ github.event.pull_request.number }}/
+      - uses: actions/create-github-app-token@v2
+        id: app
+        with:
+          app-id: ${{ secrets.BOT_APP_ID || vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ steps.app.outputs.token }}
+          publish_branch: gh-pages
+          publish_dir: dist/web
+          destination_dir: pr-${{ github.event.pull_request.number }}
+          keep_files: true
+      - name: Preview URL
+        run: echo "### Preview candidate · https://rodkisten.github.io/jardim/pr-${{ github.event.pull_request.number }}/" >> "$GITHUB_STEP_SUMMARY"
