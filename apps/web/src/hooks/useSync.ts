@@ -1,3 +1,4 @@
+import { isPreview } from "../utils/preview";
 import { useEffect, useState, useCallback } from "react";
 import { liveQuery } from "dexie";
 import { synchronizeDiary } from "@rodkisten/jardim-local-db/revisions";
@@ -8,6 +9,7 @@ export function useSync(){
   const [status,setStatus]=useState("Preparando sincronização…"),[pending,setPending]=useState(0),[conflicts,setConflicts]=useState(0),[busy,setBusy]=useState(false);
   const [request,setRequest]=useState<((manual?:boolean)=>void)|null>(null);
   useEffect(()=>{
+    if(isPreview){setStatus("Preview · armazenamento local");return;}
     let disposed=false,running=false,queued=false,manualQueued=false;
     const retry=new RetryBackoff();
     const count=async()=>({pending:(await db.outbox.count())+(await db.mutations.count())+(await db.attachments.where("uploaded").equals(0).count())+(await db.capsules.where("uploaded").equals(0).count()),conflicts:await db.conflicts.count()});
