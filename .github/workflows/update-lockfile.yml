@@ -1,4 +1,4 @@
-name: "📦 Update pnpm lockfile"
+name: "🌻 JA · 📦 Update pnpm lockfile"
 
 on:
   workflow_dispatch:
