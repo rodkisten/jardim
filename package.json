@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit && pnpm typecheck:react",
     "test": "vitest run",
     "lint": "eslint .",
-    "check": "eslint . && turbo run build && wrangler types && tsc --noEmit && vitest run",
+    "check": "eslint . && turbo run build && wrangler types && pnpm typecheck && vitest run",
     "deploy": "turbo run build && wrangler deploy",
     "format": "prettier --write . --ignore-unknown",
     "format:check": "prettier --check . --ignore-unknown",

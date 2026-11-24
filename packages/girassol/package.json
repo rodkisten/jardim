@@ -22,7 +22,7 @@
     "tailwindcss": "^4.1.0"
   },
   "scripts": {
-    "build": "tsc --noEmit -p tsconfig.json"
+    "build": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.react.json"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.0",

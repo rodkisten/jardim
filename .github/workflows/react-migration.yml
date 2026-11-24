@@ -1,0 +1,62 @@
+name: React migration validation
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+concurrency:
+  group: react-migration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'feat/react-girassol'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Resolve lockfile
+        run: pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-pnpm-lockfile
+          path: pnpm-lock.yaml
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: React TypeScript
+        id: types
+        continue-on-error: true
+        run: pnpm typecheck:react 2>&1 | tee react-types.log
+        shell: bash
+      - name: React production build
+        id: build
+        continue-on-error: true
+        run: pnpm --filter @rodkisten/jardim-web build 2>&1 | tee react-build.log
+        shell: bash
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-diagnostics
+          path: react-*.log
+          if-no-files-found: ignore
+      - name: Upload preview build
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-preview
+          path: dist/web
+      - name: Enforce validation
+        if: always()
+        env:
+          TYPES: ${{ steps.types.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+        run: |
+          printf '### React migration\n\nTypeScript: %s\n\nBuild: %s\n' "$TYPES" "$BUILD" >> "$GITHUB_STEP_SUMMARY"
+          test "$TYPES" = success && test "$BUILD" = success
