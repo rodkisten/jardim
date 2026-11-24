@@ -46,7 +46,8 @@
     "@rodkisten/jardim-local-db": "workspace:*",
     "@rodkisten/jardim-database": "workspace:*",
     "@rodkisten/jardim-capture": "workspace:*",
-    "@rodkisten/jardim-cards": "workspace:*"
+    "@rodkisten/jardim-cards": "workspace:*",
+    "@tailwindcss/vite": "^4.1.0"
   },
   "engines": {
     "node": ">=24.11.0 <25"
