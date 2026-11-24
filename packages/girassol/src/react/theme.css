@@ -27,3 +27,15 @@
   body { @apply bg-background text-foreground antialiased; }
   input, textarea, select { font-size: 16px; }
 }
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: oklch(0.98 0.008 88);
+  --foreground: oklch(0.22 0.012 260);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.70 0.15 78);
+  --primary-foreground: oklch(0.18 0.025 88);
+  --muted: oklch(0.94 0.008 88);
+  --muted-foreground: oklch(0.45 0.012 260);
+  --border: oklch(0.88 0.012 88);
+}
