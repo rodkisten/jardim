@@ -1,3 +1,4 @@
+import { MemoryDetail } from "../pages/MemoryDetail";
 import { Diary } from "../pages/Diary";
 import { Home } from "../pages/Home";
 import { Timeline } from "../pages/Timeline";
@@ -27,5 +28,6 @@ const timeline = createRoute({getParentRoute:()=>root,path:"/timeline",component
 const diary = createRoute({getParentRoute:()=>root,path:"/diary",component:Diary});
 const capsules = createRoute({getParentRoute:()=>root,path:"/capsules",component:()=> <Pending title="Cápsulas" />});
 const search = createRoute({getParentRoute:()=>root,path:"/search",component:SearchMemories});
-export const router = createRouter({routeTree:root.addChildren([home,timeline,diary,capsules,search]),history:createHashHistory()});
+const detail = createRoute({getParentRoute:()=>root,path:"/memories/$id",component:()=> <MemoryDetail id={detail.useParams().id}/>});
+export const router = createRouter({routeTree:root.addChildren([home,timeline,diary,capsules,search,detail]),history:createHashHistory()});
 declare module "@tanstack/react-router" { interface Register { router: typeof router } }
