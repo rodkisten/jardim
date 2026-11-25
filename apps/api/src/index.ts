@@ -1,4 +1,4 @@
-import {ingestInbox,listInbox} from './inbox';
+import {ingestInbox,listInbox,decideInbox} from './inbox';
 import { linkPreview } from './link-preview';
 import { lectio } from './lectio';
 import { faith } from './faith';
@@ -108,6 +108,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
   if(path==='/v2/inbox' && request.method==='GET')return listInbox(env);
+  const inboxDecision=path.match(/^\/v2\/inbox\/([a-f0-9-]{36})$/);
+  if(inboxDecision&&request.method==='POST'){const text=await limitedBody(request,1024);return text===null?json({error:'Too large'},413):decideInbox(env,inboxDecision[1],text);}
   if (path === '/v2/link-preview' && request.method === 'GET') return linkPreview(url);
   if (path === '/auth/logout' && request.method === 'POST') {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?')

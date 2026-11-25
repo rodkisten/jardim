@@ -16,3 +16,18 @@ export async function ingestInbox(request:Request,env:Env,text:string){
  return receipt?Response.json({acknowledged:[e.id]}):Response.json({error:'Conflict'},{status:409});
 }
 export async function listInbox(env:Env){const rows=await env.DB.prepare("SELECT id,source,kind,title,url,observed_at AS observedAt,status FROM automation_inbox WHERE status='pending' ORDER BY received_at DESC LIMIT 100").all();return Response.json({items:rows.results});}
+
+export async function decideInbox(env:Env,id:string,text:string){
+ let input:unknown;try{input=JSON.parse(text);}catch{return Response.json({error:'Invalid JSON'},{status:400});}
+ const parsed=z.object({decision:z.enum(['approved','dismissed'])}).strict().safeParse(input);
+ if(!parsed.success)return Response.json({error:'Invalid decision'},{status:400});
+ const decision=parsed.data.decision;
+ if(decision==='approved'){
+ await env.DB.batch([
+ env.DB.prepare("INSERT INTO memories(id,operation_id,title,body,tags,created_at) SELECT id,id,title,COALESCE(url,title),json_array('captura',kind),observed_at FROM automation_inbox WHERE id=? AND status='pending' ON CONFLICT DO NOTHING").bind(id),
+ env.DB.prepare("UPDATE automation_inbox SET status='approved' WHERE id=? AND status='pending' AND EXISTS(SELECT 1 FROM memories WHERE id=?)").bind(id,id)
+ ]);
+ }else await env.DB.prepare("UPDATE automation_inbox SET status='dismissed' WHERE id=? AND status='pending'").bind(id).run();
+ const row=await env.DB.prepare('SELECT status FROM automation_inbox WHERE id=?').bind(id).first<{status:string}>();
+ return !row?Response.json({error:'Not found'},{status:404}):row.status!==decision?Response.json({error:'Decision conflict'},{status:409}):Response.json({id,status:row.status});
+}
