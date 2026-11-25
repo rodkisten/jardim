@@ -2,7 +2,8 @@ import encodeAvif from "@jsquash/avif/encode.js";
 import encodeWebp from "@jsquash/webp/encode.js";
 import { normalizeImageOptions,type ImageOptions } from "../utils/image-options";
 type Job={id:number;file:File;options:ImageOptions};
-self.addEventListener("message",async(event:MessageEvent<Job>)=>{
+self.addEventListener("message",async(raw:Event)=>{
+ const event=raw as MessageEvent<Job>;
  const {id,file}=event.data;const {format,quality,maxDimension}=normalizeImageOptions(event.data.options);
  try{
  const bitmap=await createImageBitmap(file);

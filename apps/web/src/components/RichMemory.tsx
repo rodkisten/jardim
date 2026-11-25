@@ -1,3 +1,4 @@
+import { Snippet } from "./Snippet";
 import { LinkPreviews } from "./LinkPreviews";
 import type { ReactNode } from "react";
 import type { Memory } from "@rodkisten/jardim-contracts";
@@ -17,7 +18,7 @@ function RichNode({node,depth=0}:{node:Node;depth?:number}):ReactNode {
     case "taskList":return <ul>{children}</ul>;
     case "taskItem":return <li><input type="checkbox" checked={attrs(node).checked===true} disabled/> {children}</li>;
     case "listItem":return <li>{children}</li>;
-    case "codeBlock":return <pre className="overflow-auto rounded bg-muted p-2"><code>{children}</code></pre>;
+    case "codeBlock":return <Snippet code={nodes(node.content).map(n=>typeof n.text==="string"?n.text:"").join("")} language={typeof attrs(node).language==="string"?String(attrs(node).language):"plaintext"}/>;
     case "hardBreak":return <br/>;
     case "horizontalRule":return <hr className="border-border"/>;
     default:return <>{children}</>;
