@@ -7,7 +7,10 @@
     "@rodkisten/jardim-contracts": "workspace:*",
     "@rodkisten/jardim-database": "workspace:*",
     "@rodkisten/jardim-capture": "workspace:*",
-    "@rodkisten/jardim-cards": "workspace:*"
+    "@rodkisten/jardim-cards": "workspace:*",
+    "agents": "latest",
+    "ai": "^7.0.0",
+    "@ai-sdk/provider": "^4.0.0"
   },
   "scripts": {
     "build": "node ../../tooling/build-api.mjs"
