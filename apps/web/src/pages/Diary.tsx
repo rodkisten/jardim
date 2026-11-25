@@ -1,3 +1,4 @@
+import { inlineMediaIds } from "../utils/inline-media";
 import { MediaContext } from "../components/MediaNode";
 import { prepareImages,type CompressionResult } from "../utils/image-compression";
 import { defaultImageOptions } from "../utils/image-options";
@@ -26,13 +27,15 @@ export function Diary(){
  const write=queue.current.catch(()=>undefined).then(()=>saveComposer(value));queue.current=write;
  void write.then(()=>{if(current.current===value){setPending(false);setStorageError(false);setUpdateBlocker("composer",false);}}).catch(()=>{if(current.current===value){setPending(false);setStorageError(true);}});
  }
+ async function importFiles(files:File[]){if(processing||busy)return;setProcessing(true);setUpdateBlocker("image-compression",true);try{const optimized=await prepareImages(files,options,(done,total)=>setProgress("Processando "+done+" de "+total));setResults(optimized);const latest=current.current;if(latest)change({...latest,attachments:appendAttachments(latest.attachments,optimized.map(r=>r.file),mediaTypes)});setError("");}catch(err){setError(String(err));}finally{setProgress("");setProcessing(false);setUpdateBlocker("image-compression",false);}}
  async function submit(event:React.FormEvent<HTMLFormElement>){
  event.preventDefault();if(busy||processing||!current.current)return;setBusy(true);setUpdateBlocker("composer-submit",true);setError("");
  const value=current.current;
  try{
  await queue.current;
  const draft=value.notes?combineNotes(value.draft,value.notes):value.draft;
- const input={title:draft.title,body:draft.body,tags:[...new Set(draft.tags.split(",").map(tag=>tag.trim()).filter(Boolean))],richDocument:draft.document??undefined};
+ const ids=inlineMediaIds(draft.document);if([...ids].some(id=>!value.attachments.some(a=>a.id===id)))throw Error("Existe um bloco com anexo indisponível.");
+ const input={title:draft.title,body:draft.body|| (value.attachments.length?"Memória multimídia":""),tags:[...new Set(draft.tags.split(",").map(tag=>tag.trim()).filter(Boolean))],richDocument:draft.document??undefined};
  Memory.parse({...input,id:crypto.randomUUID(),createdAt:new Date().toISOString()});
  await db.plant(input,value.attachments.map(({blob,name,id})=>({blob,name,id})));
  await clearComposer();
@@ -42,7 +45,7 @@ export function Diary(){
  }
  if(!snapshot)return <p role="status">{error||"Recuperando rascunho…"}</p>;
  const {draft,attachments}=snapshot;
- return <form className="space-y-4" onSubmit={submit}>
+ return <form className="space-y-4" onSubmit={submit} onPaste={e=>{const files=Array.from(e.clipboardData.files);if(files.length){e.preventDefault();void importFiles(files);}}} onDragOver={e=>{if(e.dataTransfer.types.includes("Files"))e.preventDefault();}} onDrop={e=>{const files=Array.from(e.dataTransfer.files);if(files.length){e.preventDefault();void importFiles(files);}}}>
  <h1 className="text-2xl font-semibold">Nova memória</h1>
  <p role="status" className="text-xs text-muted-foreground">{storageError?"Rascunho não persistido":pending?"Salvando rascunho…":"Rascunho disponível offline"}</p>
  <fieldset disabled={busy} className="space-y-4">
@@ -50,8 +53,9 @@ export function Diary(){
  <MediaContext.Provider value={attachments}><PublicationNotes notes={snapshot.notes??[]} onChange={notes=>{const latest=current.current;if(latest)change({...latest,notes,draft:combineNotes(latest.draft,notes)});}}/></MediaContext.Provider>
  <label className="block space-y-1 text-sm">Tags<Input value={draft.tags} onChange={e=>change({...snapshot,draft:{...draft,tags:e.target.value}})}/></label>
  <LinkPreviews text={draft.body}/>
+ <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground">Cole ou arraste arquivos para adicionar à publicação.</p>
  <CompressionPanel options={options} onChange={setOptions} results={results} progress={progress} onClear={()=>setResults([])}/>
- <ComposerMedia attachments={attachments} onError={setError} onFiles={async files=>{if(processing)return;setProcessing(true);setUpdateBlocker("image-compression",true);try{const optimized=await prepareImages(files,options,(done,total)=>setProgress("Processando "+done+" de "+total));setResults(optimized);const latest=current.current;if(latest)change({...latest,attachments:appendAttachments(latest.attachments,optimized.map(r=>r.file),mediaTypes)});setError("");}catch(err){setError(String(err));}finally{setProgress("");setProcessing(false);setUpdateBlocker("image-compression",false);}}} onRemove={i=>{const latest=current.current;if(latest)change({...latest,attachments:latest.attachments.filter((_,j)=>j!==i)});}}/>
+ <ComposerMedia attachments={attachments} onError={setError} onFiles={importFiles} onRemove={i=>{const latest=current.current;if(latest){const id=latest.attachments[i]?.id;if(id&&inlineMediaIds(latest.draft.document).has(id)){setError("Remova primeiro os blocos que utilizam este anexo.");return;}change({...latest,attachments:latest.attachments.filter((_,j)=>j!==i)});}}}/>
  </fieldset>
  {storageError&&<Button type="button" variant="outline" onClick={()=>change(snapshot)}>Tentar salvar rascunho novamente</Button>}
  {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
