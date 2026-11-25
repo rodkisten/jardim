@@ -110,8 +110,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
       headers: { Location: '/', 'Set-Cookie': cookie('', 0) },
     });
   }
-  if (path === '/faith/lectio' && request.method === 'POST')
-    return lectio(url, env.AI);
+  if (path === '/faith/lectio' && ['GET','POST'].includes(request.method))
+    return lectio(url, env.AI, env.DB, request.method);
   if ((path === '/faith' || path.startsWith('/faith/')) && request.method === 'GET')
     return faith(url);
   if (path.startsWith('/faith/') || path === '/faith')
