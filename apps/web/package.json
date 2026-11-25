@@ -29,7 +29,10 @@
     "lucide-react": "^0.511.0",
     "@tiptap/react": "3.35.0",
     "@tiptap/pm": "3.35.0",
-    "workbox-window": "^7.4.0"
+    "workbox-window": "^7.4.0",
+    "@jsquash/avif": "^2.1.1",
+    "@jsquash/webp": "^1.5.0",
+    "@tiptap/markdown": "3.35.0"
   },
   "scripts": {
     "build": "vite build --config ../../vite.config.ts",

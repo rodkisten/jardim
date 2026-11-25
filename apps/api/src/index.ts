@@ -92,7 +92,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
   ) {
     const asset = assets[path];
     return asset
-      ? new Response(asset.type === 'image/png' ? Uint8Array.from(atob(asset.body), c => c.charCodeAt(0)) : asset.body, { headers: { 'Content-Type': asset.type } })
+      ? new Response((asset.type === 'image/png' || asset.type === 'application/wasm') ? Uint8Array.from(atob(asset.body), c => c.charCodeAt(0)) : asset.body, { headers: { 'Content-Type': asset.type } })
       : new Response('Não encontrado', { status: 404 });
   }
   const token = sessionToken(request);
@@ -241,7 +241,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ error: 'Método inválido' }, 405);
   const asset = assets[path] || (path.includes('.') ? null : assets['/index.html']);
   return asset
-    ? new Response(request.method === 'HEAD' ? null : asset.type === 'image/png' ? Uint8Array.from(atob(asset.body), c => c.charCodeAt(0)) : asset.body, {
+    ? new Response(request.method === 'HEAD' ? null : (asset.type === 'image/png' || asset.type === 'application/wasm') ? Uint8Array.from(atob(asset.body), c => c.charCodeAt(0)) : asset.body, {
         headers: {
           'Content-Type': asset.type,
           ...(asset === assets['/index.html'] ? { 'X-Jardim-Shell': '1' } : {}),

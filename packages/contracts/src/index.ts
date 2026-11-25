@@ -120,6 +120,7 @@ export const mediaTypes = [
   'image/jpeg',
   'image/png',
   'image/webp',
+  'image/avif',
   'image/gif',
   'image/heic',
   'image/heif',

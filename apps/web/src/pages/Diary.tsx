@@ -1,3 +1,4 @@
+import { prepareImages,type ImageFormat } from "../utils/image-compression";
 import { useState,useEffect,useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button,Input } from "@rodkisten/girassol/react";
@@ -10,6 +11,7 @@ import { Memory,mediaTypes } from "@rodkisten/jardim-contracts";
 import { ComposerMedia } from "../components/ComposerMedia";
 import { LinkPreviews } from "../components/LinkPreviews";
 export function Diary(){
+ const [format,setFormat]=useState<ImageFormat>("webp"),[processing,setProcessing]=useState(false);
  const [snapshot,setSnapshot]=useState<ComposerSnapshot|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[storageError,setStorageError]=useState(false),[pending,setPending]=useState(false);
  const current=useRef<ComposerSnapshot|null>(null),queue=useRef<Promise<unknown>>(Promise.resolve());
@@ -21,7 +23,7 @@ export function Diary(){
  void write.then(()=>{if(current.current===value){setPending(false);setStorageError(false);setUpdateBlocker("composer",false);}}).catch(()=>{if(current.current===value){setPending(false);setStorageError(true);}});
  }
  async function submit(event:React.FormEvent<HTMLFormElement>){
- event.preventDefault();if(busy||!current.current)return;setBusy(true);setUpdateBlocker("composer-submit",true);setError("");
+ event.preventDefault();if(busy||processing||!current.current)return;setBusy(true);setUpdateBlocker("composer-submit",true);setError("");
  const value=current.current;
  try{
  await queue.current;
@@ -44,10 +46,12 @@ export function Diary(){
  <DiaryEditor draft={draft} onChange={(body,document)=>{const latest=current.current;if(latest)change({...latest,draft:{...latest.draft,body,document}});}}/>
  <label className="block space-y-1 text-sm">Tags<Input value={draft.tags} onChange={e=>change({...snapshot,draft:{...draft,tags:e.target.value}})}/></label>
  <LinkPreviews text={draft.body}/>
- <ComposerMedia attachments={attachments} onError={setError} onFiles={files=>{const latest=current.current;if(!latest)return;try{change({...latest,attachments:appendAttachments(latest.attachments,files,mediaTypes)});setError("");}catch(err){setError(String(err));}}} onRemove={i=>{const latest=current.current;if(latest)change({...latest,attachments:latest.attachments.filter((_,j)=>j!==i)});}}/>
+ <label className="flex items-center justify-between text-xs text-muted-foreground">Compressão de fotos<select value={format} onChange={e=>setFormat(e.target.value as ImageFormat)}><option value="webp">WebP</option><option value="avif">AVIF</option></select></label>
+ {processing&&<p role="status">Otimizando imagens neste dispositivo…</p>}
+ <ComposerMedia attachments={attachments} onError={setError} onFiles={async files=>{if(processing)return;setProcessing(true);setUpdateBlocker("image-compression",true);try{const optimized=await prepareImages(files,format);const latest=current.current;if(latest)change({...latest,attachments:appendAttachments(latest.attachments,optimized,mediaTypes)});setError("");}catch(err){setError(String(err));}finally{setProcessing(false);setUpdateBlocker("image-compression",false);}}} onRemove={i=>{const latest=current.current;if(latest)change({...latest,attachments:latest.attachments.filter((_,j)=>j!==i)});}}/>
  </fieldset>
  {storageError&&<Button type="button" variant="outline" onClick={()=>change(snapshot)}>Tentar salvar rascunho novamente</Button>}
  {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
- <Button type="submit" disabled={busy||storageError} className="w-full">{busy?"Salvando…":"Plantar memória"}</Button>
+ <Button type="submit" disabled={busy||storageError||processing} className="w-full">{busy?"Salvando…":"Plantar memória"}</Button>
  </form>;
 }

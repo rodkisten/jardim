@@ -7,7 +7,7 @@ export default defineConfig({
   root:fileURLToPath(new URL("./apps/web",import.meta.url)),
   plugins:[tailwindcss(),VitePWA({
     strategies:"injectManifest",srcDir:"src",filename:"sw.js",registerType:"prompt",injectRegister:false,
-    injectManifest:{globPatterns:["**/*.{js,css,html,svg,png,woff2,webmanifest}"],globIgnores:["**/downloads/**","legacy.html"],maximumFileSizeToCacheInBytes:4*1024*1024},
+    injectManifest:{globPatterns:["**/*.{js,css,html,svg,png,woff2,webmanifest,wasm}"],globIgnores:["**/downloads/**","legacy.html"],maximumFileSizeToCacheInBytes:12*1024*1024},
     manifest:{name:"Jardim",short_name:"Jardim",description:"Suas memórias, sempre com você",lang:"pt-BR",start_url:"/",scope:"/",display:"standalone",background_color:"#101113",theme_color:"#101113",icons:[{src:"/icon-192.png",sizes:"192x192",type:"image/png",purpose:"any"},{src:"/icon-512.png",sizes:"512x512",type:"image/png",purpose:"any maskable"}]}
   })],
   oxc:{jsx:{runtime:"automatic",importSource:"react"}},

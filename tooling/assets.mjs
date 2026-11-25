@@ -13,8 +13,9 @@ for (const path of await readdir(root + 'dist/web', { recursive: true })) {
     '.webmanifest': 'application/manifest+json',
     '.svg': 'image/svg+xml',
     '.png': 'image/png',
+    '.wasm': 'application/wasm',
   }[extname(path)];
-  if (type) assets['/' + path] = { body: await readFile(root + 'dist/web/' + path, type === 'image/png' ? 'base64' : 'utf8'), type };
+  if (type) assets['/' + path] = { body: await readFile(root + 'dist/web/' + path, (type === 'image/png' || type === 'application/wasm') ? 'base64' : 'utf8'), type };
 }
 await writeFile(
   root + 'apps/api/src/assets.generated.ts',
