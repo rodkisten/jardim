@@ -1,7 +1,7 @@
 import type { Note } from "./notes";
 import Dexie,{type Table} from "dexie";
 import { type Draft,readDraft } from "./draft";
-export type ComposerAttachment={blob:Blob;name:string;lastModified:number;id?:string};
+export type ComposerAttachment={blob:Blob;name:string;lastModified:number;id?:string;original?:Blob;originalName?:string};
 export type ComposerSnapshot={id:"current";draft:Draft;attachments:ComposerAttachment[];notes?:Note[]};
 export class ComposerDB extends Dexie{
  drafts!:Table<ComposerSnapshot,string>;
@@ -24,3 +24,5 @@ export function appendAttachments(current:ComposerAttachment[],incoming:File[],a
  if(next.length>5)throw Error("Adicione até cinco anexos.");
  return next;
 }
+
+export function replaceAttachment(current:ComposerAttachment[],id:string,file:File,allowed:readonly string[]){if(!allowed.includes(file.type)||file.size>12*1024*1024)throw Error("Resultado inválido ou maior que 12 MB");return current.map(a=>a.id===id?{...a,original:a.original??a.blob,originalName:a.originalName??a.name,blob:file,name:file.name,lastModified:file.lastModified}:a);}
