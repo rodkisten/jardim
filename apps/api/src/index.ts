@@ -1,3 +1,4 @@
+import {ingestInbox,listInbox,decideInbox} from './inbox';
 import { linkPreview } from './link-preview';
 import { lectio } from './lectio';
 import { faith } from './faith';
@@ -32,6 +33,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const text = await limitedBody(request, 65536);
     return text === null ? json({ error: 'Lote muito grande' }, 413) : ingest(request, env, text);
   }
+  if(path==='/v2/inbox/events' && request.method==='POST'){const text=await limitedBody(request,8192);return text===null?json({error:'Too large'},413):ingestInbox(request,env,text);}
   // Same-origin writes protect the password session against cross-site form submissions.
   if (!['GET', 'HEAD'].includes(request.method) && request.headers.get('origin') !== url.origin)
     return json({ error: 'Origem inválida' }, 403);
@@ -105,6 +107,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
           status: 200,
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
+  if(path==='/v2/inbox' && request.method==='GET')return listInbox(env);
+  const inboxDecision=path.match(/^\/v2\/inbox\/([a-f0-9-]{36})$/);
+  if(inboxDecision&&request.method==='POST'){const text=await limitedBody(request,1024);return text===null?json({error:'Too large'},413):decideInbox(env,inboxDecision[1],text);}
   if (path === '/v2/link-preview' && request.method === 'GET') return linkPreview(url);
   if (path === '/auth/logout' && request.method === 'POST') {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?')

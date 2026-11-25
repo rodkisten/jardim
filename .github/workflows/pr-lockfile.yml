@@ -1,0 +1,52 @@
+name: "🌻 JA · Repair PR lockfile"
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths: ['**/package.json', 'pnpm-lock.yaml', '.github/workflows/pr-lockfile.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: jardim-pr-lockfile-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  repair:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@v2
+        id: app
+        with:
+          app-id: ${{ secrets.BOT_APP_ID || vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          token: ${{ steps.app.outputs.token }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Resolve and verify lockfile
+        run: |
+          pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
+          pnpm install --frozen-lockfile --ignore-scripts
+      - name: Publish only lockfile changes
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo 'Lockfile already valid' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          test "$BRANCH" != main
+          git check-ref-format "refs/heads/$BRANCH"
+          git config user.name "$APP_SLUG[bot]"
+          git config user.email "$APP_SLUG[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m 'chore(deps): synchronize PR lockfile @ploocky [deploy]'
+          git push origin "HEAD:refs/heads/$BRANCH"
