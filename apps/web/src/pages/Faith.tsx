@@ -1,4 +1,5 @@
 import { Lectio } from "../components/Lectio";
+import { getFaith } from "../utils/faith-cache";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Card, CardContent, Input } from "@rodkisten/girassol/react";
@@ -7,7 +8,7 @@ import { today, validDate, mysteryFor, mysteries, prayers, readings, text, rosar
 const names:Record<string,string>={creed:"Creio",signOfCross:"Sinal da cruz",ourFather:"Pai-nosso",hailMary:"Ave Maria",gloryBe:"Glória ao Pai",fatima:"Oração de Fátima",hailHolyQueen:"Salve Rainha"};
 export function Faith(){
  const [date,setDate]=useState(today());
- const query=useQuery({queryKey:["faith",date],enabled:validDate(date),staleTime:3600000,queryFn:async({signal}):Promise<FaithData>=>{const r=await fetch("/faith/"+encodeURIComponent(date),{signal,credentials:"same-origin"});if(!r.ok||!r.headers.get("content-type")?.includes("application/json"))throw new Error("Liturgia indisponível");return r.json();}});
+ const query=useQuery({queryKey:["faith",date],enabled:validDate(date),staleTime:3600000,networkMode:"always",queryFn:({signal}):Promise<FaithData>=>getFaith(date,signal)});
  const key=mysteryFor(validDate(date)?date:today()), rosary=query.data?.rosary??{type:key,mysteries:mysteries[key],prayers};
  const data=query.data;
  return <section className="space-y-4"><div><p className="text-xs uppercase tracking-wide text-primary">Hoje / Fé</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Fé, no seu tempo.</h1><p className="text-sm text-muted-foreground">Liturgia, santos e terço em um só lugar.</p></div>

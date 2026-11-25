@@ -48,7 +48,10 @@
     "@rodkisten/jardim-database": "workspace:*",
     "@rodkisten/jardim-capture": "workspace:*",
     "@rodkisten/jardim-cards": "workspace:*",
-    "@tailwindcss/vite": "^4.1.0"
+    "@tailwindcss/vite": "^4.1.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "workbox-precaching": "^7.4.0",
+    "workbox-routing": "^7.4.0"
   },
   "engines": {
     "node": ">=24.11.0 <25"

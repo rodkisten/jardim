@@ -5,7 +5,8 @@
     "jsxImportSource": "react",
     "types": [
       "node",
-      "vite/client"
+      "vite/client",
+      "vite-plugin-pwa/client"
     ]
   },
   "include": [
