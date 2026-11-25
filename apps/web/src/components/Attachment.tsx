@@ -1,3 +1,5 @@
+import { VoicePlayer } from "./VoicePlayer";
+import { ImageViewer } from "./ImageViewer";
 import { useEffect, useState } from "react";
 import { Button } from "@rodkisten/girassol/react";
 import { db } from "../utils/db";
@@ -24,7 +26,7 @@ export function Attachment({id}:{id:string}) {
   },[id,attempt]);
   if(!media)return <div className="text-xs text-muted-foreground" role="status">{error||"Abrindo anexo…"} {error&&<Button variant="ghost" size="sm" onClick={()=>retry(n=>n+1)}>Tentar novamente</Button>}</div>;
   return <figure className="space-y-1 overflow-hidden rounded-lg">
-    {media.type.startsWith("image/")?<img className="max-h-80 w-full rounded-lg object-contain" src={media.url} alt="Foto da memória" loading="lazy"/>:media.type.startsWith("video/")?<video className="w-full rounded-lg" src={media.url} controls playsInline preload="none"/>:media.type.startsWith("audio/")?<audio className="w-full" src={media.url} controls preload="none"/>:null}
+    {media.type.startsWith("image/")?<ImageViewer url={media.url} name={media.name}/>:media.type.startsWith("video/")?<video className="w-full rounded-lg" src={media.url} controls playsInline preload="none"/>:media.type.startsWith("audio/")?<VoicePlayer url={media.url}/>:null}
     <figcaption><a className="text-xs text-primary" href={media.url} download={media.name}>Baixar original</a></figcaption>
   </figure>;
 }
