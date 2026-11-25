@@ -1,3 +1,4 @@
+import { Attachment } from "./Attachment";
 import { Snippet } from "./Snippet";
 import { LinkPreviews } from "./LinkPreviews";
 import type { ReactNode } from "react";
@@ -10,6 +11,7 @@ function RichNode({node,depth=0}:{node:Node;depth?:number}):ReactNode {
   const children=depth>=12?null:nodes(node.content).map((child,i)=><RichNode key={i} node={child} depth={depth+1}/>);
   switch(node.type){
     case "text": {let value:ReactNode=typeof node.text==="string"?node.text.slice(0,20000):"";for(const mark of nodes(node.marks)){switch(mark.type){case "bold":value=<strong>{value}</strong>;break;case "italic":value=<em>{value}</em>;break;case "underline":value=<u>{value}</u>;break;case "strike":value=<s>{value}</s>;break;case "code":value=<code>{value}</code>;break;case "highlight":value=<mark>{value}</mark>;break;case "link":{const href=safeLink(attrs(mark).href);if(href)value=<a className="text-primary underline" href={href} rel="nofollow noopener noreferrer" target="_blank">{value}</a>;break;}}}return value;}
+    case "jardimMedia":{const id=attrs(node).id;return typeof id==="string"&&/^[a-f0-9-]{36}$/i.test(id)?<Attachment id={id}/>:null;}
     case "paragraph":return <p>{children}</p>;
     case "heading":return <h3 className="text-lg font-semibold">{children}</h3>;
     case "blockquote":return <blockquote className="border-l-2 border-primary pl-3">{children}</blockquote>;
