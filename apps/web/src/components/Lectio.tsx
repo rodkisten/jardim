@@ -1,3 +1,4 @@
+import { LectioStudy } from "./LectioStudy";
 import { useEffect, useState } from "react";
 import { Button, Card, CardContent } from "@rodkisten/girassol/react";
 import { BookOpen, Heart, Sunrise, Sprout, Brain } from "lucide-react";
@@ -33,6 +34,7 @@ export function Lectio({date,passages}:{date:string;passages:{label:string;conte
  <p className="text-sm">{stage.question}</p>
  {journey.step===0&&(passages.length?passages.map((p,i)=><details key={i}><summary className="text-sm font-medium">{p.label}</summary><p className="mt-2 whitespace-pre-wrap text-sm">{p.content}</p></details>):<p className="text-sm text-muted-foreground">Aguardando as leituras do dia.</p>)}
  {journey.step===3&&<div className="space-y-2 text-center"><p className="text-4xl tabular-nums">{Math.floor(remaining/60)}:{String(remaining%60).padStart(2,"0")}</p><Button variant="outline" onClick={()=>{if(!remaining)setRemaining(120);setRunning(!running);}}>{running?"Pausar":"Iniciar silêncio"}</Button><Button variant="ghost" onClick={()=>{setRunning(false);setRemaining(120);}}>Reiniciar</Button></div>}
+ <LectioStudy date={date} enabled={passages.length>0}/>
  <textarea aria-label="Reflexão pessoal" disabled={!ready} value={journey.notes[journey.step]} onChange={e=>{const notes=[...journey.notes];notes[journey.step]=e.target.value;void update({...journey,notes});}} placeholder="Escreva sua reflexão…" className="min-h-24 w-full rounded-md border border-border bg-background p-3 text-base"/>
  <p className="text-xs text-muted-foreground">Reflexões privadas, salvas apenas neste dispositivo.</p>
  {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}

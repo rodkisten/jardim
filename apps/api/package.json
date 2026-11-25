@@ -8,7 +8,7 @@
     "@rodkisten/jardim-database": "workspace:*",
     "@rodkisten/jardim-capture": "workspace:*",
     "@rodkisten/jardim-cards": "workspace:*",
-    "agents": "latest",
+    "agents": "0.34.0",
     "ai": "^7.0.0",
     "@ai-sdk/provider": "^4.0.0"
   },
@@ -16,6 +16,7 @@
     "build": "node ../../tooling/build-api.mjs"
   },
   "devDependencies": {
-    "@rodkisten/jardim-web": "workspace:*"
+    "@rodkisten/jardim-web": "workspace:*",
+    "@babel/core": "^8.0.0"
   }
 }
