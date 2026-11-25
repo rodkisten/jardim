@@ -1,3 +1,4 @@
+import { db as garden } from "../utils/db";
 import { LectioStudy } from "./LectioStudy";
 import { useEffect, useState } from "react";
 import { Button, Card, CardContent } from "@rodkisten/girassol/react";
@@ -19,6 +20,8 @@ const stages = [
 ];
 export function Lectio({date,passages}:{date:string;passages:{label:string;content:string}[]}){
  const [journey,setJourney]=useState<Journey>({date,step:0,notes:["","","","",""],completed:false});
+ const [exporting,setExporting]=useState(false);
+ const [exported,setExported]=useState(false);
  const [ready,setReady]=useState(false);
  const [error,setError]=useState("");
  const [remaining,setRemaining]=useState(120);
@@ -34,11 +37,11 @@ export function Lectio({date,passages}:{date:string;passages:{label:string;conte
  <p className="text-sm">{stage.question}</p>
  {journey.step===0&&(passages.length?passages.map((p,i)=><details key={i}><summary className="text-sm font-medium">{p.label}</summary><p className="mt-2 whitespace-pre-wrap text-sm">{p.content}</p></details>):<p className="text-sm text-muted-foreground">Aguardando as leituras do dia.</p>)}
  {journey.step===3&&<div className="space-y-2 text-center"><p className="text-4xl tabular-nums">{Math.floor(remaining/60)}:{String(remaining%60).padStart(2,"0")}</p><Button variant="outline" onClick={()=>{if(!remaining)setRemaining(120);setRunning(!running);}}>{running?"Pausar":"Iniciar silêncio"}</Button><Button variant="ghost" onClick={()=>{setRunning(false);setRemaining(120);}}>Reiniciar</Button></div>}
- <LectioStudy date={date} enabled={passages.length>0}/>
+ <LectioStudy date={date} enabled={passages.length>0} step={journey.step}/>
  <textarea aria-label="Reflexão pessoal" disabled={!ready} value={journey.notes[journey.step]} onChange={e=>{const notes=[...journey.notes];notes[journey.step]=e.target.value;void update({...journey,notes});}} placeholder="Escreva sua reflexão…" className="min-h-24 w-full rounded-md border border-border bg-background p-3 text-base"/>
  <p className="text-xs text-muted-foreground">Reflexões privadas, salvas apenas neste dispositivo.</p>
  {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
  <div className="flex justify-between"><Button variant="outline" disabled={!ready||journey.step===0} onClick={()=>{setRunning(false);void update({...journey,step:journey.step-1});}}>Voltar</Button><Button disabled={!ready} onClick={()=>{setRunning(false);void update(journey.step===4?{...journey,completed:true}:{...journey,step:journey.step+1});}}>{journey.step===4?"Concluir":"Continuar"}</Button></div>
- {journey.completed&&<p role="status" className="text-sm text-primary">Jornada concluída. Você pode revisitá-la quando quiser.</p>}
+ {journey.completed&&<div className="space-y-2"><p role="status" className="text-sm text-primary">Jornada concluída. Você pode revisitá-la quando quiser.</p><Button variant="outline" disabled={exporting||exported||!journey.notes.some(n=>n.trim())} onClick={async()=>{if(!window.confirm("Guardar reflexões na timeline? Elas poderão ser sincronizadas com sua conta."))return;setExporting(true);try{await garden.plant({title:"Lectio · "+date,body:journey.notes.map((note,i)=>stages[i].name+"\\n"+note).join("\\n\\n").slice(0,20000),tags:["fé","lectio"]});setExported(true);}catch{setError("Não foi possível guardar a jornada.");}finally{setExporting(false);}}}>{exported?"Guardado na timeline":"Guardar na timeline"}</Button></div>}
  </CardContent></Card>;
 }
