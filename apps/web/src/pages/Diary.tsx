@@ -11,7 +11,7 @@ import { combineNotes,newNote } from "../utils/notes";
 import { db } from "../utils/db";
 import { DRAFT_KEY } from "../utils/draft";
 import { loadComposer,saveComposer,clearComposer,appendAttachments,type ComposerSnapshot } from "../utils/composer-store";
-import { setUpdateBlocker } from "../utils/update-guard";
+import { setUpdateBlocker,hasMarkdownBlockers } from "../utils/update-guard";
 import { Memory,mediaTypes } from "@rodkisten/jardim-contracts";
 import { ComposerMedia } from "../components/ComposerMedia";
 import { LinkPreviews } from "../components/LinkPreviews";
@@ -29,7 +29,7 @@ export function Diary(){
  }
  async function importFiles(files:File[]){if(processing||busy)return;setProcessing(true);setUpdateBlocker("image-compression",true);try{const optimized=await prepareImages(files,options,(done,total)=>setProgress("Processando "+done+" de "+total));setResults(optimized);const latest=current.current;if(latest)change({...latest,attachments:appendAttachments(latest.attachments,optimized.map(r=>r.file),mediaTypes)});setError("");}catch(err){setError(String(err));}finally{setProgress("");setProcessing(false);setUpdateBlocker("image-compression",false);}}
  async function submit(event:React.FormEvent<HTMLFormElement>){
- event.preventDefault();if(busy||processing||!current.current)return;setBusy(true);setUpdateBlocker("composer-submit",true);setError("");
+ event.preventDefault();if(hasMarkdownBlockers()){setError("Corrija o Markdown antes de publicar.");return;}if(busy||processing||!current.current)return;setBusy(true);setUpdateBlocker("composer-submit",true);setError("");
  const value=current.current;
  try{
  await queue.current;
