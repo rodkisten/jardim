@@ -1,3 +1,4 @@
+import { linkPreview } from './link-preview';
 import { lectio } from './lectio';
 import { faith } from './faith';
 import { preferences } from './preferences';
@@ -104,6 +105,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
           status: 200,
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
+  if (path === '/v2/link-preview' && request.method === 'GET') return linkPreview(url);
   if (path === '/auth/logout' && request.method === 'POST') {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?')
       .bind(await hash(token!))
