@@ -1,4 +1,6 @@
-import { prepareImages,type ImageFormat } from "../utils/image-compression";
+import { prepareImages,type CompressionResult } from "../utils/image-compression";
+import { defaultImageOptions } from "../utils/image-options";
+import { CompressionPanel } from "../components/CompressionPanel";
 import { useState,useEffect,useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button,Input } from "@rodkisten/girassol/react";
@@ -11,7 +13,7 @@ import { Memory,mediaTypes } from "@rodkisten/jardim-contracts";
 import { ComposerMedia } from "../components/ComposerMedia";
 import { LinkPreviews } from "../components/LinkPreviews";
 export function Diary(){
- const [format,setFormat]=useState<ImageFormat>("webp"),[processing,setProcessing]=useState(false);
+ const [options,setOptions]=useState(defaultImageOptions),[results,setResults]=useState<CompressionResult[]>([]),[progress,setProgress]=useState(""),[processing,setProcessing]=useState(false);
  const [snapshot,setSnapshot]=useState<ComposerSnapshot|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[storageError,setStorageError]=useState(false),[pending,setPending]=useState(false);
  const current=useRef<ComposerSnapshot|null>(null),queue=useRef<Promise<unknown>>(Promise.resolve());
@@ -46,9 +48,8 @@ export function Diary(){
  <DiaryEditor draft={draft} onChange={(body,document)=>{const latest=current.current;if(latest)change({...latest,draft:{...latest.draft,body,document}});}}/>
  <label className="block space-y-1 text-sm">Tags<Input value={draft.tags} onChange={e=>change({...snapshot,draft:{...draft,tags:e.target.value}})}/></label>
  <LinkPreviews text={draft.body}/>
- <label className="flex items-center justify-between text-xs text-muted-foreground">Compressão de fotos<select value={format} onChange={e=>setFormat(e.target.value as ImageFormat)}><option value="webp">WebP</option><option value="avif">AVIF</option></select></label>
- {processing&&<p role="status">Otimizando imagens neste dispositivo…</p>}
- <ComposerMedia attachments={attachments} onError={setError} onFiles={async files=>{if(processing)return;setProcessing(true);setUpdateBlocker("image-compression",true);try{const optimized=await prepareImages(files,format);const latest=current.current;if(latest)change({...latest,attachments:appendAttachments(latest.attachments,optimized,mediaTypes)});setError("");}catch(err){setError(String(err));}finally{setProcessing(false);setUpdateBlocker("image-compression",false);}}} onRemove={i=>{const latest=current.current;if(latest)change({...latest,attachments:latest.attachments.filter((_,j)=>j!==i)});}}/>
+ <CompressionPanel options={options} onChange={setOptions} results={results} progress={progress} onClear={()=>setResults([])}/>
+ <ComposerMedia attachments={attachments} onError={setError} onFiles={async files=>{if(processing)return;setProcessing(true);setUpdateBlocker("image-compression",true);try{const optimized=await prepareImages(files,options,(done,total)=>setProgress("Processando "+done+" de "+total));setResults(optimized);const latest=current.current;if(latest)change({...latest,attachments:appendAttachments(latest.attachments,optimized.map(r=>r.file),mediaTypes)});setError("");}catch(err){setError(String(err));}finally{setProgress("");setProcessing(false);setUpdateBlocker("image-compression",false);}}} onRemove={i=>{const latest=current.current;if(latest)change({...latest,attachments:latest.attachments.filter((_,j)=>j!==i)});}}/>
  </fieldset>
  {storageError&&<Button type="button" variant="outline" onClick={()=>change(snapshot)}>Tentar salvar rascunho novamente</Button>}
  {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
