@@ -5,17 +5,29 @@
   "type": "module",
   "exports": {
     ".": "./src/index.tsx",
-    "./tokens.css": "./src/tokens.css"
+    "./tokens.css": "./src/tokens.css",
+    "./react": "./src/react/index.ts",
+    "./react/theme.css": "./src/react/theme.css"
   },
   "peerDependencies": {
     "solid-js": "2.0.0-rc.21",
-    "@solidjs/web": "2.0.0-rc.21"
+    "@solidjs/web": "2.0.0-rc.21",
+    "react": "^19.0.0"
   },
   "devDependencies": {
     "solid-js": "2.0.0-rc.21",
-    "@solidjs/web": "2.0.0-rc.21"
+    "@solidjs/web": "2.0.0-rc.21",
+    "react": "^19.0.0",
+    "@types/react": "^19.0.0",
+    "tailwindcss": "^4.1.0"
   },
   "scripts": {
-    "build": "tsc --noEmit -p tsconfig.json"
+    "build": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.react.json"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.3.0"
   }
 }

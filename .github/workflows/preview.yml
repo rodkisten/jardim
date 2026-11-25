@@ -1,0 +1,72 @@
+name: "🌻 Jardim · PR preview"
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+  pull-requests: write
+concurrency:
+  group: jardim-preview
+  cancel-in-progress: false
+jobs:
+  preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck:react
+      - run: pnpm --filter @rodkisten/jardim-web build -- --base=/
+      - name: Validate Cloudflare credentials
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::Missing Cloudflare token'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::Missing Cloudflare account'; exit 1; }
+      - name: Deploy isolated PR Worker
+        run: |
+          node --input-type=module <<'JS'
+          import {writeFileSync} from 'node:fs';
+          const pr=process.env.PR;
+          if(!/^\d+$/.test(pr)) throw new Error('Invalid PR');
+          writeFileSync('wrangler.preview.json',JSON.stringify({
+            name:'jardim-preview-pr'+pr,compatibility_date:'2026-11-24',
+            workers_dev:false,preview_urls:false,main:'apps/api/src/preview.ts',
+            assets:{directory:'./dist/web',binding:'ASSETS',not_found_handling:'single-page-application',run_worker_first:['/faith','/faith/*','/v2/link-preview']},
+            routes:[{pattern:'pr'+pr+'.jardim.migos.club',custom_domain:true}]
+          }));
+          writeFileSync('preview-alias.js','export default {fetch(request){const url=new URL(request.url);url.hostname="pr'+pr+'.jardim.migos.club";return Response.redirect(url.toString(),302)}}');
+          writeFileSync('wrangler.preview-alias.json',JSON.stringify({
+            name:'jardim-preview-alias',main:'preview-alias.js',compatibility_date:'2026-11-24',
+            workers_dev:false,preview_urls:false,
+            routes:[{pattern:'preview.jardim.migos.club',custom_domain:true}]
+          }));
+          JS
+          pnpm exec wrangler deploy --config wrangler.preview.json
+          pnpm exec wrangler deploy --config wrangler.preview-alias.json
+      - name: Verify HTTPS preview
+        run: |
+          curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 10 "https://pr${PR}.jardim.migos.club/" -o /tmp/jardim-preview.html
+          grep -q 'id="root"' /tmp/jardim-preview.html
+          curl --fail --silent --show-error "https://pr${PR}.jardim.migos.club/faith/rosary" | jq -e '.mysteries | length == 5'
+          echo "### 🌻 https://pr${PR}.jardim.migos.club/" >> "$GITHUB_STEP_SUMMARY"
+      - name: Update preview comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          body="$(printf '<!-- jardim-preview -->\n### 🌻 Preview disponível\n\n[Abra o Jardim](https://pr%s.jardim.migos.club/) · [Workflow](https://github.com/%s/actions/runs/%s)\n\nCommit: `%s`' "$PR" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$(git rev-parse --short HEAD)")"
+          id="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("<!-- jardim-preview -->"))) | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body"
+          else
+            gh pr comment "$PR" --body "$body"
+          fi

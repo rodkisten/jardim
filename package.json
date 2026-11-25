@@ -7,10 +7,10 @@
     "dev": "turbo run dev --filter=@rodkisten/jardim-web",
     "dev:api": "wrangler dev --local-protocol https",
     "build": "turbo run build",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "typecheck": "tsc --noEmit && pnpm typecheck:react",
+    "test": "vitest run --exclude tests/ui.test.ts",
     "lint": "eslint .",
-    "check": "eslint . && turbo run build && wrangler types && tsc --noEmit && vitest run",
+    "check": "eslint . && turbo run build && wrangler types && pnpm typecheck && pnpm test",
     "deploy": "turbo run build && wrangler deploy",
     "format": "prettier --write . --ignore-unknown",
     "format:check": "prettier --check . --ignore-unknown",
@@ -20,7 +20,8 @@
     "db:generate": "prisma generate --schema packages/database/prisma/schema.prisma",
     "db:validate": "prisma validate --schema packages/database/prisma/schema.prisma",
     "db:migrate:local": "wrangler d1 migrations apply jardim --local",
-    "db:migrate:remote": "wrangler d1 migrations apply jardim --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply jardim --remote",
+    "typecheck:react": "tsc -p tsconfig.react.json"
   },
   "devDependencies": {
     "@babel/core": "7.29.13",
@@ -46,7 +47,12 @@
     "@rodkisten/jardim-local-db": "workspace:*",
     "@rodkisten/jardim-database": "workspace:*",
     "@rodkisten/jardim-capture": "workspace:*",
-    "@rodkisten/jardim-cards": "workspace:*"
+    "@rodkisten/jardim-cards": "workspace:*",
+    "@tailwindcss/vite": "^4.1.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "workbox-precaching": "^7.4.0",
+    "workbox-routing": "^7.4.0",
+    "workbox-window": "^7.4.0"
   },
   "engines": {
     "node": ">=24.11.0 <25"

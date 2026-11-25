@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "types": [
+      "node",
+      "vite/client",
+      "vite-plugin-pwa/client"
+    ]
+  },
+  "include": [
+    "apps/web/src/react",
+    "apps/web/src/pages",
+    "apps/web/src/components",
+    "apps/web/src/hooks",
+    "apps/web/src/utils",
+    "packages/girassol/src/react",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

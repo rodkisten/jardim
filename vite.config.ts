@@ -1,25 +1,17 @@
-import { defineConfig } from 'vite';
-import { fileURLToPath } from 'node:url';
-import { transformAsync } from '@babel/core';
+import { defineConfig } from "vite";
+import { fileURLToPath } from "node:url";
+import tailwindcss from "@tailwindcss/vite";
+import "./tooling/pwa-icons.mjs";
+import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
-  root: fileURLToPath(new URL('./apps/web', import.meta.url)),
-  plugins: [
-    {
-      name: 'solid-2',
-      enforce: 'pre',
-      async transform(code, id) {
-        if (!/\.tsx$/.test(id)) return;
-        // RC compiler/runtime use different delegated-event internals; direct listeners preserve input/click behavior.
-        const result = await transformAsync(code, {
-          filename: id,
-          presets: [['babel-preset-solid', { generate: 'dom', delegateEvents: false }]],
-          parserOpts: { plugins: ['typescript', 'jsx'] },
-          sourceMaps: true,
-        });
-        return result?.code ? { code: result.code, map: result.map } : null;
-      },
-    },
-  ],
-  build: { outDir: fileURLToPath(new URL('./dist/web', import.meta.url)), emptyOutDir: true },
-  server: { proxy: { '/v1': 'http://localhost:8787', '/auth': 'http://localhost:8787' } },
+  root:fileURLToPath(new URL("./apps/web",import.meta.url)),
+  plugins:[tailwindcss(),VitePWA({
+    strategies:"injectManifest",srcDir:"src",filename:"sw.js",registerType:"prompt",injectRegister:false,
+    injectManifest:{globPatterns:["**/*.{js,css,html,svg,png,woff2,webmanifest,wasm}"],globIgnores:["**/downloads/**","legacy.html"],maximumFileSizeToCacheInBytes:12*1024*1024},
+    manifest:{name:"Jardim",short_name:"Jardim",description:"Suas memórias, sempre com você",lang:"pt-BR",start_url:"/",scope:"/",display:"standalone",background_color:"#101113",theme_color:"#101113",icons:[{src:"/icon-192.png",sizes:"192x192",type:"image/png",purpose:"any"},{src:"/icon-512.png",sizes:"512x512",type:"image/png",purpose:"any maskable"}]}
+  })],
+  oxc:{jsx:{runtime:"automatic",importSource:"react"}},
+  resolve:{dedupe:["react","react-dom"]},
+  build:{outDir:fileURLToPath(new URL("./dist/web",import.meta.url)),emptyOutDir:true},
+  server:{proxy:{"/v1":"http://localhost:8787","/v2":"http://localhost:8787","/auth":"http://localhost:8787","/faith":"http://localhost:8787"}}
 });

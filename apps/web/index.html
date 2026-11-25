@@ -1,43 +1,13 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    
-<script>
-(()=>{'use strict';if(window.__gardenDock)return;
-const logs=[],MAX=300;let dock,view,active='All',hl;
-const safe=v=>{try{return typeof v==='string'?v:JSON.stringify(v instanceof Error?{message:v.message,stack:v.stack,cause:String(v.cause||'')}:v,null,2)}catch{return String(v)}};
-const add=(kind,msg,detail='')=>{logs.push({kind,msg:safe(msg),detail:safe(detail),time:new Date().toLocaleTimeString()});if(logs.length>MAX)logs.shift();draw()};
-window.__gardenDock={logs,add,open:()=>{mount();view.hidden=false;draw()}};
-addEventListener('error',e=>add('Error',e.message||'Resource failed',e.error?.stack||e.target?.src||e.target?.href||''),true);
-addEventListener('unhandledrejection',e=>add('Error','Unhandled promise',e.reason));
-addEventListener('securitypolicyviolation',e=>add('CSP',e.violatedDirective,e.blockedURI));
-for(const k of ['error','warn']){const old=console[k];console[k]=function(...args){add(k==='error'?'Error':'Warn',args.map(safe).join(' '));return old.apply(this,args)}}
-const fetch0=window.fetch;window.fetch=async function(...a){const t=performance.now();try{const r=await fetch0.apply(this,a);if(!r.ok)add('Network',r.status+' '+r.statusText,{url:r.url,ms:Math.round(performance.now()-t)});return r}catch(e){add('Network',String(a[0]),e);throw e}};
-const xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;
-XMLHttpRequest.prototype.open=function(m,u,...r){this.__gd={m,u};return xo.call(this,m,u,...r)};
-XMLHttpRequest.prototype.send=function(...a){this.addEventListener('loadend',()=>{if(this.status>=400||this.status===0)add('Network',this.status+' '+(this.__gd?.m||''),this.__gd?.u)},{once:true});return xs.apply(this,a)};
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function health(){const root=document.querySelector('#root');const styles=[...document.styleSheets];let inaccessible=0;for(const s of styles)try{void s.cssRules}catch{inaccessible++}
-const nodes=root?[...root.querySelectorAll('*')]:[];const visible=nodes.filter(n=>{const c=getComputedStyle(n),r=n.getBoundingClientRect();return c.display!=='none'&&c.visibility!=='hidden'&&+c.opacity>0&&r.width>0&&r.height>0}).length;
-return {rootExists:!!root,rootChildren:root?.children.length||0,descendants:nodes.length,visibleElements:visible,rootDisplay:root?getComputedStyle(root).display:null,stylesheets:styles.length,inaccessibleStylesheets:inaccessible,bodyText:document.body?.innerText?.slice(0,400),readyState:document.readyState,serviceWorker:!!navigator.serviceWorker?.controller}}
-function draw(){if(!view||view.hidden)return;const list=view.querySelector('.list');list.replaceChildren();const data=active==='Health'?[{kind:'Health',msg:'DOM / CSS / Solid mount',detail:JSON.stringify(health(),null,2)}]:logs.filter(e=>active==='All'||e.kind===active).slice(-100).reverse();for(const e of data){const d=document.createElement('details'),s=document.createElement('summary'),pre=document.createElement('pre');s.textContent=e.time+' '+e.kind+' · '+e.msg.slice(0,180);const code=document.createElement('code');const raw=e.detail||e.msg;code.innerHTML=hl?hl.highlightAuto(raw,['javascript','json','xml','bash']).value:esc(raw);pre.append(code);d.append(s,pre);list.append(d)}view.querySelector('.count').textContent=logs.length+' events'}
-function mount(){if(dock||!document.documentElement)return;dock=document.createElement('div');dock.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2147483647';const sh=dock.attachShadow({mode:'open'});sh.innerHTML=`<style>*{box-sizing:border-box}button,input{font:inherit}button{background:#292d3b;color:#e9eafa;border:1px solid #51576a;border-radius:8px;padding:7px;cursor:pointer}.fab{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));pointer-events:auto;border-radius:40px;background:#252a3a;color:#ff9ab0;box-shadow:0 4px 22px #0008}.panel{pointer-events:auto;position:fixed;right:10px;bottom:calc(58px + env(safe-area-inset-bottom));width:min(560px,calc(100vw - 20px));height:min(60dvh,540px);background:#151923;color:#e6e8f1;border:1px solid #495064;border-radius:14px;display:flex;flex-direction:column;font:12px ui-monospace,monospace;overflow:hidden;box-shadow:0 12px 48px #000a}.panel[hidden]{display:none}.bar{display:flex;align-items:center;gap:5px;padding:9px;border-bottom:1px solid #383e50;flex-wrap:wrap}.bar b{margin-right:auto}.list{overflow:auto;flex:1;padding:8px}details{border-left:3px solid #f27b92;background:#222634;border-radius:6px;margin-bottom:7px}summary{padding:10px;overflow-wrap:anywhere;cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#10131b;padding:10px;margin:0;max-height:260px;overflow:auto}.hljs-keyword{color:#f58bcb}.hljs-string{color:#9ecbff}.hljs-number{color:#8cbbff}.hljs-title{color:#c4a4ff}.hljs-comment{color:#8b96a8}@media(max-width:600px){.panel{right:0;bottom:0;width:100vw;height:65dvh;border-radius:14px 14px 0 0;padding-bottom:env(safe-area-inset-bottom)}}</style><button class="fab">◉ Diagnose</button><section class="panel" hidden><div class="bar"><b>Garden Dock <span class="count"></span></b><button class="copy">Copy</button><button class="close">×</button></div><div class="bar tabs"></div><div class="list"></div></section>`;view=sh.querySelector('.panel');sh.querySelector('.fab').onclick=()=>{view.hidden=!view.hidden;draw()};sh.querySelector('.close').onclick=()=>view.hidden=true;sh.querySelector('.copy').onclick=()=>navigator.clipboard.writeText(JSON.stringify({health:health(),logs},null,2));for(const name of ['All','Error','Warn','Network','CSP','Health']){const b=document.createElement('button');b.textContent=name;b.onclick=()=>{active=name;draw()};sh.querySelector('.tabs').append(b)}document.documentElement.append(dock);draw()}
-if(document.documentElement)mount();else addEventListener('DOMContentLoaded',mount,{once:true});
-addEventListener('load',()=>setTimeout(()=>{const h=health();if(!h.visibleElements)add('Error','Possible blank screen / Solid mount failure',h);draw()},1800));
-import('https://esm.sh/highlight.js@11.11.1/lib/core').then(async m=>{hl=m.default;for(const n of ['javascript','json','xml','bash']){const x=await import('https://esm.sh/highlight.js@11.11.1/lib/languages/'+n);hl.registerLanguage(n,x.default)}draw()}).catch(e=>add('Warn','Highlight unavailable',e.message));
-})();
-</script>
-
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#faf9fc" />
-    <meta name="robots" content="noindex,nofollow" />
-    <title>Jardim · Suas memórias</title>
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <script src="/theme.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#101113"/>
+<meta name="robots" content="noindex,nofollow"/>
+<link rel="apple-touch-icon" href="/icon-180.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Jardim · Suas memórias</title>
+</head>
+<body><div id="root"></div><script type="module" src="/src/react/main.tsx"></script></body>
 </html>

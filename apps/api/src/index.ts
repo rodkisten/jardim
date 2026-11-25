@@ -1,3 +1,5 @@
+import { linkPreview } from './link-preview';
+import { lectio } from './lectio';
 import { faith } from './faith';
 import { preferences } from './preferences';
 import {
@@ -81,6 +83,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
       '/sw.js',
       '/manifest.webmanifest',
       '/icon.svg',
+      '/icon-180.png',
+      '/icon-192.png',
+      '/icon-512.png',
       '/theme.js',
       '/theme.css',
     ].includes(path) &&
@@ -88,7 +93,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
   ) {
     const asset = assets[path];
     return asset
-      ? new Response(asset.body, { headers: { 'Content-Type': asset.type } })
+      ? new Response((asset.type === 'image/png' || asset.type === 'application/wasm') ? Uint8Array.from(atob(asset.body), c => c.charCodeAt(0)) : asset.body, { headers: { 'Content-Type': asset.type } })
       : new Response('Não encontrado', { status: 404 });
   }
   const token = sessionToken(request);
@@ -100,6 +105,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
           status: 200,
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
+  if (path === '/v2/link-preview' && request.method === 'GET') return linkPreview(url);
   if (path === '/auth/logout' && request.method === 'POST') {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?')
       .bind(await hash(token!))
@@ -109,6 +115,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
       headers: { Location: '/', 'Set-Cookie': cookie('', 0) },
     });
   }
+  if (path === '/faith/lectio' && ['GET','POST'].includes(request.method))
+    return lectio(url, env.AI, env.DB, request.method);
   if ((path === '/faith' || path.startsWith('/faith/')) && request.method === 'GET')
     return faith(url);
   if (path.startsWith('/faith/') || path === '/faith')
@@ -235,7 +243,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ error: 'Método inválido' }, 405);
   const asset = assets[path] || (path.includes('.') ? null : assets['/index.html']);
   return asset
-    ? new Response(request.method === 'HEAD' ? null : asset.body, {
+    ? new Response(request.method === 'HEAD' ? null : (asset.type === 'image/png' || asset.type === 'application/wasm') ? Uint8Array.from(atob(asset.body), c => c.charCodeAt(0)) : asset.body, {
         headers: {
           'Content-Type': asset.type,
           ...(asset === assets['/index.html'] ? { 'X-Jardim-Shell': '1' } : {}),
@@ -284,7 +292,7 @@ export default {
     result.headers.set('X-Frame-Options', 'DENY');
     result.headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     );
     return result;
   },
