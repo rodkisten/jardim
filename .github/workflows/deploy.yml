@@ -1,4 +1,4 @@
-name: "🚀 Deploy Jardim"
+name: "🌻 JA · 🚀 Deploy Jardim"
 run-name: "🚀 Jardim · ${{ github.ref_name }} · ${{ github.event_name }}"
 
 on:
