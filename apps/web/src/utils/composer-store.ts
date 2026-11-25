@@ -1,7 +1,8 @@
+import type { Note } from "./notes";
 import Dexie,{type Table} from "dexie";
 import { type Draft,readDraft } from "./draft";
 export type ComposerAttachment={blob:Blob;name:string;lastModified:number};
-export type ComposerSnapshot={id:"current";draft:Draft;attachments:ComposerAttachment[]};
+export type ComposerSnapshot={id:"current";draft:Draft;attachments:ComposerAttachment[];notes?:Note[]};
 export class ComposerDB extends Dexie{
  drafts!:Table<ComposerSnapshot,string>;
  constructor(name="jardim-composer"){super(name);this.version(1).stores({drafts:"id"});}

@@ -4,7 +4,8 @@ import { CompressionPanel } from "../components/CompressionPanel";
 import { useState,useEffect,useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button,Input } from "@rodkisten/girassol/react";
-import { DiaryEditor } from "../components/DiaryEditor";
+import { PublicationNotes } from "../components/PublicationNotes";
+import { combineNotes,newNote } from "../utils/notes";
 import { db } from "../utils/db";
 import { DRAFT_KEY } from "../utils/draft";
 import { loadComposer,saveComposer,clearComposer,appendAttachments,type ComposerSnapshot } from "../utils/composer-store";
@@ -18,7 +19,7 @@ export function Diary(){
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[storageError,setStorageError]=useState(false),[pending,setPending]=useState(false);
  const current=useRef<ComposerSnapshot|null>(null),queue=useRef<Promise<unknown>>(Promise.resolve());
  const navigate=useNavigate();
- useEffect(()=>{let active=true;loadComposer().then(value=>{if(active){current.current=value;setSnapshot(value);}}).catch(()=>{if(active)setError("Não foi possível recuperar o rascunho.");});return()=>{active=false;};},[]);
+ useEffect(()=>{let active=true;loadComposer().then(value=>{if(active){const restored={...value,notes:value.notes?.length?value.notes:[{...newNote(),body:value.draft.body,document:value.draft.document}]};current.current=restored;setSnapshot(restored);}}).catch(()=>{if(active)setError("Não foi possível recuperar o rascunho.");});return()=>{active=false;};},[]);
  function change(value:ComposerSnapshot){
  current.current=value;setSnapshot(value);setPending(true);setUpdateBlocker("composer",true);
  const write=queue.current.catch(()=>undefined).then(()=>saveComposer(value));queue.current=write;
@@ -29,7 +30,7 @@ export function Diary(){
  const value=current.current;
  try{
  await queue.current;
- const draft=value.draft;
+ const draft=value.notes?combineNotes(value.draft,value.notes):value.draft;
  const input={title:draft.title,body:draft.body,tags:[...new Set(draft.tags.split(",").map(tag=>tag.trim()).filter(Boolean))],richDocument:draft.document??undefined};
  Memory.parse({...input,id:crypto.randomUUID(),createdAt:new Date().toISOString()});
  await db.plant(input,value.attachments.map(({blob,name})=>({blob,name})));
@@ -45,7 +46,7 @@ export function Diary(){
  <p role="status" className="text-xs text-muted-foreground">{storageError?"Rascunho não persistido":pending?"Salvando rascunho…":"Rascunho disponível offline"}</p>
  <fieldset disabled={busy} className="space-y-4">
  <label className="block space-y-1 text-sm">Título<Input required maxLength={160} value={draft.title} onChange={e=>change({...snapshot,draft:{...draft,title:e.target.value}})}/></label>
- <DiaryEditor draft={draft} onChange={(body,document)=>{const latest=current.current;if(latest)change({...latest,draft:{...latest.draft,body,document}});}}/>
+ <PublicationNotes notes={snapshot.notes??[]} onChange={notes=>{const latest=current.current;if(latest)change({...latest,notes,draft:combineNotes(latest.draft,notes)});}}/>
  <label className="block space-y-1 text-sm">Tags<Input value={draft.tags} onChange={e=>change({...snapshot,draft:{...draft,tags:e.target.value}})}/></label>
  <LinkPreviews text={draft.body}/>
  <CompressionPanel options={options} onChange={setOptions} results={results} progress={progress} onClear={()=>setResults([])}/>
