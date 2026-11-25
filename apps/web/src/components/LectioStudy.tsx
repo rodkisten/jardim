@@ -5,7 +5,7 @@ import Dexie, { type Table } from "dexie";
 import { isPreview } from "../utils/preview";
 
 const stageNames=["lectio","meditatio","oratio","contemplatio","actio"];
-export function studyForStage(text:string,step:number){const sections=text.split(/(?=^#{1,3}\s+.*(?:Lectio|Meditatio|Oratio|Contemplatio|Actio)\b)/gim);return sections.find(section=>new RegExp("^#{1,3}.*\\\\b"+stageNames[step]+"\\\\b","i").test(section))??text;}
+export function studyForStage(text:string,step:number){const sections=text.split(/(?=^#{1,3}\s+.*(?:Lectio|Meditatio|Oratio|Contemplatio|Actio)\b)/gim);return sections.find(section=>new RegExp("^#{1,3}.*\\b"+stageNames[step]+"\\b","i").test(section))??text;}
 
 type Study = { date:string; text:string; generatedAt:string };
 class StudyDB extends Dexie {
