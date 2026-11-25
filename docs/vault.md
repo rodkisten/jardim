@@ -6,3 +6,6 @@ Authenticated manifest and independently authenticated 1 MiB media chunks; per-f
 
 ## Coverage and capsules
 V2 optional capsule manifest field preserves backwards compatibility. Restore adds missing capsules only. Media inventory reports references absent from local storage and archive; unreferenced attachments are not restored. V1 crypto tests cover wrong passwords and tampering. Drafts and revision history remain excluded; capsule media references are not yet included in inventory.
+
+## Archived snapshots
+The latest locally known server snapshot per memory is included in the authenticated manifest. Archive inspection supports title search and explicit text-only recovery as a new memory, never writes remote revision counters or resurrects tombstones. This is not a complete revision history. Drafts and archived media recovery remain pending. Fixed Dexie transaction overload using table array.
