@@ -1,0 +1,2 @@
+# Studio blocks
+Visual mode supports slash insertion at the start of a text block, manual searchable insertion, keyboard navigation, attachment references, and top-level block move/duplicate/delete through ProseMirror transactions. Existing onUpdate persists the resulting rich document. Media duplication references the same attachment. Markdown mode remains separate. Drag handles for arbitrary blocks and browser round-trip tests remain pending.
