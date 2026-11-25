@@ -1,4 +1,3 @@
-/* global self, caches, fetch */
 import { cleanupOutdatedCaches, precacheAndRoute, matchPrecache } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
 
