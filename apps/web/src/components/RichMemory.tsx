@@ -1,3 +1,4 @@
+import { LinkPreviews } from "./LinkPreviews";
 import type { ReactNode } from "react";
 import type { Memory } from "@rodkisten/jardim-contracts";
 type Node = {type?:unknown;text?:unknown;attrs?:unknown;marks?:unknown;content?:unknown};
@@ -23,5 +24,5 @@ function RichNode({node,depth=0}:{node:Node;depth?:number}):ReactNode {
   }
 }
 export function RichMemory({memory}:{memory:Memory}){
-  return <div className="space-y-3 whitespace-pre-wrap break-words">{memory.richDocument?nodes(memory.richDocument.content).map((node,i)=><RichNode key={i} node={node}/>):<p>{memory.body.replace(/\[anexo:[a-f0-9-]{36}\]/gi,"").trim()}</p>}</div>;
+  return <div className="space-y-3 whitespace-pre-wrap break-words">{memory.richDocument?nodes(memory.richDocument.content).map((node,i)=><RichNode key={i} node={node}/>):<p>{memory.body.replace(/\[anexo:[a-f0-9-]{36}\]/gi,"").trim()}</p>}<LinkPreviews text={memory.body}/></div>;
 }

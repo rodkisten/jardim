@@ -7,7 +7,8 @@ import { DRAFT_KEY } from "../utils/draft";
 import { loadComposer,saveComposer,clearComposer,appendAttachments,type ComposerSnapshot } from "../utils/composer-store";
 import { setUpdateBlocker } from "../utils/update-guard";
 import { Memory,mediaTypes } from "@rodkisten/jardim-contracts";
-import { Paperclip,Trash2 } from "lucide-react";
+import { ComposerMedia } from "../components/ComposerMedia";
+import { LinkPreviews } from "../components/LinkPreviews";
 export function Diary(){
  const [snapshot,setSnapshot]=useState<ComposerSnapshot|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[storageError,setStorageError]=useState(false),[pending,setPending]=useState(false);
@@ -42,8 +43,8 @@ export function Diary(){
  <label className="block space-y-1 text-sm">Título<Input required maxLength={160} value={draft.title} onChange={e=>change({...snapshot,draft:{...draft,title:e.target.value}})}/></label>
  <DiaryEditor draft={draft} onChange={(body,document)=>{const latest=current.current;if(latest)change({...latest,draft:{...latest.draft,body,document}});}}/>
  <label className="block space-y-1 text-sm">Tags<Input value={draft.tags} onChange={e=>change({...snapshot,draft:{...draft,tags:e.target.value}})}/></label>
- <label className="block space-y-2 text-sm"><Paperclip className="inline size-4"/> Anexos<input type="file" multiple accept={mediaTypes.join(",")} onChange={e=>{try{change({...snapshot,attachments:appendAttachments(attachments,Array.from(e.target.files??[]),mediaTypes)});setError("");}catch(err){setError(String(err));}e.target.value="";}} className="block w-full text-sm"/></label>
- {attachments.map((a,i)=><div key={i} className="flex items-center gap-2 rounded-lg border border-border p-2"><Paperclip className="size-4"/><span className="flex-1 truncate text-sm">{a.name}</span><span className="text-xs text-muted-foreground">{Math.ceil(a.blob.size/1024)} KB</span><Button type="button" variant="ghost" size="sm" aria-label={"Remover "+a.name} onClick={()=>change({...snapshot,attachments:attachments.filter((_,j)=>j!==i)})}><Trash2 className="size-4"/></Button></div>)}
+ <LinkPreviews text={draft.body}/>
+ <ComposerMedia attachments={attachments} onError={setError} onFiles={files=>{const latest=current.current;if(!latest)return;try{change({...latest,attachments:appendAttachments(latest.attachments,files,mediaTypes)});setError("");}catch(err){setError(String(err));}}} onRemove={i=>{const latest=current.current;if(latest)change({...latest,attachments:latest.attachments.filter((_,j)=>j!==i)});}}/>
  </fieldset>
  {storageError&&<Button type="button" variant="outline" onClick={()=>change(snapshot)}>Tentar salvar rascunho novamente</Button>}
  {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}

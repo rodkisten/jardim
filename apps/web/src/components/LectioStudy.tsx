@@ -43,7 +43,7 @@ export function LectioStudy({date,enabled,step}:{date:string;enabled:boolean;ste
  {!isPreview&&!saved&&!busy&&<Button disabled={!ready||!enabled} onClick={()=>void generate()}>Gerar estudo bíblico</Button>}
  {busy&&<Button variant="outline" onClick={()=>controller.current?.abort()}>Cancelar geração</Button>}
  {study&&!busy&&<button className="text-xs text-primary" onClick={()=>setShowAll(!showAll)}>{showAll?"Mostrar etapa atual":"Mostrar estudo completo"}</button>}
- {study&&<div className="space-y-2" aria-busy={busy}>{(showAll||busy?study:studyForStage(study,step)).split("\n").map((line,i)=>/^#{1,6} /.test(line)?<h5 key={i} className="pt-2 font-semibold text-primary">{line.replace(/^#+ /,"")}</h5>:<p key={i} className="whitespace-pre-wrap text-sm leading-relaxed">{line}</p>)}</div>}
+ {study&&<div className="space-y-2" aria-busy={busy}>{(showAll||busy?study:studyForStage(study,step)).split("\n").map((line,i)=>/^#{1,6} /.test(line)?<h5 key={i} className="pt-2 font-semibold text-primary">{line.replace(/^#+ /,"")}</h5>:<p key={i} className="whitespace-pre-wrap font-serif text-base leading-loose">{line}</p>)}</div>}
  {saved&&<p className="text-xs text-muted-foreground">Estudo salvo para leitura offline.</p>}
  {!saved&&!busy&&study&&<p className="text-xs text-muted-foreground">Estudo parcial, não salvo.</p>}
  {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
