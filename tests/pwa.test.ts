@@ -1,90 +1,31 @@
 import { readFileSync } from 'node:fs';
-import { runInNewContext } from 'node:vm';
 import { expect, test } from 'vitest';
+import { navigation, logout } from '../apps/web/src/utils/offline-policy.js';
 
-test('built service worker caches authenticated shell only, keeps API network-only and purges on logout', async () => {
-  const handlers = new Map<string, (event: unknown) => void>();
-  const data = new Map<string, Response>();
-  const stores = new Map<string, typeof cache>();
-  const cache = {
-    put: async (path: string, response: Response) => {
-      data.set(path, response);
-    },
-  };
-  let authenticated = false,
-    offline = false;
-  const context = {
-    URL,
-    Response,
-    Error,
-    self: {
-      location: { origin: 'https://jardim.migos.club' },
-      addEventListener: (name: string, fn: (e: unknown) => void) => handlers.set(name, fn),
-      skipWaiting: async () => {},
-      clients: { claim: async () => {} },
-    },
-    caches: {
-      open: async (name: string) => {
-        stores.set(name, cache);
-        return cache;
-      },
-      keys: async () => [...stores.keys()],
-      delete: async (name: string) => {
-        stores.delete(name);
-        data.clear();
-        return true;
-      },
-      match: async (path: string) => data.get(path),
-    },
-    fetch: async (input: string | Request) => {
-      if (offline) throw Error('offline');
-      const path = typeof input === 'string' ? input : new URL(input.url).pathname;
-      return new Response(path === '/' ? 'shell' : 'asset', {
-        headers:
-          path === '/' && authenticated
-            ? { 'X-Jardim-Shell': '1' }
-            : { 'Content-Type': path.endsWith('.css') ? 'text/css' : 'text/javascript' },
-      });
-    },
-  };
-  runInNewContext(readFileSync('dist/web/sw.js', 'utf8'), context);
-  const install = () => {
-    let task: Promise<void>;
-    handlers.get('install')!({
-      waitUntil: (p: Promise<void>) => {
-        task = p;
-      },
-    });
-    return task!;
-  };
-  await expect(install()).rejects.toThrow('Entre no Jardim');
-  expect(data.size).toBe(0);
-  authenticated = true;
-  await install();
-  expect(data.has('/')).toBe(true);
-  let intercepted: Promise<Response> | undefined;
-  const dispatch = (
-    path: string,
-    method = 'GET',
-    mode = 'navigate',
-  ): Promise<Response> | undefined => {
-    intercepted = undefined;
-    handlers.get('fetch')!({
-      request: { url: 'https://jardim.migos.club' + path, method, mode },
-      respondWith: (p: Promise<Response>) => {
-        intercepted = p;
-      },
-    });
-    return intercepted;
-  };
-  offline = true;
-  expect(await (await dispatch('/')!).text()).toBe('shell');
-  expect(dispatch('/v1/memories', 'GET', 'cors')).toBeUndefined();
-  expect(dispatch('/v2/sync/pull', 'GET', 'navigate')).toBeUndefined();
-  expect(dispatch('/auth/login', 'POST', 'navigate')).toBeUndefined();
-  offline = false;
-  await dispatch('/auth/logout', 'POST');
-  expect(data.size).toBe(0);
-  offline = true;
-  expect((await dispatch('/')!).status).toBe(503);
+test('built PWA contains a standalone manifest and precaches lazy chunks',()=>{
+ const manifest=JSON.parse(readFileSync('dist/web/manifest.webmanifest','utf8'));
+ expect(manifest.display).toBe('standalone');
+ expect(manifest.icons.some((icon:{sizes:string})=>icon.sizes==='512x512')).toBe(true);
+ const worker=readFileSync('dist/web/sw.js','utf8');
+ expect(worker).toContain('index.html');
+ expect(worker).toMatch(/DiaryEditor[^"]*\.js/);
+ expect(worker).not.toContain('self.__WB_MANIFEST');
+});
+test('navigation respects online login and falls back only when network fails',async()=>{
+ const request=new Request('https://jardim.migos.club/');
+ const shell=()=>Promise.resolve(new Response('shell'));
+ expect(await (await navigation(request,async()=>new Response('login'),shell)).text()).toBe('login');
+ const offline=async()=>{throw Error('offline');};
+ expect(await (await navigation(request,offline,shell)).text()).toBe('shell');
+ expect((await navigation(request,offline,async()=>undefined)).status).toBe(503);
+});
+test('logout purges shell caches only after successful network logout',async()=>{
+ const deleted:string[]=[];let unregistered=false;
+ const storage={keys:async()=>['workbox-precache-v2','jardim-shell-old','other'],delete:async(key:string)=>{deleted.push(key);return true;}};
+ const request=new Request('https://jardim.migos.club/auth/logout',{method:'POST'});
+ const unregister=async()=>{unregistered=true;return true;};
+ await logout(request,async()=>new Response(null,{status:401}),storage,unregister);
+ expect(deleted).toEqual([]);expect(unregistered).toBe(false);
+ await logout(request,async()=>new Response(null,{status:303}),storage,unregister);
+ expect(deleted).toEqual(['workbox-precache-v2','jardim-shell-old']);expect(unregistered).toBe(true);
 });

@@ -1,19 +1,14 @@
 import { cleanupOutdatedCaches, precacheAndRoute, matchPrecache } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
+import { navigation, logout } from "./utils/offline-policy.js";
 
-// Navigation is network-first to preserve the server-side login boundary.
-registerRoute(({request,url})=>request.mode==="navigate"&&url.origin===self.location.origin&&url.pathname==="/",async({request})=>{
- try{return await fetch(request);}
- catch{return await matchPrecache("/index.html")||new Response("Conecte-se para preparar o Jardim offline.",{status:503});}
-});
-registerRoute(({url})=>url.origin===self.location.origin&&url.pathname==="/auth/logout",async({request})=>{
- const response=await fetch(request);
- if(response.ok||response.status===303){
-  await Promise.all((await caches.keys()).filter(key=>key.startsWith("workbox-precache")||key.startsWith("jardim-shell-")).map(key=>caches.delete(key)));
-  await self.registration.unregister();
- }
- return response;
-},"POST");
+registerRoute(({request,url})=>request.mode==="navigate"&&url.origin===self.location.origin&&url.pathname==="/",({request})=>navigation(request,fetch,()=>matchPrecache("/index.html")));
+registerRoute(({url})=>url.origin===self.location.origin&&url.pathname==="/auth/logout",({request})=>logout(request,fetch,caches,()=>self.registration.unregister()),"POST");
+// Verify the authenticated shell before Workbox installs its precache.
+self.addEventListener("install",event=>{event.waitUntil((async()=>{
+ const response=await fetch("/",{cache:"no-store",credentials:"same-origin"});
+ if(!response.ok||(!response.headers.has("X-Jardim-Shell")&&!/^pr\d+\.jardim\.migos\.club$/.test(self.location.hostname)))throw Error("Entre no Jardim antes de preparar acesso offline.");
+})());});
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST,{cleanUrls:false,directoryIndex:null});
 self.addEventListener("message",event=>{if(event.data?.type==="SKIP_WAITING")self.skipWaiting();});

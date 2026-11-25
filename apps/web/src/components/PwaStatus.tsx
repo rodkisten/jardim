@@ -16,6 +16,6 @@ export function PwaStatus(){
  if(!offline&&!ready&&!update&&!error)return null;
  return <aside role="status" className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-4 py-2 text-xs">
  <span>{offline?"Offline · alterações locais":update?"Nova versão disponível":error?"Não foi possível preparar acesso offline":"Jardim disponível offline"}</span>
- {update?<Button size="sm" onClick={()=>void apply?.(true)}>Atualizar</Button>:!offline&&<button onClick={()=>{setReady(false);setError(false);}}>Fechar</button>}
+ {update?<Button size="sm" onClick={()=>{if(window.confirm("Atualizar agora? Conclua qualquer edição ou seleção de anexos antes de continuar."))void apply?.(true);}}>Atualizar</Button>:!offline&&<button onClick={()=>{setReady(false);setError(false);}}>Fechar</button>}
  </aside>;
 }
