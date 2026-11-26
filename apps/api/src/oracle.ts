@@ -5,5 +5,5 @@ export async function oracle(binding:OracleBinding,body:string):Promise<Response
  let input:unknown;try{input=JSON.parse(body);}catch{return Response.json({error:'JSON inválido'},{status:400});}
  const parsed=Input.safeParse(input);if(!parsed.success||new Set(parsed.data.positions.map(p=>p.name)).size!==10)return Response.json({error:'Posições inválidas'},{status:400});
  if(!binding)return Response.json({error:'IA indisponível'},{status:503});
- try{return Response.json(await generateOracle(binding,'astro',parsed.data.positions));}catch{return Response.json({error:'IA indisponível'},{status:502});}
+ try{return await generateOracle(binding,'astro',parsed.data.positions);}catch{return Response.json({error:'IA indisponível'},{status:502});}
 }
