@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 export const modules = [
+  { id: 'herbarium', label: 'Herbário', description: 'Citações e fragmentos', path: '/herbarium' },
   { id: 'mood', label: 'Clima Interior', description: 'Registros emocionais locais', path: '/mood' },
   { id: 'diary', label: 'Diário', description: 'Escrita e novas memórias', path: '/diary' },
   { id: 'timeline', label: 'Timeline', description: 'Histórico das memórias', path: '/timeline' },
@@ -8,6 +9,7 @@ export const modules = [
   { id: 'capsules', label: 'Cápsulas', description: 'Retrospectivas mensais', path: '/capsules' },
 ] as const;
 export const widgets = [
+  { id: 'herbarium', label: 'Fragmentos do Herbário' },
   { id: 'liturgy', label: 'Liturgia diária' },
   { id: 'culture', label: 'Acervo recente' },
   { id: 'trends', label: 'Tendências emocionais' },
@@ -24,10 +26,10 @@ export type WidgetId = typeof widgets[number]['id'];
 export const providers = ["YouTube","Spotify","IMDb","TMDB","X","Vimeo","Web"] as const;
 type Provider = typeof providers[number];
 export type WidgetSize = 'full' | 'half';
-const defaultOrder: WidgetId[] = ['calendar','dimensions','mood','weather','daily','monthly','recent','liturgy','culture','trends'];
+const defaultOrder: WidgetId[] = ['calendar','dimensions','mood','weather','daily','monthly','recent','liturgy','culture','trends','herbarium'];
 type Preferences = { order: WidgetId[]; sizes: Partial<Record<WidgetId, WidgetSize>>; richCards: boolean; providers: Record<Provider, boolean>; modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
 const key = 'jardim.modules.v1';
-const defaults: Preferences = { order: defaultOrder, sizes: {}, richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { liturgy: true, culture: true, trends: false, mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
+const defaults: Preferences = { order: defaultOrder, sizes: {}, richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { herbarium: true, mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { herbarium: true, liturgy: true, culture: true, trends: false, mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
 function read(): Preferences {
   try {
     const raw = JSON.parse(localStorage.getItem(key) || '{}');

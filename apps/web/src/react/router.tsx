@@ -118,6 +118,7 @@ const acervo = createRoute({
   path: '/acervo',
   component: lazyRouteComponent(() => import('../pages/Acervo'), 'Acervo'),
 });
+const herbarium = createRoute({ getParentRoute: () => root, path: '/herbarium', component: lazyRouteComponent(() => import('../pages/Herbarium'), 'Herbarium') });
 const mood = createRoute({ getParentRoute: () => root, path: '/mood', component: lazyRouteComponent(() => import('../pages/Mood'), 'Mood') });
 const settings = createRoute({
   getParentRoute: () => root,
@@ -142,6 +143,7 @@ const vault = createRoute({
 export const router = createRouter({
   routeTree: root.addChildren([
     home,
+    herbarium,
     mood,
     timeline,
     diary,
