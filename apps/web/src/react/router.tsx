@@ -32,5 +32,6 @@ const faith = createRoute({getParentRoute:()=>root,path:"/faith",component:lazyR
 const settings = createRoute({getParentRoute:()=>root,path:"/settings",component:lazyRouteComponent(()=>import("../pages/Settings"),"SettingsPage")});
 const integrations = createRoute({getParentRoute:()=>root,path:"/integrations",component:lazyRouteComponent(()=>import("../pages/Integrations"),"IntegrationsPage")});
 const inboxRoute=createRoute({getParentRoute:()=>root,path:"/inbox",component:lazyRouteComponent(()=>import("../pages/Inbox"),"Inbox")});
-export const router = createRouter({routeTree:root.addChildren([home,timeline,diary,capsules,search,detail,conflicts,settings,integrations,faith,inboxRoute]),history:createHashHistory(),defaultPendingComponent:()=> <div role="status" className="py-8 text-center text-sm text-muted-foreground">Carregando…</div>,defaultPreload:"intent"});
+const vault = createRoute({getParentRoute:()=>root,path:'/vault',component:lazyRouteComponent(()=>import('../pages/Vault'),'Vault')});
+export const router = createRouter({routeTree:root.addChildren([home,timeline,diary,capsules,search,detail,conflicts,settings,integrations,faith,inboxRoute,vault]),history:createHashHistory(),defaultPendingComponent:()=> <div role="status" className="py-8 text-center text-sm text-muted-foreground">Carregando…</div>,defaultPreload:"intent"});
 declare module "@tanstack/react-router" { interface Register { router: typeof router } }
