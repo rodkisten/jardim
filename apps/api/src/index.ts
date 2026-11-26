@@ -1,3 +1,4 @@
+import { oracle } from './oracle';
 import { discovery } from './discovery';
 import { ingestInbox, listInbox, decideInbox } from './inbox';
 import { linkPreview } from './link-preview';
@@ -150,6 +151,10 @@ async function handle(request: Request, env: Env): Promise<Response> {
     }
   }
   if (['/v2/discovery/cities','/v2/discovery/books'].includes(path) && request.method === 'GET') return discovery(url);
+  if (path === '/v2/oracle/astro' && request.method === 'POST') {
+    const body = await limitedBody(request, 4096);
+    return body === null ? json({error:'Pedido muito grande'},413) : oracle(env.AI, body);
+  }
   if (path === '/v2/integrations' && request.method === 'GET') return integrationStatus(env);
   if (path === '/v2/spotify/start' && request.method === 'POST') return spotifyStart(env);
   if (path === '/v2/spotify/sync' && request.method === 'POST') return syncSpotify(env);
