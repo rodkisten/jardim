@@ -49,3 +49,12 @@ export function culturalLink(value: string) {
     return null;
   }
 }
+
+export function embedUrl(value: string): string | undefined {
+ const link = culturalLink(value);
+ if (!link) return;
+ const url = new URL(link.href);
+ if (link.provider === 'YouTube') return 'https://www.youtube-nocookie.com/embed/' + url.searchParams.get('v');
+ if (link.provider === 'Spotify') return 'https://open.spotify.com/embed' + url.pathname;
+ if (link.provider === 'Vimeo') return 'https://player.vimeo.com/video' + url.pathname;
+}

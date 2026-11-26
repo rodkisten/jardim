@@ -1,3 +1,6 @@
+import { LinkPreviews } from './LinkPreviews';
+import { culturalLink } from '../utils/cultural-link';
+import { useModules } from '../hooks/useModules';
 import { useEffect, useId, useRef } from 'react';
 import { setUpdateBlocker } from '../utils/update-guard';
 import { TableKit } from '@tiptap/extension-table';
@@ -48,6 +51,9 @@ export function DiaryEditor({
   onChange: (body: string, document: RichDocument) => void;
 }) {
   const attachments = useContext(MediaContext);
+  const preferences = useModules();
+  const [previewText, setPreviewText] = useState(draft.body);
+  const [pendingLink, setPendingLink] = useState('');
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [split, setSplit] = useState(false),
     [markdownError, setMarkdownError] = useState('');
@@ -81,6 +87,11 @@ export function DiaryEditor({
           })),
         },
     editorProps: {
+      handlePaste: (_view, event) => {
+        const value = event.clipboardData?.getData('text/plain').trim() ?? '';
+        if (culturalLink(value)) setPendingLink(value);
+        return false;
+      },
       attributes: {
         class: 'min-h-48 p-3 text-base outline-none break-words',
         'aria-label': 'Conteúdo da memória',
@@ -88,6 +99,7 @@ export function DiaryEditor({
     },
     onUpdate: ({ editor }) => {
       if (applying.current) return;
+      setPreviewText(editor.getText());
       const parsed = RichDocument.safeParse(editor.getJSON());
       if (parsed.success) onChange(editor.getText(), parsed.data);
     },
@@ -102,6 +114,7 @@ export function DiaryEditor({
       editor.commands.setContent(markdown, { contentType: 'markdown', emitUpdate: false });
       const parsed = RichDocument.safeParse(editor.getJSON());
       if (!parsed.success) throw Error('Documento inválido');
+      setPreviewText(editor.getText());
       setMarkdownError('');
       setUpdateBlocker('markdown:' + blocker, false);
       onChange(editor.getText(), parsed.data);
@@ -264,6 +277,8 @@ export function DiaryEditor({
           </div>
         )}
       </div>
+      {preferences.richCards && pendingLink && <div className="flex items-center gap-2 border-t border-border p-2 text-xs"><span className="min-w-0 flex-1 truncate">Link reconhecido: {culturalLink(pendingLink)?.provider}</span><Button type="button" size="sm" variant="ghost" onClick={() => setPendingLink('')}>Fechar</Button></div>}
+      {preferences.richCards && <div className="space-y-2 p-2"><LinkPreviews text={previewText} /></div>}
       <div className="flex flex-wrap gap-1 p-2">
         {attachments
           .filter((a) => a.id)
