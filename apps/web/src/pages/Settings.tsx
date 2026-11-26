@@ -1,3 +1,4 @@
+import { ModuleSettings } from '../components/ModuleSettings';
 import { OfflineSettings } from '../components/OfflineSettings';
 import { ThemePicker } from '../components/ThemePicker';
 import { Button, Card, CardContent } from '@rodkisten/girassol/react';
@@ -6,7 +7,7 @@ import { Link } from '@tanstack/react-router';
 export function SettingsPage() {
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Configurações</h1>
+      <ModuleSettings />
       <ThemePicker />
       <OfflineSettings />
       <Card>

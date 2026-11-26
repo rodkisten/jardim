@@ -1,5 +1,5 @@
 # Jardim 2.0 — Girassol
-Status: proposta aprovada; implementação pendente. 2026-11-26.
+Status: implementação incremental; consultar CI e PR #32. 2026-11-26.
 
 ## Visão
 Um diário local-first que conecta memória, cultura, espiritualidade e descoberta pessoal. Não criar aplicativos isolados nem gamificar a fé.
@@ -28,7 +28,7 @@ Registro: id, tipo, dimensão, data de ocorrência, precisão temporal, timezone
 TMDB (cinema), Spotify/Last.fm/MusicBrainz (música), Open Library/Google Books (livros), Met Museum/Art Institute of Chicago (arte), Wikimedia (conhecimento), YouTube (vídeo), Listen Notes (podcasts), API.Bible e fonte católica autorizada (fé), Open-Meteo (clima), PhotoIntel (memórias). Validar acesso, custos, termos, atribuição e armazenamento antes de ativar. Não assumir acesso ao histórico completo de serviços.
 
 ## Bibliotecas
-Já presentes: React, TanStack Router/Query, Dexie, Tiptap, CodeMirror, Lucide, jsquash AVIF/WebP, Mermaid, KaTeX. Avaliar shadcn/Radix para primitives, Motion para transições, Embla para galerias, Vaul para drawers, TanStack Virtual para listas, PhotoSwipe para fotos, WaveSurfer/Vidstack para mídia, MiniSearch para busca, React Force Graph para constelações, Zod para fronteiras externas, date-fns para datas, Fontsource para fontes. Adicionar somente quando necessário; lazy-load módulos pesados. Reutilizar codecs existentes antes de adicionar Pica ou browser-image-compression.
+Já presentes: React, TanStack Router/Query, Dexie, Tiptap, CodeMirror, Lucide, jsquash AVIF/WebP, Mermaid, KaTeX. Avaliar shadcn/Radix para primitives, Motion para transições, Embla para galerias, Vaul para drawers, TanStack Virtual para listas, PhotoSwipe para fotos, WaveSurfer/Video.js para mídia, MiniSearch para busca, React Force Graph para constelações, Zod para fronteiras externas, date-fns para datas, Fontsource para fontes. Adicionar somente quando necessário; lazy-load módulos pesados. Reutilizar codecs existentes antes de adicionar Pica ou browser-image-compression.
 
 ## Entregas
 1. Girassol: auditar rotas, estilos e componentes; temas, shell responsivo, home e navegação funcional; preservar dados e rotas existentes.
@@ -39,3 +39,16 @@ Já presentes: React, TanStack Router/Query, Dexie, Tiptap, CodeMirror, Lucide, 
 
 ## Aceite
 Sem perda de dados, sem overflow horizontal no Safari iOS, teclado e foco acessíveis, estados vazio/loading/erro/offline, navegação real, persistência após reload, sem segredos no cliente. Rodar pnpm typecheck, build e lint; testes unitários somente para contratos, normalização e sincronização quando necessários. Preview único por PR. Não declarar funcionalidade pronta sem validação.
+
+## Central de Controle e Module Registry
+Registro tipado de módulos, rotas, widgets, providers, dependências e disponibilidade. Preferências versionadas e reativas, persistidas localmente; desativar não exclui dados. Ocultar navegação e widgets, bloquear rotas diretas e suspender tarefas e consultas específicas. Configurações e acesso a backup sempre disponíveis. Separar preferências de apresentação de autorização e consentimento de sincronização. Não oferecer switches fictícios para capacidades ainda não implementadas. Dashboard com ordenação, tamanho e visibilidade de widgets, drag and drop acessível com dnd-kit e alternativa por teclado. Futuramente persistir preferências no Dexie com migração; Zustand opcional se necessário.
+## Rich Cards universais
+Detectar URL colada no Tiptap, diário, memória, Inbox e Acervo. Preservar URL original, normalizar URL canônica, identificar provider e resolver metadados via adaptadores tipados no pacote cards existente. IMDb via TMDB find por external ID; TMDB direto; YouTube/Shorts, Spotify (faixas, álbuns, artistas, playlists, podcasts), X/Twitter, Vimeo, SoundCloud, TikTok, Reddit via oEmbed quando disponível; Instagram via API autorizada; Letterboxd, Wikipedia, GitHub e Open Graph genérico conforme acesso e termos. Fallback para link simples, estados loading/erro/offline, cache Dexie com TTL e atribuição. Cards compactos/expandidos, capa, autor, título, descrição, duração e ano quando disponíveis; nunca inventar campos. Embeds oficiais sob demanda, sem HTML arbitrário, allowlist de origens, CSP e sandbox conforme provider. Video.js para mídia compatível própria, WaveSurfer para áudio próprio. Backend com proteção SSRF, redirects validados, limites de tamanho e tempo, sem acesso a redes privadas; não implementar fetch genérico inseguro. Cheerio e DOMPurify apenas se necessários. Captura universal via compartilhamento iOS quando suportado e userscripts/RodX Studio, com Inbox e associação explícita à timeline.
+## Clima Interior
+Check-ins múltiplos por dia, humor em cinco níveis, energia, sono, ansiedade, sentimentos personalizados, atividades, fatores e nota opcional. Calendário mensal, histórico editável, gráficos Recharts, filtros, exportação e exclusão. Sem streaks obrigatórios, diagnóstico ou inferência causal. Dados fictícios apenas em demonstrações identificadas. Persistência local separada do mecanismo de sincronização de memórias; sincronização emocional e espiritual opcional e desligada por padrão para novos registros após implementação de armazenamento privado. Não afirmar que registros espirituais legados já são privados: auditar e migrar com consentimento. Nenhum envio a analytics. Lembretes opcionais.
+## Roadmap adicional
+1. Registry e Central de Controle: módulos existentes, rotas e widgets reais; expandir conforme implementação.
+2. Rich Cards: resolver, cache, editor, Acervo e Inbox; controles por provider e detecção automática.
+3. Clima Interior: armazenamento privado, check-ins e dashboard.
+4. Dashboard Builder: ordenar e redimensionar widgets, persistir preferências, controles de privacidade.
+5. Jardim conectado: relações com timeline e cápsulas, respeitando consentimento e módulos habilitados.

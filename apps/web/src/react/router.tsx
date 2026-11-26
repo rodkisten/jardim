@@ -1,3 +1,4 @@
+import { useModules, moduleForPath } from '../hooks/useModules';
 import { SyncStatus } from '../components/SyncStatus';
 import { Home } from '../pages/Home';
 import {
@@ -6,6 +7,7 @@ import {
   createRouter,
   Link,
   Outlet,
+  useRouterState,
   createHashHistory,
   lazyRouteComponent,
 } from '@tanstack/react-router';
@@ -30,6 +32,10 @@ const items = [
   { to: '/acervo', label: 'Acervo', icon: LibraryBig },
 ] as const;
 function Shell() {
+  const preferences = useModules();
+  const pathname = useRouterState({ select: s => s.location.pathname });
+  const active = moduleForPath(pathname);
+  const visible = items.filter(item => { const module = moduleForPath(item.to); return !module || preferences.modules[module.id]; });
   return (
     <div className="jardim-shell mx-auto min-h-dvh max-w-3xl">
       <header className="jardim-header flex items-center gap-2 px-4 pb-3">
@@ -45,13 +51,14 @@ function Shell() {
       </header>
       <main className="px-4 py-4 pb-32 sm:px-8">
         <SyncStatus />
-        <Outlet />
+        {active && !preferences.modules[active.id] ? <section className="space-y-3 rounded-2xl border border-border p-5"><h1 className="jardim-editorial text-2xl">Módulo desativado</h1><p className="text-sm">Seus dados continuam guardados.</p><Link to="/settings" className="text-primary">Abrir configurações</Link></section> : <Outlet />}
       </main>
       <nav
         aria-label="Navegação principal"
-        className="jardim-nav fixed grid grid-cols-6 border border-border bg-card/95 backdrop-blur-xl"
+        style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
+        className="jardim-nav fixed grid border border-border bg-card/95 backdrop-blur-xl"
       >
-        {items.map(({ to, label, icon: Icon }) => (
+        {visible.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
             to={to}
