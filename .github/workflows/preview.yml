@@ -1,4 +1,4 @@
-name: "🌻 Jardim · PR preview"
+name: '🌻 Jardim · PR preview'
 on:
   pull_request:
     types: [opened, synchronize, reopened]

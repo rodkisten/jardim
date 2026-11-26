@@ -20,6 +20,10 @@ export default defineConfig({
       },
     },
   ],
-  build: { outDir: fileURLToPath(new URL('./dist/legacy-web', import.meta.url)), emptyOutDir: true, rollupOptions: { input: fileURLToPath(new URL('./apps/web/legacy.html', import.meta.url)) } },
+  build: {
+    outDir: fileURLToPath(new URL('./dist/legacy-web', import.meta.url)),
+    emptyOutDir: true,
+    rollupOptions: { input: fileURLToPath(new URL('./apps/web/legacy.html', import.meta.url)) },
+  },
   server: { proxy: { '/v1': 'http://localhost:8787', '/auth': 'http://localhost:8787' } },
 });

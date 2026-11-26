@@ -1,25 +1,221 @@
-import {Button} from "@rodkisten/girassol/react";
-import {LanguageDescription} from "@codemirror/language";
-import {markdownCommands,formatSelection} from "../utils/markdown-commands";
-import {useEffect,useRef,useState} from "react";
-import {Compartment,EditorState} from "@codemirror/state";
-import {EditorView,keymap,lineNumbers,highlightActiveLine,drawSelection} from "@codemirror/view";
-import {defaultKeymap,history,historyKeymap} from "@codemirror/commands";
-import {syntaxHighlighting,HighlightStyle,defaultHighlightStyle} from "@codemirror/language";
-import {markdown} from "@codemirror/lang-markdown";
-import {languages} from "@codemirror/language-data";
-import {oneDark} from "@codemirror/theme-one-dark";
-import {tags} from "@lezer/highlight";
-export const themes=["girassol","one-dark","dracula","nord","material-darker","light"] as const;
-type Theme=typeof themes[number];
-const palettes={girassol:["#101113","#f4f4f5","#ffcb32","#a6d189","#c4a7e7"],dracula:["#282a36","#f8f8f2","#ff79c6","#50fa7b","#bd93f9"],nord:["#2e3440","#eceff4","#88c0d0","#a3be8c","#b48ead"],"material-darker":["#212121","#eeffff","#ffcb6b","#c3e88d","#c792ea"]};
-function themeExtension(theme:Theme){if(theme==="one-dark")return oneDark;if(theme==="light")return [EditorView.theme({"&":{background:"#ffffff",color:"#202124"}},{dark:false}),syntaxHighlighting(defaultHighlightStyle)];const [bg,fg,accent,string,keyword]=palettes[theme];return [EditorView.theme({"&":{background:bg,color:fg},".cm-gutters":{background:bg,color:fg,opacity:".65",border:"none"},".cm-cursor":{borderLeftColor:accent},".cm-activeLine":{background:"#ffffff09"},".cm-selectionBackground":{background:"#88888855"}},{dark:true}),syntaxHighlighting(HighlightStyle.define([{tag:[tags.heading,tags.strong,tags.link],color:accent},{tag:[tags.string,tags.url],color:string},{tag:[tags.keyword,tags.atom,tags.processingInstruction],color:keyword},{tag:tags.comment,color:"#929299",fontStyle:"italic"}]))];}
-function initialTheme():Theme{try{const value=localStorage.getItem("jardim:markdown-theme");return themes.find(t=>t===value)??"girassol";}catch{return "girassol";}}
-export function MarkdownEditor({value,onChange,insert,language="markdown",readOnly=false}:{value:string;onChange:(value:string)=>void;insert?:{text:string;nonce:number};language?:string;readOnly?:boolean}){const host=useRef<HTMLDivElement>(null),view=useRef<EditorView|null>(null),callback=useRef(onChange),initial=useRef(value),compartment=useRef(new Compartment()),languageCompartment=useRef(new Compartment()),readonlyCompartment=useRef(new Compartment());const [theme,setTheme]=useState<Theme>(initialTheme);callback.current=onChange;
-useEffect(()=>{if(!host.current)return;const instance=new EditorView({parent:host.current,state:EditorState.create({doc:initial.current,extensions:[lineNumbers(),history(),drawSelection(),highlightActiveLine(),keymap.of([...defaultKeymap,...historyKeymap]),languageCompartment.current.of([]),readonlyCompartment.current.of([]),EditorView.lineWrapping,EditorView.contentAttributes.of({"aria-label":"Editor de código",autocapitalize:"off",autocorrect:"off",spellcheck:"false"}),EditorView.theme({".cm-content":{fontSize:"16px",minHeight:"260px"},".cm-scroller":{overflow:"auto"}}),compartment.current.of(themeExtension(initialTheme())),EditorView.updateListener.of(update=>{if(update.docChanged)callback.current(update.state.doc.toString());})]})});view.current=instance;return()=>{instance.destroy();view.current=null;};},[]);
-useEffect(()=>{let active=true;const apply=(extension:import("@codemirror/state").Extension)=>{if(active)view.current?.dispatch({effects:languageCompartment.current.reconfigure(extension)});};if(language==="markdown")apply(markdown({codeLanguages:languages}));else{const description=LanguageDescription.matchLanguageName(languages,language,true);if(description)void description.load().then(apply).catch(()=>apply([]));else apply([]);}return()=>{active=false;};},[language]);
-useEffect(()=>{view.current?.dispatch({effects:readonlyCompartment.current.reconfigure([EditorState.readOnly.of(readOnly),EditorView.editable.of(!readOnly)])});},[readOnly]);
-useEffect(()=>{view.current?.dispatch({effects:compartment.current.reconfigure(themeExtension(theme))});try{localStorage.setItem("jardim:markdown-theme",theme);}catch{/* Optional preference. */}},[theme]);
-useEffect(()=>{const editor=view.current;if(editor&&editor.state.doc.toString()!==value)editor.dispatch({changes:{from:0,to:editor.state.doc.length,insert:value}});},[value]);
-useEffect(()=>{const editor=view.current;if(!editor||!insert)return;editor.dispatch(editor.state.replaceSelection("\n\n"+insert.text+"\n\n"));editor.focus();},[insert]);
-return <div><label className="flex items-center gap-2 p-2 text-xs">Tema <select className="rounded border border-border bg-card p-2 text-base" value={theme} onChange={e=>setTheme(e.target.value as Theme)}>{themes.map(t=><option key={t}>{t}</option>)}</select></label>{language==="markdown"&&!readOnly&&<div className="flex flex-wrap gap-1 border-b border-border p-1">{markdownCommands.map(command=><Button key={command.label} type="button" variant="ghost" size="sm" onClick={()=>{const editor=view.current;if(!editor)return;const {from,to}=editor.state.selection.main;const selected=editor.state.sliceDoc(from,to);const result=formatSelection(selected,command);editor.dispatch({changes:{from,to,insert:result.text},selection:{anchor:from+result.start,head:from+result.end}});editor.focus();}}>{command.label}</Button>)}</div>}<div ref={host} className="overflow-hidden rounded-b-xl"/></div>;}
+import { Button } from '@rodkisten/girassol/react';
+import { LanguageDescription } from '@codemirror/language';
+import { markdownCommands, formatSelection } from '../utils/markdown-commands';
+import { useEffect, useRef, useState } from 'react';
+import { Compartment, EditorState } from '@codemirror/state';
+import {
+  EditorView,
+  keymap,
+  lineNumbers,
+  highlightActiveLine,
+  drawSelection,
+} from '@codemirror/view';
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { syntaxHighlighting, HighlightStyle, defaultHighlightStyle } from '@codemirror/language';
+import { markdown } from '@codemirror/lang-markdown';
+import { languages } from '@codemirror/language-data';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { tags } from '@lezer/highlight';
+export const themes = [
+  'girassol',
+  'one-dark',
+  'dracula',
+  'nord',
+  'material-darker',
+  'light',
+] as const;
+type Theme = (typeof themes)[number];
+const palettes = {
+  girassol: ['#101113', '#f4f4f5', '#ffcb32', '#a6d189', '#c4a7e7'],
+  dracula: ['#282a36', '#f8f8f2', '#ff79c6', '#50fa7b', '#bd93f9'],
+  nord: ['#2e3440', '#eceff4', '#88c0d0', '#a3be8c', '#b48ead'],
+  'material-darker': ['#212121', '#eeffff', '#ffcb6b', '#c3e88d', '#c792ea'],
+};
+function themeExtension(theme: Theme) {
+  if (theme === 'one-dark') return oneDark;
+  if (theme === 'light')
+    return [
+      EditorView.theme({ '&': { background: '#ffffff', color: '#202124' } }, { dark: false }),
+      syntaxHighlighting(defaultHighlightStyle),
+    ];
+  const [bg, fg, accent, string, keyword] = palettes[theme];
+  return [
+    EditorView.theme(
+      {
+        '&': { background: bg, color: fg },
+        '.cm-gutters': { background: bg, color: fg, opacity: '.65', border: 'none' },
+        '.cm-cursor': { borderLeftColor: accent },
+        '.cm-activeLine': { background: '#ffffff09' },
+        '.cm-selectionBackground': { background: '#88888855' },
+      },
+      { dark: true },
+    ),
+    syntaxHighlighting(
+      HighlightStyle.define([
+        { tag: [tags.heading, tags.strong, tags.link], color: accent },
+        { tag: [tags.string, tags.url], color: string },
+        { tag: [tags.keyword, tags.atom, tags.processingInstruction], color: keyword },
+        { tag: tags.comment, color: '#929299', fontStyle: 'italic' },
+      ]),
+    ),
+  ];
+}
+function initialTheme(): Theme {
+  try {
+    const value = localStorage.getItem('jardim:markdown-theme');
+    return themes.find((t) => t === value) ?? 'girassol';
+  } catch {
+    return 'girassol';
+  }
+}
+export function MarkdownEditor({
+  value,
+  onChange,
+  insert,
+  language = 'markdown',
+  readOnly = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  insert?: { text: string; nonce: number };
+  language?: string;
+  readOnly?: boolean;
+}) {
+  const host = useRef<HTMLDivElement>(null),
+    view = useRef<EditorView | null>(null),
+    callback = useRef(onChange),
+    initial = useRef(value),
+    compartment = useRef(new Compartment()),
+    languageCompartment = useRef(new Compartment()),
+    readonlyCompartment = useRef(new Compartment());
+  const [theme, setTheme] = useState<Theme>(initialTheme);
+  callback.current = onChange;
+  useEffect(() => {
+    if (!host.current) return;
+    const instance = new EditorView({
+      parent: host.current,
+      state: EditorState.create({
+        doc: initial.current,
+        extensions: [
+          lineNumbers(),
+          history(),
+          drawSelection(),
+          highlightActiveLine(),
+          keymap.of([...defaultKeymap, ...historyKeymap]),
+          languageCompartment.current.of([]),
+          readonlyCompartment.current.of([]),
+          EditorView.lineWrapping,
+          EditorView.contentAttributes.of({
+            'aria-label': 'Editor de código',
+            autocapitalize: 'off',
+            autocorrect: 'off',
+            spellcheck: 'false',
+          }),
+          EditorView.theme({
+            '.cm-content': { fontSize: '16px', minHeight: '260px' },
+            '.cm-scroller': { overflow: 'auto' },
+          }),
+          compartment.current.of(themeExtension(initialTheme())),
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) callback.current(update.state.doc.toString());
+          }),
+        ],
+      }),
+    });
+    view.current = instance;
+    return () => {
+      instance.destroy();
+      view.current = null;
+    };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    const apply = (extension: import('@codemirror/state').Extension) => {
+      if (active)
+        view.current?.dispatch({ effects: languageCompartment.current.reconfigure(extension) });
+    };
+    if (language === 'markdown') apply(markdown({ codeLanguages: languages }));
+    else {
+      const description = LanguageDescription.matchLanguageName(languages, language, true);
+      if (description)
+        void description
+          .load()
+          .then(apply)
+          .catch(() => apply([]));
+      else apply([]);
+    }
+    return () => {
+      active = false;
+    };
+  }, [language]);
+  useEffect(() => {
+    view.current?.dispatch({
+      effects: readonlyCompartment.current.reconfigure([
+        EditorState.readOnly.of(readOnly),
+        EditorView.editable.of(!readOnly),
+      ]),
+    });
+  }, [readOnly]);
+  useEffect(() => {
+    view.current?.dispatch({ effects: compartment.current.reconfigure(themeExtension(theme)) });
+    try {
+      localStorage.setItem('jardim:markdown-theme', theme);
+    } catch {
+      /* Optional preference. */
+    }
+  }, [theme]);
+  useEffect(() => {
+    const editor = view.current;
+    if (editor && editor.state.doc.toString() !== value)
+      editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: value } });
+  }, [value]);
+  useEffect(() => {
+    const editor = view.current;
+    if (!editor || !insert) return;
+    editor.dispatch(editor.state.replaceSelection('\n\n' + insert.text + '\n\n'));
+    editor.focus();
+  }, [insert]);
+  return (
+    <div>
+      <label className="flex items-center gap-2 p-2 text-xs">
+        Tema{' '}
+        <select
+          className="rounded border border-border bg-card p-2 text-base"
+          value={theme}
+          onChange={(e) => setTheme(e.target.value as Theme)}
+        >
+          {themes.map((t) => (
+            <option key={t}>{t}</option>
+          ))}
+        </select>
+      </label>
+      {language === 'markdown' && !readOnly && (
+        <div className="flex flex-wrap gap-1 border-b border-border p-1">
+          {markdownCommands.map((command) => (
+            <Button
+              key={command.label}
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const editor = view.current;
+                if (!editor) return;
+                const { from, to } = editor.state.selection.main;
+                const selected = editor.state.sliceDoc(from, to);
+                const result = formatSelection(selected, command);
+                editor.dispatch({
+                  changes: { from, to, insert: result.text },
+                  selection: { anchor: from + result.start, head: from + result.end },
+                });
+                editor.focus();
+              }}
+            >
+              {command.label}
+            </Button>
+          ))}
+        </div>
+      )}
+      <div ref={host} className="overflow-hidden rounded-b-xl" />
+    </div>
+  );
+}

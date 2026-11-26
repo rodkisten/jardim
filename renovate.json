@@ -1,8 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ],
+  "extends": ["config:recommended"],
   "prConcurrentLimit": 1,
   "branchConcurrentLimit": 1,
   "automerge": true,
@@ -11,19 +9,11 @@
   "ignoreTests": false,
   "packageRules": [
     {
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "digest",
-        "lockFileMaintenance"
-      ],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest", "lockFileMaintenance"],
       "enabled": false
     },
     {
-      "matchUpdateTypes": [
-        "major"
-      ],
+      "matchUpdateTypes": ["major"],
       "groupName": "all major dependency updates",
       "groupSlug": "all-major-dependencies",
       "automerge": true

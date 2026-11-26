@@ -34,9 +34,15 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
     },
   });
   // Seed a valid text draft: rich-editor keyboard interactions need a dedicated browser test.
-  localStorage.setItem('jardim:composer-draft:v1', JSON.stringify({
-    title: '', body: 'Um momento importante', tags: '', document: null,
-  }));
+  localStorage.setItem(
+    'jardim:composer-draft:v1',
+    JSON.stringify({
+      title: '',
+      body: 'Um momento importante',
+      tags: '',
+      document: null,
+    }),
+  );
   const file = readdirSync('dist/web/assets').find((f) => f.endsWith('.js'))!;
   const code = readFileSync('dist/web/assets/' + file, 'utf8');
   // Vite output is a self-contained browser module with no imports.
@@ -123,12 +129,17 @@ test('Solid 2 compiled application mounts and reacts to local save', async () =>
   draftSearch.value = '';
   draftSearch.dispatchEvent(new InputEvent('input', { bubbles: true }));
   title.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-  await expect.poll(() => {
-    const saved = document.querySelector('.memory h3')?.textContent;
-    if (saved) return saved;
-    const error = document.querySelector('.memory-dialog [role="alert"]')?.textContent;
-    return error ? `Save error: ${error}` : 'Waiting for saved memory';
-  }, { timeout: 1500 }).toBe('Uma nova memória');
+  await expect
+    .poll(
+      () => {
+        const saved = document.querySelector('.memory h3')?.textContent;
+        if (saved) return saved;
+        const error = document.querySelector('.memory-dialog [role="alert"]')?.textContent;
+        return error ? `Save error: ${error}` : 'Waiting for saved memory';
+      },
+      { timeout: 1500 },
+    )
+    .toBe('Uma nova memória');
   // Local saves may push immediately, even while the initial pull is pending.
   // The initial pull must still be released so synchronization can complete.
   releaseInitial(Response.json({ snapshots: [], cursor: 0, hasMore: false }));

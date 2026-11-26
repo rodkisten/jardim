@@ -1,4 +1,4 @@
-import { z } from "@rodkisten/jardim-contracts";
+import { z } from '@rodkisten/jardim-contracts';
 export const City = z.object({
   label: z.string().min(1).max(180),
   latitude: z.number().min(-90).max(90),
@@ -46,4 +46,3 @@ export function condition(code: number) {
             ? 'Entre nuvens'
             : 'Céu aberto';
 }
-

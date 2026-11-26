@@ -1,4 +1,29 @@
-import type {Editor} from '@tiptap/core';
-import {useEditorState} from '@tiptap/react';
-import {Button} from '@rodkisten/girassol/react';
-export function TableTools({editor}:{editor:Editor}){const active=useEditorState({editor,selector:({editor:e})=>!!e?.isActive('table')});if(!active)return null;const actions=[['+ Linha',()=>editor.chain().focus().addRowAfter().run()],['+ Coluna',()=>editor.chain().focus().addColumnAfter().run()],['− Linha',()=>editor.chain().focus().deleteRow().run()],['− Coluna',()=>editor.chain().focus().deleteColumn().run()],['Cabeçalho',()=>editor.chain().focus().toggleHeaderRow().run()],['Excluir tabela',()=>{if(confirm('Excluir tabela?'))editor.chain().focus().deleteTable().run();}]] as const;return <div className="flex flex-wrap gap-1 border-b border-border p-2">{actions.map(([label,run])=><Button key={label} type="button" size="sm" variant="outline" onClick={run}>{label}</Button>)}</div>;}
+import type { Editor } from '@tiptap/core';
+import { useEditorState } from '@tiptap/react';
+import { Button } from '@rodkisten/girassol/react';
+export function TableTools({ editor }: { editor: Editor }) {
+  const active = useEditorState({ editor, selector: ({ editor: e }) => !!e?.isActive('table') });
+  if (!active) return null;
+  const actions = [
+    ['+ Linha', () => editor.chain().focus().addRowAfter().run()],
+    ['+ Coluna', () => editor.chain().focus().addColumnAfter().run()],
+    ['− Linha', () => editor.chain().focus().deleteRow().run()],
+    ['− Coluna', () => editor.chain().focus().deleteColumn().run()],
+    ['Cabeçalho', () => editor.chain().focus().toggleHeaderRow().run()],
+    [
+      'Excluir tabela',
+      () => {
+        if (confirm('Excluir tabela?')) editor.chain().focus().deleteTable().run();
+      },
+    ],
+  ] as const;
+  return (
+    <div className="flex flex-wrap gap-1 border-b border-border p-2">
+      {actions.map(([label, run]) => (
+        <Button key={label} type="button" size="sm" variant="outline" onClick={run}>
+          {label}
+        </Button>
+      ))}
+    </div>
+  );
+}

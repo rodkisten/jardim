@@ -31,80 +31,140 @@ export function RichEditor(props: {
     command(editor);
     refresh();
   };
-  createEffect(() => true, () => {
-    if (!host || editor) return;
-    editor = new Editor({
-      element: host,
-      content: props.document ?? props.value,
-      extensions: [
-        StarterKit.configure({ link: false, underline: false }),
-        Link.configure({ openOnClick: false, autolink: true, defaultProtocol: 'https' }),
-        Underline,
-        TextAlign.configure({ types: ['heading', 'paragraph'] }),
-        Highlight.configure({ multicolor: true }),
-        TaskList,
-        TaskItem.configure({ nested: true }),
-        Typography,
-        CharacterCount.configure({ limit: 20000 }),
-        Placeholder.configure({ placeholder: 'O que você quer guardar deste dia?' }),
-      ],
-      onUpdate: ({ editor: instance }) => {
-        props.onDocumentChange?.(instance.getJSON());
-        props.onChange(instance.getText({ blockSeparator: '\n' }));
-        refresh();
-      },
-      onSelectionUpdate: refresh,
-      onTransaction: refresh,
-    });
-    refresh();
-  });
-  onCleanup(() => editor?.destroy());
-  createEffect(() => ({ value: props.value, document: props.document }), ({ value, document }) => {
-    if (!editor) return;
-    // External resets (switching memories) must replace the document; ordinary
-    // typing must not reset marks, selection, undo history or list structure.
-    if (editor.getText({ blockSeparator: '\\n' }) !== value) {
-      editor.commands.setContent(document ?? value, { emitUpdate: false });
+  createEffect(
+    () => true,
+    () => {
+      if (!host || editor) return;
+      editor = new Editor({
+        element: host,
+        content: props.document ?? props.value,
+        extensions: [
+          StarterKit.configure({ link: false, underline: false }),
+          Link.configure({ openOnClick: false, autolink: true, defaultProtocol: 'https' }),
+          Underline,
+          TextAlign.configure({ types: ['heading', 'paragraph'] }),
+          Highlight.configure({ multicolor: true }),
+          TaskList,
+          TaskItem.configure({ nested: true }),
+          Typography,
+          CharacterCount.configure({ limit: 20000 }),
+          Placeholder.configure({ placeholder: 'O que você quer guardar deste dia?' }),
+        ],
+        onUpdate: ({ editor: instance }) => {
+          props.onDocumentChange?.(instance.getJSON());
+          props.onChange(instance.getText({ blockSeparator: '\n' }));
+          refresh();
+        },
+        onSelectionUpdate: refresh,
+        onTransaction: refresh,
+      });
       refresh();
-    }
-  });
-  createEffect(() => props.disabled, (disabled) => {
-    editor?.setEditable(!disabled);
-  });
-  const action = (label: string, fn: (editor: Editor) => void, active?: (editor: Editor) => boolean) => (
-    <button type="button" aria-label={label} aria-pressed={editor && active ? (active(editor) ? 'true' : 'false') : undefined}
-      class="rich-action" onClick={() => run(fn)}>{label}</button>
+    },
+  );
+  onCleanup(() => editor?.destroy());
+  createEffect(
+    () => ({ value: props.value, document: props.document }),
+    ({ value, document }) => {
+      if (!editor) return;
+      // External resets (switching memories) must replace the document; ordinary
+      // typing must not reset marks, selection, undo history or list structure.
+      if (editor.getText({ blockSeparator: '\\n' }) !== value) {
+        editor.commands.setContent(document ?? value, { emitUpdate: false });
+        refresh();
+      }
+    },
+  );
+  createEffect(
+    () => props.disabled,
+    (disabled) => {
+      editor?.setEditable(!disabled);
+    },
+  );
+  const action = (
+    label: string,
+    fn: (editor: Editor) => void,
+    active?: (editor: Editor) => boolean,
+  ) => (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={editor && active ? (active(editor) ? 'true' : 'false') : undefined}
+      class="rich-action"
+      onClick={() => run(fn)}
+    >
+      {label}
+    </button>
   );
   return (
     <div class="rich-editor">
       <div class="rich-toolbar" role="toolbar" aria-label="Formatação da memória">
         {action('Desfazer', (e) => e.chain().focus().undo().run())}
         {action('Refazer', (e) => e.chain().focus().redo().run())}
-        {action('Negrito', (e) => e.chain().focus().toggleBold().run(), (e) => e.isActive('bold'))}
-        {action('Itálico', (e) => e.chain().focus().toggleItalic().run(), (e) => e.isActive('italic'))}
-        {action('Sublinhado', (e) => e.chain().focus().toggleUnderline().run(), (e) => e.isActive('underline'))}
-        {action('Lista', (e) => e.chain().focus().toggleBulletList().run(), (e) => e.isActive('bulletList'))}
-        {action('Checklist', (e) => e.chain().focus().toggleTaskList().run(), (e) => e.isActive('taskList'))}
-        <button type="button" class="rich-action" aria-expanded={more() ? 'true' : 'false'} onClick={() => setMore(!more())}>Mais ···</button>
+        {action(
+          'Negrito',
+          (e) => e.chain().focus().toggleBold().run(),
+          (e) => e.isActive('bold'),
+        )}
+        {action(
+          'Itálico',
+          (e) => e.chain().focus().toggleItalic().run(),
+          (e) => e.isActive('italic'),
+        )}
+        {action(
+          'Sublinhado',
+          (e) => e.chain().focus().toggleUnderline().run(),
+          (e) => e.isActive('underline'),
+        )}
+        {action(
+          'Lista',
+          (e) => e.chain().focus().toggleBulletList().run(),
+          (e) => e.isActive('bulletList'),
+        )}
+        {action(
+          'Checklist',
+          (e) => e.chain().focus().toggleTaskList().run(),
+          (e) => e.isActive('taskList'),
+        )}
+        <button
+          type="button"
+          class="rich-action"
+          aria-expanded={more() ? 'true' : 'false'}
+          onClick={() => setMore(!more())}
+        >
+          Mais ···
+        </button>
       </div>
-      {more() ? <div class="rich-toolbar" role="toolbar" aria-label="Formatação avançada">
-        {action('Título', (e) => e.chain().focus().toggleHeading({ level: 2 }).run())}
-        {action('Citação', (e) => e.chain().focus().toggleBlockquote().run())}
-        {action('Código', (e) => e.chain().focus().toggleCodeBlock().run())}
-        {action('Realce', (e) => e.chain().focus().toggleHighlight().run())}
-        {action('Numerada', (e) => e.chain().focus().toggleOrderedList().run())}
-        {action('Separador', (e) => e.chain().focus().setHorizontalRule().run())}
-        {action('Esquerda', (e) => e.chain().focus().setTextAlign('left').run())}
-        {action('Centro', (e) => e.chain().focus().setTextAlign('center').run())}
-        {action('Direita', (e) => e.chain().focus().setTextAlign('right').run())}
-        {action('Link', (e) => {
-          const url = window.prompt('URL do link (https://)');
-          if (url && /^https:\/\//i.test(url)) e.chain().focus().setLink({ href: url }).run();
-        })}
-        {action('Remover formatação', (e) => e.chain().focus().unsetAllMarks().clearNodes().run())}
-      </div> : null}
-      <div ref={(element) => { host = element; }} class="rich-content" aria-label="Sua memória" />
-      <div class="rich-footer" aria-live="polite">{revision() >= 0 ? editor?.storage.characterCount.characters() ?? props.value.length : 0} / 20000</div>
+      {more() ? (
+        <div class="rich-toolbar" role="toolbar" aria-label="Formatação avançada">
+          {action('Título', (e) => e.chain().focus().toggleHeading({ level: 2 }).run())}
+          {action('Citação', (e) => e.chain().focus().toggleBlockquote().run())}
+          {action('Código', (e) => e.chain().focus().toggleCodeBlock().run())}
+          {action('Realce', (e) => e.chain().focus().toggleHighlight().run())}
+          {action('Numerada', (e) => e.chain().focus().toggleOrderedList().run())}
+          {action('Separador', (e) => e.chain().focus().setHorizontalRule().run())}
+          {action('Esquerda', (e) => e.chain().focus().setTextAlign('left').run())}
+          {action('Centro', (e) => e.chain().focus().setTextAlign('center').run())}
+          {action('Direita', (e) => e.chain().focus().setTextAlign('right').run())}
+          {action('Link', (e) => {
+            const url = window.prompt('URL do link (https://)');
+            if (url && /^https:\/\//i.test(url)) e.chain().focus().setLink({ href: url }).run();
+          })}
+          {action('Remover formatação', (e) =>
+            e.chain().focus().unsetAllMarks().clearNodes().run(),
+          )}
+        </div>
+      ) : null}
+      <div
+        ref={(element) => {
+          host = element;
+        }}
+        class="rich-content"
+        aria-label="Sua memória"
+      />
+      <div class="rich-footer" aria-live="polite">
+        {revision() >= 0 ? (editor?.storage.characterCount.characters() ?? props.value.length) : 0}{' '}
+        / 20000
+      </div>
     </div>
   );
 }

@@ -1,2 +1,6 @@
-.jardim-header { padding-top: max(12px, env(safe-area-inset-top)); }
-.jardim-nav { padding-bottom: env(safe-area-inset-bottom); }
+.jardim-header {
+  padding-top: max(12px, env(safe-area-inset-top));
+}
+.jardim-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
