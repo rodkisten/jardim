@@ -15,11 +15,7 @@ async function discover(provider: 'tmdb' | 'books', query: string, signal: Abort
     const data = Results.parse(await integrationRequest('/v2/tmdb/search?q=' + encodeURIComponent(query), { signal }));
     return data.results.map(item => ({ id: 'tmdb:' + item.type + ':' + item.id, title: item.title, subtitle: item.type === 'movie' ? 'Filme' : 'Série', description: item.description, year: item.year, kind: item.type === 'movie' ? 'filme' : 'série', source: 'TMDB', url: 'https://www.themoviedb.org/' + item.type + '/' + item.id, cover: item.poster }));
   }
-  const url = new URL('https://openlibrary.org/search.json');
-  url.search = new URLSearchParams({ q: query, limit: '12', fields: 'key,title,author_name,first_publish_year,cover_i' }).toString();
-  const response = await fetch(url, { signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
-  if (!response.ok) throw new Error('Open Library indisponível.');
-  const data = Books.parse(await response.json());
+  const data = Books.parse(await integrationRequest('/v2/discovery/books?q=' + encodeURIComponent(query), { signal }));
   return data.docs.filter(item => /^\/works\/OL[0-9]+W$/.test(item.key)).map(item => ({ id: 'openlibrary:' + item.key, title: item.title, subtitle: item.author_name?.slice(0, 3).join(', ') || 'Autoria desconhecida', description: '', year: item.first_publish_year?.toString() || '', kind: 'livro', source: 'Open Library', url: 'https://openlibrary.org' + item.key, cover: item.cover_i ? 'https://covers.openlibrary.org/b/id/' + item.cover_i + '-M.jpg' : undefined }));
 }
 export function CultureDiscovery() {
@@ -61,7 +57,7 @@ export function CultureDiscovery() {
           </article>;
         })}
       </div>
-      <p className="text-xs text-muted-foreground">Buscas de livros são enviadas diretamente à Open Library. Dados de cinema fornecidos pelo TMDB, sem endosso ou certificação.</p>
+      <p className="text-xs text-muted-foreground">Buscas de livros são encaminhadas à Open Library pelo Jardim. Dados de cinema fornecidos pelo TMDB, sem endosso ou certificação.</p>
     </section>
   );
 }

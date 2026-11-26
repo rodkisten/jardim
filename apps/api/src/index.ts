@@ -1,3 +1,4 @@
+import { discovery } from './discovery';
 import { ingestInbox, listInbox, decideInbox } from './inbox';
 import { linkPreview } from './link-preview';
 import { lectio } from './lectio';
@@ -148,6 +149,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
         : preferences(env, text);
     }
   }
+  if (['/v2/discovery/cities','/v2/discovery/books'].includes(path) && request.method === 'GET') return discovery(url);
   if (path === '/v2/integrations' && request.method === 'GET') return integrationStatus(env);
   if (path === '/v2/spotify/start' && request.method === 'POST') return spotifyStart(env);
   if (path === '/v2/spotify/sync' && request.method === 'POST') return syncSpotify(env);
@@ -325,7 +327,7 @@ export default {
     result.headers.set('X-Frame-Options', 'DENY');
     result.headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://image.tmdb.org https://covers.openlibrary.org; font-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     );
     return result;
   },
