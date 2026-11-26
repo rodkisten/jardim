@@ -6,13 +6,14 @@ import { useState, type ReactNode } from 'react';
 import { isPreview } from '../utils/preview';
 import { WeatherCard } from '../components/WeatherCard';
 import { Link } from '@tanstack/react-router';
-import { ArrowUpRight, BookOpen, CalendarDays, Cross, Flower2, Layers, Plus, Search } from 'lucide-react';
+import { ArrowUpRight, BookOpen, CalendarDays, Cross, Flower2, Layers, Plus, Search, MoonStar } from 'lucide-react';
 import { localDay } from '../utils/timeline';
 import { useMemories } from '../hooks/useMemories';
 import { MemoryList } from '../components/MemoryList';
 
 const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const dimensions = [
+  { to: '/astro', title: 'Astro', description: 'Entre o céu e a terra', icon: MoonStar, tone: 'astro' },
   { to: '/herbarium', title: 'Herbário', description: 'Palavras que criam raízes', icon: BookOpen, tone: 'faith' },
   { to: '/faith', title: 'Santuário', description: 'Fé e contemplação', icon: Cross, tone: 'faith' },
   { to: '/acervo', title: 'Acervo', description: 'Guarde suas descobertas', icon: Search, tone: 'culture' },
@@ -36,6 +37,7 @@ export function Home() {
   const cultural = state.memories.filter(m => m.tags.includes('cultura') || m.tags.includes('spotify')).slice(0,3);
   const fragments = state.memories.filter(m=>m.tags.includes('herbário')).slice(0,2);
   const panels: Record<WidgetId, ReactNode> = {
+    astro: modules.astro && widgets.astro && <Link to="/astro" data-tone="astro" className="jardim-dimension"><MoonStar className="size-7"/><div><h2 className="jardim-editorial text-xl">Astro</h2><p className="text-xs">Seus perfis e mapas celestes</p></div></Link>,
     herbarium: modules.herbarium && widgets.herbarium && <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="jardim-editorial text-xl">Herbário</h2><Link to="/herbarium" className="text-xs text-muted-foreground">Abrir coleção</Link></div>{fragments.length ? <MemoryList {...state} memories={fragments}/> : <Link to="/herbarium" className="block rounded-xl border border-border p-4 text-sm">Guarde seu primeiro fragmento.</Link>}</section>,
     liturgy: modules.faith && widgets.liturgy && <FaithWidget date={today} />,
     culture: modules.culture && widgets.culture && <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="jardim-editorial text-xl">Acervo recente</h2><Link to="/acervo" className="text-xs text-muted-foreground">Abrir acervo</Link></div><MemoryList {...state} memories={cultural}/></section>,

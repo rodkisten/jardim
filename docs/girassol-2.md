@@ -52,3 +52,6 @@ Check-ins múltiplos por dia, humor em cinco níveis, energia, sono, ansiedade, 
 3. Clima Interior: armazenamento privado, check-ins e dashboard.
 4. Dashboard Builder: ordenar e redimensionar widgets, persistir preferências, controles de privacidade.
 5. Jardim conectado: relações com timeline e cápsulas, respeitando consentimento e módulos habilitados.
+
+## Astro — dimensão violeta
+Antes de Constelações: perfis próprios e de outras pessoas, mapas natais, céu por data e hora, trânsitos, fases lunares, sinastria, snapshots opcionais na timeline e widgets. Paleta Cosmos #171320, Nebulosa #302143, Ametista #8b5cf6, Lavanda #c4a5f5. SVG acessível para signos, planetas e aspectos. Perfis em Dexie separado, sem sincronização automática; exportação e exclusão; consentimento explícito antes de transmitir dados de nascimento. Não assumir timezone atual para datas históricas; exigir offset ou resolução histórica confiável. Separar efemérides astronômicas de interpretação simbólica. Avaliar Astronomy Engine, Swiss Ephemeris (licença), Prokerala, Free Astrology API, JPL Horizons, Open-Meteo Geocoding e GeoNames. Registry tipado, segredos no Worker, quotas, atribuição, cache e fallback; verificar contratos e custos antes de ativar. Não mostrar posições fictícias como reais. Etapa inicial: perfis locais e interface; cálculos e providers externos ainda pendentes.
