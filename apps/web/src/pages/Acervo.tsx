@@ -1,3 +1,4 @@
+import { CultureDiscovery } from '../components/CultureDiscovery';
 import { Link } from '@tanstack/react-router';
 import { BookOpen, Film, Headphones, Music, Palette, ArrowUpRight } from 'lucide-react';
 import { DimensionNotes } from '../components/DimensionNotes';
@@ -19,6 +20,7 @@ export function Acervo() {
       <Link to="/integrations" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
         <div className="flex-1"><h2 className="jardim-editorial text-xl">Descobrir e importar</h2><p className="text-sm text-muted-foreground">Buscar filmes e séries no TMDB, conectar Spotify ou importar histórico.</p></div><ArrowUpRight className="size-5" />
       </Link>
+      <CultureDiscovery />
       <DimensionNotes dimension="cultura" kinds={kinds} />
       <section className="space-y-3"><h2 className="jardim-editorial text-2xl">Histórico Spotify</h2><MemoryList {...state} memories={imported} /></section>
     </div>
