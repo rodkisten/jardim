@@ -3,7 +3,10 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "types": ["node", "vite/client", "vite-plugin-pwa/client"]
+    "types": ["node", "vite/client", "vite-plugin-pwa/client"],
+    "paths": {
+      "@/*": ["./apps/web/src/*"]
+    }
   },
   "include": [
     "apps/web/src/react",

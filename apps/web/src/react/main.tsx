@@ -1,3 +1,4 @@
+import './shadcn.css';
 import { PwaStatus } from '../components/PwaStatus';
 import { initializeTheme } from '../hooks/useTheme';
 import { createRoot } from 'react-dom/client';

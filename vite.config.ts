@@ -36,7 +36,10 @@ export default defineConfig({
     }),
   ],
   oxc: { jsx: { runtime: 'automatic', importSource: 'react' } },
-  resolve: { dedupe: ['react', 'react-dom'] },
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./apps/web/src', import.meta.url)) },
+    dedupe: ['react', 'react-dom'],
+  },
   build: { outDir: fileURLToPath(new URL('./dist/web', import.meta.url)), emptyOutDir: true },
   server: {
     proxy: {

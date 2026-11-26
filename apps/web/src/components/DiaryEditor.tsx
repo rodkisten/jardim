@@ -75,12 +75,10 @@ export function DiaryEditor({
         }
       : {
           type: 'doc',
-          content: draft.body
-            .split('\n')
-            .map((line) => ({
-              type: 'paragraph',
-              content: line ? [{ type: 'text', text: line }] : [],
-            })),
+          content: draft.body.split('\n').map((line) => ({
+            type: 'paragraph',
+            content: line ? [{ type: 'text', text: line }] : [],
+          })),
         },
     editorProps: {
       attributes: {

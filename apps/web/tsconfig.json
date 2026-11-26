@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.react.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/react", "src/components", "src/hooks", "src/utils", "src/pages"]
+}
