@@ -53,12 +53,12 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        uses: rodkisten/github/src/console-run@9d04949ee92f45bd4d9affe88a2e0104b82c97c8
+        uses: rodkisten/github/src/console-run@main
         with:
           command: pnpm install --frozen-lockfile
 
       - name: Format
-        uses: rodkisten/github/src/console-run@9d04949ee92f45bd4d9affe88a2e0104b82c97c8
+        uses: rodkisten/github/src/console-run@main
         with:
           command: pnpm format
 
