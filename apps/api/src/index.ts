@@ -1,4 +1,4 @@
-import {ingestInbox,listInbox,decideInbox} from './inbox';
+import { ingestInbox, listInbox, decideInbox } from './inbox';
 import { linkPreview } from './link-preview';
 import { lectio } from './lectio';
 import { faith } from './faith';
@@ -33,7 +33,10 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const text = await limitedBody(request, 65536);
     return text === null ? json({ error: 'Lote muito grande' }, 413) : ingest(request, env, text);
   }
-  if(path==='/v2/inbox/events' && request.method==='POST'){const text=await limitedBody(request,8192);return text===null?json({error:'Too large'},413):ingestInbox(request,env,text);}
+  if (path === '/v2/inbox/events' && request.method === 'POST') {
+    const text = await limitedBody(request, 8192);
+    return text === null ? json({ error: 'Too large' }, 413) : ingestInbox(request, env, text);
+  }
   // Same-origin writes protect the password session against cross-site form submissions.
   if (!['GET', 'HEAD'].includes(request.method) && request.headers.get('origin') !== url.origin)
     return json({ error: 'Origem inválida' }, 403);
@@ -95,7 +98,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
   ) {
     const asset = assets[path];
     return asset
-      ? new Response((asset.type === 'image/png' || asset.type === 'application/wasm') ? Uint8Array.from(atob(asset.body), c => c.charCodeAt(0)) : asset.body, { headers: { 'Content-Type': asset.type } })
+      ? new Response(
+          asset.type === 'image/png' || asset.type === 'application/wasm'
+            ? Uint8Array.from(atob(asset.body), (c) => c.charCodeAt(0))
+            : asset.body,
+          { headers: { 'Content-Type': asset.type } },
+        )
       : new Response('Não encontrado', { status: 404 });
   }
   const token = sessionToken(request);
@@ -107,9 +115,14 @@ async function handle(request: Request, env: Env): Promise<Response> {
           status: 200,
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
-  if(path==='/v2/inbox' && request.method==='GET')return listInbox(env);
-  const inboxDecision=path.match(/^\/v2\/inbox\/([a-f0-9-]{36})$/);
-  if(inboxDecision&&request.method==='POST'){const text=await limitedBody(request,1024);return text===null?json({error:'Too large'},413):decideInbox(env,inboxDecision[1],text);}
+  if (path === '/v2/inbox' && request.method === 'GET') return listInbox(env);
+  const inboxDecision = path.match(/^\/v2\/inbox\/([a-f0-9-]{36})$/);
+  if (inboxDecision && request.method === 'POST') {
+    const text = await limitedBody(request, 1024);
+    return text === null
+      ? json({ error: 'Too large' }, 413)
+      : decideInbox(env, inboxDecision[1], text);
+  }
   if (path === '/v2/link-preview' && request.method === 'GET') return linkPreview(url);
   if (path === '/auth/logout' && request.method === 'POST') {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?')
@@ -120,7 +133,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
       headers: { Location: '/', 'Set-Cookie': cookie('', 0) },
     });
   }
-  if (path === '/faith/lectio' && ['GET','POST'].includes(request.method))
+  if (path === '/faith/lectio' && ['GET', 'POST'].includes(request.method))
     return lectio(url, env.AI, env.DB, request.method);
   if ((path === '/faith' || path.startsWith('/faith/')) && request.method === 'GET')
     return faith(url);
@@ -194,7 +207,15 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const statements = parsed.data.operations.map(({ operationId, memory: m }) =>
       env.DB.prepare(
         'INSERT INTO memories(id,operation_id,title,body,tags,created_at,rich_document) VALUES(?,?,?,?,?,?,?) ON CONFLICT DO NOTHING',
-      ).bind(m.id, operationId, m.title, m.body, JSON.stringify(m.tags), m.createdAt, m.richDocument ? JSON.stringify(m.richDocument) : null),
+      ).bind(
+        m.id,
+        operationId,
+        m.title,
+        m.body,
+        JSON.stringify(m.tags),
+        m.createdAt,
+        m.richDocument ? JSON.stringify(m.richDocument) : null,
+      ),
     );
     // Insert-only records preserve the first accepted memory; retries cannot overwrite it.
     await env.DB.batch(statements);
@@ -248,12 +269,19 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ error: 'Método inválido' }, 405);
   const asset = assets[path] || (path.includes('.') ? null : assets['/index.html']);
   return asset
-    ? new Response(request.method === 'HEAD' ? null : (asset.type === 'image/png' || asset.type === 'application/wasm') ? Uint8Array.from(atob(asset.body), c => c.charCodeAt(0)) : asset.body, {
-        headers: {
-          'Content-Type': asset.type,
-          ...(asset === assets['/index.html'] ? { 'X-Jardim-Shell': '1' } : {}),
+    ? new Response(
+        request.method === 'HEAD'
+          ? null
+          : asset.type === 'image/png' || asset.type === 'application/wasm'
+            ? Uint8Array.from(atob(asset.body), (c) => c.charCodeAt(0))
+            : asset.body,
+        {
+          headers: {
+            'Content-Type': asset.type,
+            ...(asset === assets['/index.html'] ? { 'X-Jardim-Shell': '1' } : {}),
+          },
         },
-      })
+      )
     : new Response('Não encontrado', { status: 404 });
 }
 export async function limitedBody(request: Request, limit: number) {

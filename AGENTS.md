@@ -11,7 +11,6 @@
 - Use the pinned pnpm version and frozen pnpm-lock.yaml for installs. Declare imports through workspace package exports and list each package dependency explicitly.
 - Preserve infra/cloudflare/migrations/0001_foundation.sql: it is already deployed. Prisma must map existing tables; forward migrations require reviewed SQL and preservation tests, never reset/db push in production.
 
-
 ## Solid 2.0
 
 This project uses Solid 2.0 (`solid-js` 2.x with `@solidjs/web`). Components run once;

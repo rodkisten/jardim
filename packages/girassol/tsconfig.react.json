@@ -3,17 +3,8 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "types": [
-      "react",
-      "vite/client"
-    ]
+    "types": ["react", "vite/client"]
   },
-  "include": [
-    "src/react/**/*.ts",
-    "src/react/**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/react/**/*.ts", "src/react/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
 }

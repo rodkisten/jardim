@@ -1,3 +1,28 @@
-export type MarkdownCommand={label:string;prefix:string;suffix:string;placeholder:string};
-export const markdownCommands:MarkdownCommand[]=[{label:"B",prefix:"**",suffix:"**",placeholder:"texto"},{label:"I",prefix:"_",suffix:"_",placeholder:"texto"},{label:"H2",prefix:"\n## ",suffix:"\n",placeholder:"Título"},{label:"Citação",prefix:"\n> ",suffix:"\n",placeholder:"Citação"},{label:"Código",prefix:"\n\x60\x60\x60typescript\n",suffix:"\n\x60\x60\x60\n",placeholder:"// código"},{label:"Link",prefix:"[",suffix:"](https://example.com)",placeholder:"link"},{label:"Checklist",prefix:"\n- [ ] ",suffix:"\n",placeholder:"Tarefa"}];
-export function formatSelection(selected:string,command:MarkdownCommand){const value=selected||command.placeholder;return {text:command.prefix+value+command.suffix,start:command.prefix.length,end:command.prefix.length+value.length};}
+export type MarkdownCommand = {
+  label: string;
+  prefix: string;
+  suffix: string;
+  placeholder: string;
+};
+export const markdownCommands: MarkdownCommand[] = [
+  { label: 'B', prefix: '**', suffix: '**', placeholder: 'texto' },
+  { label: 'I', prefix: '_', suffix: '_', placeholder: 'texto' },
+  { label: 'H2', prefix: '\n## ', suffix: '\n', placeholder: 'Título' },
+  { label: 'Citação', prefix: '\n> ', suffix: '\n', placeholder: 'Citação' },
+  {
+    label: 'Código',
+    prefix: '\n\x60\x60\x60typescript\n',
+    suffix: '\n\x60\x60\x60\n',
+    placeholder: '// código',
+  },
+  { label: 'Link', prefix: '[', suffix: '](https://example.com)', placeholder: 'link' },
+  { label: 'Checklist', prefix: '\n- [ ] ', suffix: '\n', placeholder: 'Tarefa' },
+];
+export function formatSelection(selected: string, command: MarkdownCommand) {
+  const value = selected || command.placeholder;
+  return {
+    text: command.prefix + value + command.suffix,
+    start: command.prefix.length,
+    end: command.prefix.length + value.length,
+  };
+}

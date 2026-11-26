@@ -1,8 +1,65 @@
-import {CulturalCard} from "./CulturalCard";
-import {culturalLink} from "../utils/cultural-link";
-import { ExternalLink,Link2 } from "lucide-react";
-import { useEffect,useState } from "react";
-import { extractLinks,describeLink } from "../utils/link-preview";
-import { loadLink,type LinkMetadata } from "../utils/link-cache";
-function LinkCard({value}:{value:string}){const [metadata,setMetadata]=useState<LinkMetadata>();useEffect(()=>{const controller=new AbortController();setMetadata(undefined);void loadLink(value,controller.signal).then(result=>{if(!controller.signal.aborted)setMetadata(result);});return()=>controller.abort();},[value]);const [image,setImage]=useState("");useEffect(()=>{setImage("");if(!metadata?.image)return;const url=URL.createObjectURL(metadata.image);setImage(url);return()=>URL.revokeObjectURL(url);},[metadata]);const link=describeLink(value);if(!link)return null;return <a href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">{image?<img src={image} alt="" className="size-16 shrink-0 rounded-lg object-cover"/>:<div className="rounded-lg bg-muted p-3"><Link2 className="size-5 text-primary"/></div>}<div className="min-w-0 flex-1"><p className="break-words text-sm font-medium">{metadata?.title||link.title}</p>{metadata?.description&&<p className="line-clamp-2 text-xs text-muted-foreground">{metadata.description}</p>}<p className="truncate text-xs text-muted-foreground">{link.host}</p></div><ExternalLink className="size-4 shrink-0 text-muted-foreground"/></a>;}
-export function LinkPreviews({text}:{text:string}){const links=extractLinks(text);return links.length?<div className="space-y-2">{links.map(value=>culturalLink(value)?<CulturalCard key={value} value={value}/>:<LinkCard key={value} value={value}/>)}</div>:null;}
+import { CulturalCard } from './CulturalCard';
+import { culturalLink } from '../utils/cultural-link';
+import { ExternalLink, Link2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { extractLinks, describeLink } from '../utils/link-preview';
+import { loadLink, type LinkMetadata } from '../utils/link-cache';
+function LinkCard({ value }: { value: string }) {
+  const [metadata, setMetadata] = useState<LinkMetadata>();
+  useEffect(() => {
+    const controller = new AbortController();
+    setMetadata(undefined);
+    void loadLink(value, controller.signal).then((result) => {
+      if (!controller.signal.aborted) setMetadata(result);
+    });
+    return () => controller.abort();
+  }, [value]);
+  const [image, setImage] = useState('');
+  useEffect(() => {
+    setImage('');
+    if (!metadata?.image) return;
+    const url = URL.createObjectURL(metadata.image);
+    setImage(url);
+    return () => URL.revokeObjectURL(url);
+  }, [metadata]);
+  const link = describeLink(value);
+  if (!link) return null;
+  return (
+    <a
+      href={link.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+    >
+      {image ? (
+        <img src={image} alt="" className="size-16 shrink-0 rounded-lg object-cover" />
+      ) : (
+        <div className="rounded-lg bg-muted p-3">
+          <Link2 className="size-5 text-primary" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="break-words text-sm font-medium">{metadata?.title || link.title}</p>
+        {metadata?.description && (
+          <p className="line-clamp-2 text-xs text-muted-foreground">{metadata.description}</p>
+        )}
+        <p className="truncate text-xs text-muted-foreground">{link.host}</p>
+      </div>
+      <ExternalLink className="size-4 shrink-0 text-muted-foreground" />
+    </a>
+  );
+}
+export function LinkPreviews({ text }: { text: string }) {
+  const links = extractLinks(text);
+  return links.length ? (
+    <div className="space-y-2">
+      {links.map((value) =>
+        culturalLink(value) ? (
+          <CulturalCard key={value} value={value} />
+        ) : (
+          <LinkCard key={value} value={value} />
+        ),
+      )}
+    </div>
+  ) : null;
+}

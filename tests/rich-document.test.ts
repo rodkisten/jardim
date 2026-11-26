@@ -13,12 +13,19 @@ describe('Tiptap document contract', () => {
     expect(Memory.parse(base)).toEqual(base);
   });
   it('accepts JSON Tiptap content without executable HTML', () => {
-    const richDocument = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Olá', marks: [{ type: 'bold' }] }] }] };
+    const richDocument = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Olá', marks: [{ type: 'bold' }] }] },
+      ],
+    };
     expect(Memory.parse({ ...base, richDocument }).richDocument).toEqual(richDocument);
   });
   it('rejects malformed root nodes and oversized content', () => {
     expect(RichDocument.safeParse({ type: 'script', content: [] }).success).toBe(false);
-    expect(RichDocument.safeParse({ type: 'doc', content: [{ text: 'a'.repeat(81000) }] }).success).toBe(false);
+    expect(
+      RichDocument.safeParse({ type: 'doc', content: [{ text: 'a'.repeat(81000) }] }).success,
+    ).toBe(false);
   });
   it('rejects unknown memory fields', () => {
     expect(Memory.safeParse({ ...base, unsafeHtml: '<script />' }).success).toBe(false);

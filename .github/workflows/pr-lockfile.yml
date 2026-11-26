@@ -1,4 +1,4 @@
-name: "🌻 JA · Repair PR lockfile"
+name: '🌻 JA · Repair PR lockfile'
 on:
   pull_request:
     types: [opened, synchronize, reopened]

@@ -1,10 +1,10 @@
-name: "🌻 JA · 🎨 Prettier · Format Jardim"
+name: '🌻 JA · 🎨 Prettier · Format Jardim'
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "Publish formatting as a PR or commit to main"
+        description: 'Publish formatting as a PR or commit to main'
         type: choice
         required: true
         default: pr
@@ -12,7 +12,7 @@ on:
           - pr
           - main
   schedule:
-    - cron: "37 8 * * 1"
+    - cron: '37 8 * * 1'
 
 permissions:
   contents: read
@@ -34,8 +34,8 @@ jobs:
           private-key: ${{ secrets.BOT_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
-          permission-workflows: write 
-          
+          permission-workflows: write
+
       - name: Checkout main
         uses: actions/checkout@v4
         with:
@@ -51,7 +51,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: '24'
           cache: pnpm
 
       - name: Install dependencies

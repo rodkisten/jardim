@@ -8,24 +8,11 @@
     "jsxImportSource": "@solidjs/web",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": [
-      "node",
-      "vite/client"
-    ],
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "types": ["node", "vite/client"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "noEmit": true
   },
-  "include": [
-    "apps",
-    "packages",
-    "tests",
-    "vite.config.ts",
-    "worker-configuration.d.ts"
-  ],
+  "include": ["apps", "packages", "tests", "vite.config.ts", "worker-configuration.d.ts"],
   "exclude": [
     "apps/web/src/react",
     "apps/web/src/pages",

@@ -833,7 +833,6 @@ a {
   }
 }
 
-
 /* Workspace shell: GitHub's information density with Linear's restrained motion.
    The accent remains user-themed; no hard-coded green or decorative landscape. */
 :root {
@@ -1048,7 +1047,6 @@ body::before {
   }
 }
 
-
 /* App shell uses a fixed desktop rail and an iOS-safe mobile dock. */
 .workspace-layout {
   display: grid;
@@ -1220,7 +1218,6 @@ body::before {
   }
 }
 
-
 /* Active location is shared by desktop rail, tabs, and the mobile dock. */
 .workspace-sidebar a[aria-current='location'] {
   background: var(--g-tint);
@@ -1258,6 +1255,9 @@ body::before {
   .workspace-sidebar button,
   .mobile-bottom-nav a,
   .mobile-bottom-nav button {
-    transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
   }
 }

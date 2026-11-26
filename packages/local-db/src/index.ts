@@ -49,7 +49,11 @@ export class GardenDB extends Dexie {
       )
     )
       throw Error('Use até 5 arquivos de no máximo 12 MiB.');
-    const attachments = files.map((file) => ({ ...file, id: file.id ?? crypto.randomUUID(), uploaded: 0 }));
+    const attachments = files.map((file) => ({
+      ...file,
+      id: file.id ?? crypto.randomUUID(),
+      uploaded: 0,
+    }));
     const memory = Memory.parse({
       ...input,
       body: input.body + attachments.map((file) => `\n\n[anexo:${file.id}]`).join(''),
@@ -65,7 +69,15 @@ export class GardenDB extends Dexie {
     });
     return memory;
   }
-  async change(id: string, input: { title: string; body: string; tags: string[]; richDocument?: Memory['richDocument'] } | null) {
+  async change(
+    id: string,
+    input: {
+      title: string;
+      body: string;
+      tags: string[];
+      richDocument?: Memory['richDocument'];
+    } | null,
+  ) {
     await this.transaction(
       'rw',
       this.memories,

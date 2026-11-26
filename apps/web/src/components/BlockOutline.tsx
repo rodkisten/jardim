@@ -1,15 +1,140 @@
-import {useRef,useState} from 'react';
-import type {Editor} from '@tiptap/core';
-import {useEditorState} from '@tiptap/react';
-import {TextSelection} from '@tiptap/pm/state';
-import {Button} from '@rodkisten/girassol/react';
-import {GripVertical,ArrowUp,ArrowDown,ListTree} from 'lucide-react';
-import {moveBlockTo} from '../utils/block-operations';
-export function BlockOutline({editor}:{editor:Editor}){
- const [open,setOpen]=useState(false),[drag,setDrag]=useState<number|null>(null),[over,setOver]=useState<number|null>(null);
- const start=useRef<{index:number;doc:typeof editor.state.doc}|null>(null);
- const list=useRef<HTMLDivElement>(null);
- const blocks=useEditorState({editor,selector:({editor:e})=>{if(!e)return [];const result:{index:number;pos:number;type:string;label:string}[]=[];e.state.doc.forEach((node,pos,index)=>result.push({index,pos,type:node.type.name,label:node.textContent.slice(0,80)||({jardimMedia:'Anexo',horizontalRule:'Separador'}[node.type.name as 'jardimMedia'|'horizontalRule']??node.type.name)}));return result;}})??[];
- function finish(){if(start.current&&start.current.doc===editor.state.doc&&over!==null)moveBlockTo(editor,start.current.index,over);start.current=null;setDrag(null);setOver(null);}
- return <div className="border-b border-border p-2"><Button type="button" variant="ghost" size="sm" onClick={()=>setOpen(v=>!v)} aria-expanded={open}><ListTree className="size-4"/> Estrutura · {blocks.length} blocos</Button>{open&&<div ref={list} className="mt-2 space-y-1">{blocks.map(b=><div key={b.index} data-block-index={b.index} className={'flex items-center gap-1 rounded border p-1 '+(over===b.index?'border-primary bg-muted':'border-border')}><button type="button" aria-label={'Arrastar bloco '+(b.index+1)} className="touch-none p-2" onPointerDown={e=>{if(!e.isPrimary||e.button!==0)return;start.current={index:b.index,doc:editor.state.doc};setDrag(b.index);setOver(b.index);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(!start.current)return;const hit=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-block-index]');if(hit&&list.current?.contains(hit))setOver(Number(hit.getAttribute('data-block-index')));}} onPointerUp={finish} onPointerCancel={()=>{start.current=null;setDrag(null);setOver(null);}}><GripVertical className="size-4"/></button><button type="button" className="min-w-0 flex-1 text-left" onClick={()=>{editor.view.dispatch(editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(Math.min(b.pos+1,editor.state.doc.content.size)))).scrollIntoView());editor.view.focus();}}><span className="block text-xs text-muted-foreground">{b.type}</span><span className="block truncate text-sm">{b.label}</span></button><Button type="button" variant="ghost" size="icon" disabled={b.index===0||drag!==null} aria-label="Mover acima" onClick={()=>moveBlockTo(editor,b.index,b.index-1)}><ArrowUp className="size-4"/></Button><Button type="button" variant="ghost" size="icon" disabled={b.index===blocks.length-1||drag!==null} aria-label="Mover abaixo" onClick={()=>moveBlockTo(editor,b.index,b.index+1)}><ArrowDown className="size-4"/></Button></div>)}</div>}</div>;
+import { useRef, useState } from 'react';
+import type { Editor } from '@tiptap/core';
+import { useEditorState } from '@tiptap/react';
+import { TextSelection } from '@tiptap/pm/state';
+import { Button } from '@rodkisten/girassol/react';
+import { GripVertical, ArrowUp, ArrowDown, ListTree } from 'lucide-react';
+import { moveBlockTo } from '../utils/block-operations';
+export function BlockOutline({ editor }: { editor: Editor }) {
+  const [open, setOpen] = useState(false),
+    [drag, setDrag] = useState<number | null>(null),
+    [over, setOver] = useState<number | null>(null);
+  const start = useRef<{ index: number; doc: typeof editor.state.doc } | null>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const blocks =
+    useEditorState({
+      editor,
+      selector: ({ editor: e }) => {
+        if (!e) return [];
+        const result: { index: number; pos: number; type: string; label: string }[] = [];
+        e.state.doc.forEach((node, pos, index) =>
+          result.push({
+            index,
+            pos,
+            type: node.type.name,
+            label:
+              node.textContent.slice(0, 80) ||
+              ({ jardimMedia: 'Anexo', horizontalRule: 'Separador' }[
+                node.type.name as 'jardimMedia' | 'horizontalRule'
+              ] ??
+                node.type.name),
+          }),
+        );
+        return result;
+      },
+    }) ?? [];
+  function finish() {
+    if (start.current && start.current.doc === editor.state.doc && over !== null)
+      moveBlockTo(editor, start.current.index, over);
+    start.current = null;
+    setDrag(null);
+    setOver(null);
+  }
+  return (
+    <div className="border-b border-border p-2">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <ListTree className="size-4" /> Estrutura · {blocks.length} blocos
+      </Button>
+      {open && (
+        <div ref={list} className="mt-2 space-y-1">
+          {blocks.map((b) => (
+            <div
+              key={b.index}
+              data-block-index={b.index}
+              className={
+                'flex items-center gap-1 rounded border p-1 ' +
+                (over === b.index ? 'border-primary bg-muted' : 'border-border')
+              }
+            >
+              <button
+                type="button"
+                aria-label={'Arrastar bloco ' + (b.index + 1)}
+                className="touch-none p-2"
+                onPointerDown={(e) => {
+                  if (!e.isPrimary || e.button !== 0) return;
+                  start.current = { index: b.index, doc: editor.state.doc };
+                  setDrag(b.index);
+                  setOver(b.index);
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                }}
+                onPointerMove={(e) => {
+                  if (!start.current) return;
+                  const hit = document
+                    .elementFromPoint(e.clientX, e.clientY)
+                    ?.closest('[data-block-index]');
+                  if (hit && list.current?.contains(hit))
+                    setOver(Number(hit.getAttribute('data-block-index')));
+                }}
+                onPointerUp={finish}
+                onPointerCancel={() => {
+                  start.current = null;
+                  setDrag(null);
+                  setOver(null);
+                }}
+              >
+                <GripVertical className="size-4" />
+              </button>
+              <button
+                type="button"
+                className="min-w-0 flex-1 text-left"
+                onClick={() => {
+                  editor.view.dispatch(
+                    editor.state.tr
+                      .setSelection(
+                        TextSelection.near(
+                          editor.state.doc.resolve(
+                            Math.min(b.pos + 1, editor.state.doc.content.size),
+                          ),
+                        ),
+                      )
+                      .scrollIntoView(),
+                  );
+                  editor.view.focus();
+                }}
+              >
+                <span className="block text-xs text-muted-foreground">{b.type}</span>
+                <span className="block truncate text-sm">{b.label}</span>
+              </button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={b.index === 0 || drag !== null}
+                aria-label="Mover acima"
+                onClick={() => moveBlockTo(editor, b.index, b.index - 1)}
+              >
+                <ArrowUp className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={b.index === blocks.length - 1 || drag !== null}
+                aria-label="Mover abaixo"
+                onClick={() => moveBlockTo(editor, b.index, b.index + 1)}
+              >
+                <ArrowDown className="size-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

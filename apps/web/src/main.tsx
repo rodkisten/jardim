@@ -23,14 +23,25 @@ import { NavIcon } from './NavIcon';
 import { synchronizeDiary } from '@rodkisten/jardim-local-db/revisions';
 const db = new GardenDB();
 const DRAFT_KEY = 'jardim:composer-draft:v1';
-function readDraft(): { title: string; body: string; tags: string; document: Record<string, unknown> | null } {
+function readDraft(): {
+  title: string;
+  body: string;
+  tags: string;
+  document: Record<string, unknown> | null;
+} {
   try {
     const value = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') as Record<string, unknown>;
     return {
       title: typeof value.title === 'string' ? value.title.slice(0, 160) : '',
       body: typeof value.body === 'string' ? value.body.slice(0, 20000) : '',
       tags: typeof value.tags === 'string' ? value.tags.slice(0, 1000) : '',
-      document: value.document && typeof value.document === 'object' && !Array.isArray(value.document) && (value.document as Record<string, unknown>).type === 'doc' ? value.document as Record<string, unknown> : null,
+      document:
+        value.document &&
+        typeof value.document === 'object' &&
+        !Array.isArray(value.document) &&
+        (value.document as Record<string, unknown>).type === 'doc'
+          ? (value.document as Record<string, unknown>)
+          : null,
     };
   } catch {
     return { title: '', body: '', tags: '', document: null };
@@ -49,7 +60,9 @@ function App() {
     [draftTitle, setDraftTitle] = createSignal(restoredDraft.title),
     [draftBody, setDraftBody] = createSignal(restoredDraft.body),
     [draftTags, setDraftTags] = createSignal(restoredDraft.tags),
-    [draftDocument, setDraftDocument] = createSignal<Record<string, unknown> | null>(restoredDraft.document),
+    [draftDocument, setDraftDocument] = createSignal<Record<string, unknown> | null>(
+      restoredDraft.document,
+    ),
     [files, setFiles] = createSignal<PendingFile[]>([]),
     [recording, setRecording] = createSignal(false),
     [composerOpen, setComposerOpen] = createSignal(false),
@@ -58,30 +71,56 @@ function App() {
     [activeSection, setActiveSection] = createSignal('memorias');
   const filteredMemories = () => {
     const query = searchQuery().trim().toLocaleLowerCase('pt-BR');
-    return query ? memories().filter((memory) => [memory.title, memory.body, ...memory.tags].some((value) => value.toLocaleLowerCase('pt-BR').includes(query))) : memories();
+    return query
+      ? memories().filter((memory) =>
+          [memory.title, memory.body, ...memory.tags].some((value) =>
+            value.toLocaleLowerCase('pt-BR').includes(query),
+          ),
+        )
+      : memories();
   };
   // Track the visible workspace section without polling scroll position.
-  createEffect(() => true, () => {
-    const ids = ['hoje', 'fe', 'memorias', 'capsulas', 'integracoes'];
-    const sections = ids.map((id) => document.getElementById(id)).filter((element): element is HTMLElement => !!element);
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-      if (visible[0]) setActiveSection(visible[0].target.id);
-    }, { rootMargin: '-18% 0px -52% 0px', threshold: [0, 0.1, 0.3, 0.6] });
-    sections.forEach((section) => observer.observe(section));
-    onCleanup(() => observer.disconnect());
-  });
+  createEffect(
+    () => true,
+    () => {
+      const ids = ['hoje', 'fe', 'memorias', 'capsulas', 'integracoes'];
+      const sections = ids
+        .map((id) => document.getElementById(id))
+        .filter((element): element is HTMLElement => !!element);
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+          if (visible[0]) setActiveSection(visible[0].target.id);
+        },
+        { rootMargin: '-18% 0px -52% 0px', threshold: [0, 0.1, 0.3, 0.6] },
+      );
+      sections.forEach((section) => observer.observe(section));
+      onCleanup(() => observer.disconnect());
+    },
+  );
   // Persist text drafts only; binary attachments remain in the local media queue.
   // Editing an existing memory must never overwrite the new-memory draft.
-  createEffect(() => ({ editing: editing(), title: draftTitle(), body: draftBody(), tags: draftTags(), document: draftDocument() }), ({ editing, ...draft }) => {
-    if (editing) return;
-    try {
-      if (draft.title || draft.body || draft.tags) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-      else localStorage.removeItem(DRAFT_KEY);
-    } catch {
-      // Private browsing or exhausted storage must not block writing.
-    }
-  });
+  createEffect(
+    () => ({
+      editing: editing(),
+      title: draftTitle(),
+      body: draftBody(),
+      tags: draftTags(),
+      document: draftDocument(),
+    }),
+    ({ editing, ...draft }) => {
+      if (editing) return;
+      try {
+        if (draft.title || draft.body || draft.tags)
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        else localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // Private browsing or exhausted storage must not block writing.
+      }
+    },
+  );
   let composerDialog: HTMLDialogElement | undefined;
   function openComposer() {
     if (composerDialog?.open) return;
@@ -224,8 +263,14 @@ function App() {
       void sync();
     } catch (cause) {
       console.error('[Jardim] Falha ao salvar memória', cause);
-      (window as Window & { __gardenDock?: { add?: (kind: string, message: string, detail?: string) => void } }).__gardenDock?.add?.(
-        'Error', 'Falha ao salvar memória', cause instanceof Error ? cause.stack ?? cause.message : String(cause),
+      (
+        window as Window & {
+          __gardenDock?: { add?: (kind: string, message: string, detail?: string) => void };
+        }
+      ).__gardenDock?.add?.(
+        'Error',
+        'Falha ao salvar memória',
+        cause instanceof Error ? (cause.stack ?? cause.message) : String(cause),
       );
       setError(
         'Não foi possível guardar. Confira título, texto, até 12 tags e até 5 anexos de 12 MiB.',
@@ -270,7 +315,18 @@ function App() {
         </a>
         <div class="actions header-actions">
           <span class="header-context">Workspace pessoal</span>
-          <CommandPalette memories={memories()} onCreate={startNewMemory} onSearch={(query) => { setSearchQuery(query); setSearchOpen(true); document.getElementById("memorias")?.scrollIntoView({ behavior: "smooth" }); }} onNavigate={(section) => document.getElementById(section)?.scrollIntoView({ behavior: "smooth" })} />
+          <CommandPalette
+            memories={memories()}
+            onCreate={startNewMemory}
+            onSearch={(query) => {
+              setSearchQuery(query);
+              setSearchOpen(true);
+              document.getElementById('memorias')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            onNavigate={(section) =>
+              document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' })
+            }
+          />
           <ThemeSwitch />
           <button class="subtle" onClick={() => void exportData()}>
             Exportar
@@ -283,212 +339,358 @@ function App() {
       <div class="workspace-layout">
         <aside class="workspace-sidebar" aria-label="Seções do Jardim">
           <span class="workspace-sidebar-label">WORKSPACE</span>
-          <a href="#hoje" aria-current={activeSection() === 'hoje' || activeSection() === 'fe' ? 'location' : undefined}><span>Hoje</span></a>
-          <a href="#fe"><span>Fé</span></a>
-          <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}><NavIcon name="memories" /> <span>Memórias</span></a>
-          <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}><NavIcon name="capsules" /> <span>Cápsulas</span></a>
-          <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}><NavIcon name="connections" /> <span>Conexões</span></a>
-          <div class="workspace-sidebar-divider" />
-          <button type="button" onClick={() => setSearchOpen(!searchOpen())}><NavIcon name="search" /> <span>Buscar</span></button>
-          <button type="button" onClick={startNewMemory}><NavIcon name="plus" /> <span>Nova memória</span></button>
-          <span class="workspace-sidebar-bottom">{pending() ? `${pending()} pendente(s)` : 'Tudo em seu lugar'}</span>
-        </aside>
-      <main class="app-main">
-        <nav class="page-nav" aria-label="Navegação principal">
-          <a href="#hoje">Hoje</a><a href="#fe">Fé</a>
-          <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}>Memórias</a>
-          <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}>Cápsulas</a>
-          <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}>Conexões</a>
-        </nav>
-        {searchOpen() ? (
-          <section class="workspace-search" role="search">
-            <label for="memory-search">Buscar memórias</label>
-            <div class="workspace-search-row">
-              <input id="memory-search" type="search" value={searchQuery()} onInput={(event) => setSearchQuery(event.currentTarget.value)} placeholder="Título, texto ou tag…" />
-              <button type="button" class="subtle" onClick={() => { setSearchQuery(''); setSearchOpen(false); }}>Fechar</button>
-            </div>
-            <span class="muted">{filteredMemories().length} resultado(s) na timeline</span>
-          </section>
-        ) : null}
-        <section class="intro">
-          <p class="eyebrow">JARDIM / VISÃO GERAL</p>
-          <h1>
-            Sua vida,
-            <br />
-            <em>em detalhes.</em>
-          </h1>
-          <p class="lead">O que você vive, ouve e quer lembrar.</p>
-          <div class="sync" role="status">
-            <span class="dot" />
-            {status()}
-            {pending() > 0 ? ` · ${pending()} pendente(s)` : ''}
-            <button class="subtle" onClick={() => void sync(true)}>
-              Atualizar
-            </button>
-          </div>
-        </section>
-        <section id="hoje" aria-label="Hoje"><WeatherCard db={db} memories={memories()} onChanged={() => void sync()} /><FaithToday /></section>
-        <div class="new-memory-bar">
-          <div class="memory-bar-heading"><span class="eyebrow">SUAS MEMÓRIAS</span><p>Uma nota, uma foto, uma mensagem.</p></div>
-          <button class="new-memory" onClick={startNewMemory}>
-            + Nova memória
-          </button>
-        </div>
-        <div class="layout">
-          <dialog
-            class="memory-dialog"
-            ref={(element) => {
-              composerDialog = element;
-            }}
-            onClose={() => setComposerOpen(false)}
-            onCancel={() => setComposerOpen(false)}
-            aria-labelledby="composer-heading"
+          <a
+            href="#hoje"
+            aria-current={
+              activeSection() === 'hoje' || activeSection() === 'fe' ? 'location' : undefined
+            }
           >
-            <section class="composer">
-              <div class="section-title">
-                <span>{editing() ? 'EDITAR MEMÓRIA' : 'NOVA MEMÓRIA'}</span>
-                <button class="subtle" type="button" onClick={closeComposer}>
-                  Fechar editor
+            <span>Hoje</span>
+          </a>
+          <a href="#fe">
+            <span>Fé</span>
+          </a>
+          <a
+            href="#memorias"
+            aria-current={activeSection() === 'memorias' ? 'location' : undefined}
+          >
+            <NavIcon name="memories" /> <span>Memórias</span>
+          </a>
+          <a
+            href="#capsulas"
+            aria-current={activeSection() === 'capsulas' ? 'location' : undefined}
+          >
+            <NavIcon name="capsules" /> <span>Cápsulas</span>
+          </a>
+          <a
+            href="#integracoes"
+            aria-current={activeSection() === 'integracoes' ? 'location' : undefined}
+          >
+            <NavIcon name="connections" /> <span>Conexões</span>
+          </a>
+          <div class="workspace-sidebar-divider" />
+          <button type="button" onClick={() => setSearchOpen(!searchOpen())}>
+            <NavIcon name="search" /> <span>Buscar</span>
+          </button>
+          <button type="button" onClick={startNewMemory}>
+            <NavIcon name="plus" /> <span>Nova memória</span>
+          </button>
+          <span class="workspace-sidebar-bottom">
+            {pending() ? `${pending()} pendente(s)` : 'Tudo em seu lugar'}
+          </span>
+        </aside>
+        <main class="app-main">
+          <nav class="page-nav" aria-label="Navegação principal">
+            <a href="#hoje">Hoje</a>
+            <a href="#fe">Fé</a>
+            <a
+              href="#memorias"
+              aria-current={activeSection() === 'memorias' ? 'location' : undefined}
+            >
+              Memórias
+            </a>
+            <a
+              href="#capsulas"
+              aria-current={activeSection() === 'capsulas' ? 'location' : undefined}
+            >
+              Cápsulas
+            </a>
+            <a
+              href="#integracoes"
+              aria-current={activeSection() === 'integracoes' ? 'location' : undefined}
+            >
+              Conexões
+            </a>
+          </nav>
+          {searchOpen() ? (
+            <section class="workspace-search" role="search">
+              <label for="memory-search">Buscar memórias</label>
+              <div class="workspace-search-row">
+                <input
+                  id="memory-search"
+                  type="search"
+                  value={searchQuery()}
+                  onInput={(event) => setSearchQuery(event.currentTarget.value)}
+                  placeholder="Título, texto ou tag…"
+                />
+                <button
+                  type="button"
+                  class="subtle"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSearchOpen(false);
+                  }}
+                >
+                  Fechar
                 </button>
               </div>
-              <h2 id="composer-heading">O que você quer lembrar?</h2>
-              <form onSubmit={save}>
-                <label for="title">Dê um nome a esse momento</label>
-                <input
-                  value={draftTitle()}
-                  onInput={(event) => setDraftTitle(event.currentTarget.value)}
-                  id="title"
-                  name="title"
-                  placeholder="Um título para lembrar…"
-                  required={!files().length}
-                  maxlength={160}
-                />
-                <label for="body">Sua memória</label>
-                <RichEditor value={draftBody()} onChange={setDraftBody} document={draftDocument()} onDocumentChange={setDraftDocument} disabled={busy()} />
-                <label for="tags">
-                  Tags <span class="muted">· separadas por vírgula</span>
-                </label>
-                <input
-                  value={draftTags()}
-                  onInput={(event) => setDraftTags(event.currentTarget.value)}
-                  id="tags"
-                  name="tags"
-                  placeholder="vida, descobertas, gratidão"
-                />
-                {!editing() ? (
-                  <MediaComposer
-                    active={composerOpen()}
-                    files={files()}
-                    onChange={setFiles}
-                    onRecordingChange={setRecording}
-                  />
-                ) : null}
-                <button class="primary" disabled={busy() || recording()}>
-                  {busy() ? 'Guardando…' : editing() ? 'Salvar edição' : 'Salvar memória'}{' '}
-                  <span aria-hidden="true">↗</span>
-                </button>
-                {editing() ? (
-                  <button
-                    type="button"
-                    class="subtle"
-                    onClick={() => {
-                      setEditing(null);
-                      const draft = readDraft();
-                      setDraftTitle(draft.title);
-                      setDraftBody(draft.body);
-                      setDraftTags(draft.tags);
-                      setDraftDocument(draft.document);
-                      closeComposer();
-                    }}
-                  >
-                    Cancelar edição
-                  </button>
-                ) : null}
-                <p class="footnote">
-                  Salva primeiro neste dispositivo. Sincronizada quando houver conexão.
-                </p>
-              </form>
-              {error() ? (
-                <p role="alert" class="error">
-                  {error()}
-                </p>
-              ) : null}
+              <span class="muted">{filteredMemories().length} resultado(s) na timeline</span>
             </section>
-          </dialog>
-          <Timeline
-            memories={filteredMemories()}
-            db={db}
-            onEdit={(memory) => {
-              setEditing(memory);
-              openComposer();
-              setDraftTitle(memory.title);
-              setDraftBody(memory.body);
-              setDraftDocument(memory.richDocument ?? null);
-              setDraftTags(memory.tags.join(', '));
-              document.getElementById('title')?.focus();
-            }}
-            onDelete={(memory) =>
-              void db
-                .change(memory.id, null)
-                .then(() => sync())
-                .catch(() => setError('Não foi possível mover para a lixeira.'))
-            }
-            onChanged={() => void sync()}
-          />
-        </div>
-        <Integrations db={db} memories={memories()} onChanged={() => void sync()} />
-        <Capsules db={db} memories={memories()} onChanged={() => void sync()} />
-        <DiaryTools db={db} onChanged={() => void sync()} />
-        <Devices />
-        <details class="composer">
-          <summary>Girassol · componentes</summary>
-          <Card label="Galeria Girassol">
-            <Badge>Design system</Badge>
-            <h2>Cores, formas e interação.</h2>
-            <label for="girassol-example">Campo de exemplo</label>
-            <Input id="girassol-example" placeholder="Seu próximo momento" />
-            <Button onClick={() => setStatus('Girassol · componentes Solid 2 ativos')}>
-              Experimentar botão
-            </Button>
-          </Card>
-        </details>
-        <footer>
-          JARDIM <span>Seu arquivo. Seu tempo.</span>
-        </footer>
-      </main>
+          ) : null}
+          <section class="intro">
+            <p class="eyebrow">JARDIM / VISÃO GERAL</p>
+            <h1>
+              Sua vida,
+              <br />
+              <em>em detalhes.</em>
+            </h1>
+            <p class="lead">O que você vive, ouve e quer lembrar.</p>
+            <div class="sync" role="status">
+              <span class="dot" />
+              {status()}
+              {pending() > 0 ? ` · ${pending()} pendente(s)` : ''}
+              <button class="subtle" onClick={() => void sync(true)}>
+                Atualizar
+              </button>
+            </div>
+          </section>
+          <section id="hoje" aria-label="Hoje">
+            <WeatherCard db={db} memories={memories()} onChanged={() => void sync()} />
+            <FaithToday />
+          </section>
+          <div class="new-memory-bar">
+            <div class="memory-bar-heading">
+              <span class="eyebrow">SUAS MEMÓRIAS</span>
+              <p>Uma nota, uma foto, uma mensagem.</p>
+            </div>
+            <button class="new-memory" onClick={startNewMemory}>
+              + Nova memória
+            </button>
+          </div>
+          <div class="layout">
+            <dialog
+              class="memory-dialog"
+              ref={(element) => {
+                composerDialog = element;
+              }}
+              onClose={() => setComposerOpen(false)}
+              onCancel={() => setComposerOpen(false)}
+              aria-labelledby="composer-heading"
+            >
+              <section class="composer">
+                <div class="section-title">
+                  <span>{editing() ? 'EDITAR MEMÓRIA' : 'NOVA MEMÓRIA'}</span>
+                  <button class="subtle" type="button" onClick={closeComposer}>
+                    Fechar editor
+                  </button>
+                </div>
+                <h2 id="composer-heading">O que você quer lembrar?</h2>
+                <form onSubmit={save}>
+                  <label for="title">Dê um nome a esse momento</label>
+                  <input
+                    value={draftTitle()}
+                    onInput={(event) => setDraftTitle(event.currentTarget.value)}
+                    id="title"
+                    name="title"
+                    placeholder="Um título para lembrar…"
+                    required={!files().length}
+                    maxlength={160}
+                  />
+                  <label for="body">Sua memória</label>
+                  <RichEditor
+                    value={draftBody()}
+                    onChange={setDraftBody}
+                    document={draftDocument()}
+                    onDocumentChange={setDraftDocument}
+                    disabled={busy()}
+                  />
+                  <label for="tags">
+                    Tags <span class="muted">· separadas por vírgula</span>
+                  </label>
+                  <input
+                    value={draftTags()}
+                    onInput={(event) => setDraftTags(event.currentTarget.value)}
+                    id="tags"
+                    name="tags"
+                    placeholder="vida, descobertas, gratidão"
+                  />
+                  {!editing() ? (
+                    <MediaComposer
+                      active={composerOpen()}
+                      files={files()}
+                      onChange={setFiles}
+                      onRecordingChange={setRecording}
+                    />
+                  ) : null}
+                  <button class="primary" disabled={busy() || recording()}>
+                    {busy() ? 'Guardando…' : editing() ? 'Salvar edição' : 'Salvar memória'}{' '}
+                    <span aria-hidden="true">↗</span>
+                  </button>
+                  {editing() ? (
+                    <button
+                      type="button"
+                      class="subtle"
+                      onClick={() => {
+                        setEditing(null);
+                        const draft = readDraft();
+                        setDraftTitle(draft.title);
+                        setDraftBody(draft.body);
+                        setDraftTags(draft.tags);
+                        setDraftDocument(draft.document);
+                        closeComposer();
+                      }}
+                    >
+                      Cancelar edição
+                    </button>
+                  ) : null}
+                  <p class="footnote">
+                    Salva primeiro neste dispositivo. Sincronizada quando houver conexão.
+                  </p>
+                </form>
+                {error() ? (
+                  <p role="alert" class="error">
+                    {error()}
+                  </p>
+                ) : null}
+              </section>
+            </dialog>
+            <Timeline
+              memories={filteredMemories()}
+              db={db}
+              onEdit={(memory) => {
+                setEditing(memory);
+                openComposer();
+                setDraftTitle(memory.title);
+                setDraftBody(memory.body);
+                setDraftDocument(memory.richDocument ?? null);
+                setDraftTags(memory.tags.join(', '));
+                document.getElementById('title')?.focus();
+              }}
+              onDelete={(memory) =>
+                void db
+                  .change(memory.id, null)
+                  .then(() => sync())
+                  .catch(() => setError('Não foi possível mover para a lixeira.'))
+              }
+              onChanged={() => void sync()}
+            />
+          </div>
+          <Integrations db={db} memories={memories()} onChanged={() => void sync()} />
+          <Capsules db={db} memories={memories()} onChanged={() => void sync()} />
+          <DiaryTools db={db} onChanged={() => void sync()} />
+          <Devices />
+          <details class="composer">
+            <summary>Girassol · componentes</summary>
+            <Card label="Galeria Girassol">
+              <Badge>Design system</Badge>
+              <h2>Cores, formas e interação.</h2>
+              <label for="girassol-example">Campo de exemplo</label>
+              <Input id="girassol-example" placeholder="Seu próximo momento" />
+              <Button onClick={() => setStatus('Girassol · componentes Solid 2 ativos')}>
+                Experimentar botão
+              </Button>
+            </Card>
+          </details>
+          <footer>
+            JARDIM <span>Seu arquivo. Seu tempo.</span>
+          </footer>
+        </main>
       </div>
       <nav class="mobile-bottom-nav" aria-label="Acesso rápido">
         <a href="#hoje">Hoje</a>
-        <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}><NavIcon name="memories" />Memórias</a>
-        <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}><NavIcon name="capsules" />Cápsulas</a>
-        <button type="button" class="mobile-create" onClick={startNewMemory} aria-label="Criar memória"><NavIcon name="plus" size={25} /></button>
-        <a href="#integracoes" aria-current={activeSection() === 'integracoes' ? 'location' : undefined}><NavIcon name="connections" />Conexões</a>
-        <button type="button" onClick={() => { setSearchOpen(true); document.querySelector('.workspace-search')?.scrollIntoView({ behavior: 'smooth' }); }}><NavIcon name="search" />Buscar</button>
+        <a href="#memorias" aria-current={activeSection() === 'memorias' ? 'location' : undefined}>
+          <NavIcon name="memories" />
+          Memórias
+        </a>
+        <a href="#capsulas" aria-current={activeSection() === 'capsulas' ? 'location' : undefined}>
+          <NavIcon name="capsules" />
+          Cápsulas
+        </a>
+        <button
+          type="button"
+          class="mobile-create"
+          onClick={startNewMemory}
+          aria-label="Criar memória"
+        >
+          <NavIcon name="plus" size={25} />
+        </button>
+        <a
+          href="#integracoes"
+          aria-current={activeSection() === 'integracoes' ? 'location' : undefined}
+        >
+          <NavIcon name="connections" />
+          Conexões
+        </a>
+        <button
+          type="button"
+          onClick={() => {
+            setSearchOpen(true);
+            document.querySelector('.workspace-search')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        >
+          <NavIcon name="search" />
+          Buscar
+        </button>
       </nav>
     </>
   );
 }
 function reportBoundaryError(error: Error) {
   console.error('[Jardim ErrorBoundary]', error);
-  (window as Window & {
-    __gardenDock?: { add?: (kind: string, message: string, detail?: string) => void };
-  }).__gardenDock?.add?.('Error', 'SolidJS ErrorBoundary: ' + error.message, error.stack || '');
+  (
+    window as Window & {
+      __gardenDock?: { add?: (kind: string, message: string, detail?: string) => void };
+    }
+  ).__gardenDock?.add?.('Error', 'SolidJS ErrorBoundary: ' + error.message, error.stack || '');
 }
 
 function AppErrorFallback(props: { error: () => unknown; reset: () => void }) {
-  const currentError = () => { const value = props.error(); return value instanceof Error ? value : new Error(String(value)); };
+  const currentError = () => {
+    const value = props.error();
+    return value instanceof Error ? value : new Error(String(value));
+  };
   createEffect(currentError, reportBoundaryError);
   return (
-    <main role="alert" style={{ 'min-height': '100dvh', display: 'grid', 'place-items': 'center', padding: '24px', background: 'var(--color-background, #171923)', color: 'var(--color-text, #f5f5fa)', 'font-family': 'system-ui, sans-serif' }}>
-      <section style={{ width: 'min(100%, 480px)', padding: '24px', 'border-radius': '16px', border: '1px solid #52566b', background: '#242736' }}>
+    <main
+      role="alert"
+      style={{
+        'min-height': '100dvh',
+        display: 'grid',
+        'place-items': 'center',
+        padding: '24px',
+        background: 'var(--color-background, #171923)',
+        color: 'var(--color-text, #f5f5fa)',
+        'font-family': 'system-ui, sans-serif',
+      }}
+    >
+      <section
+        style={{
+          width: 'min(100%, 480px)',
+          padding: '24px',
+          'border-radius': '16px',
+          border: '1px solid #52566b',
+          background: '#242736',
+        }}
+      >
         <p style={{ color: '#f7a1b6', 'font-weight': '700' }}>Jardim · Erro na interface</p>
         <h1 style={{ 'font-size': '1.5rem' }}>Não foi possível mostrar esta tela.</h1>
-        <p>Suas memórias locais não foram apagadas. Você pode tentar novamente ou consultar o diagnóstico.</p>
-        <details><summary>Detalhes técnicos</summary><pre style={{ 'white-space': 'pre-wrap', 'overflow-wrap': 'anywhere', 'font-size': '12px' }}>{currentError().stack || currentError().message}</pre></details>
+        <p>
+          Suas memórias locais não foram apagadas. Você pode tentar novamente ou consultar o
+          diagnóstico.
+        </p>
+        <details>
+          <summary>Detalhes técnicos</summary>
+          <pre
+            style={{ 'white-space': 'pre-wrap', 'overflow-wrap': 'anywhere', 'font-size': '12px' }}
+          >
+            {currentError().stack || currentError().message}
+          </pre>
+        </details>
         <div style={{ display: 'flex', gap: '8px', 'flex-wrap': 'wrap', 'margin-top': '20px' }}>
-          <button type="button" onClick={props.reset}>Tentar novamente</button>
-          <button type="button" onClick={() => (window as Window & { __gardenDock?: { open?: () => void } }).__gardenDock?.open?.()}>Abrir diagnóstico</button>
-          <button type="button" onClick={() => location.reload()}>Recarregar</button>
+          <button type="button" onClick={props.reset}>
+            Tentar novamente
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              (window as Window & { __gardenDock?: { open?: () => void } }).__gardenDock?.open?.()
+            }
+          >
+            Abrir diagnóstico
+          </button>
+          <button type="button" onClick={() => location.reload()}>
+            Recarregar
+          </button>
         </div>
       </section>
     </main>
@@ -496,7 +698,11 @@ function AppErrorFallback(props: { error: () => unknown; reset: () => void }) {
 }
 
 render(
-  () => <Errored fallback={(error, reset) => <AppErrorFallback error={error} reset={reset} />}><App /></Errored>,
+  () => (
+    <Errored fallback={(error, reset) => <AppErrorFallback error={error} reset={reset} />}>
+      <App />
+    </Errored>
+  ),
   document.getElementById('root')!,
 );
 
