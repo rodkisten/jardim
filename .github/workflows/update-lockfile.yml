@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: Authenticate Ploocky GitHub App
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: rodkisten/github/src/app-token@9d04949ee92f45bd4d9affe88a2e0104b82c97c8
         with:
           app-id: ${{ secrets.BOT_APP_ID || vars.BOT_APP_ID }}
           private-key: ${{ secrets.BOT_PRIVATE_KEY }}
@@ -53,10 +53,14 @@ jobs:
           cache: pnpm
 
       - name: Update lockfile without running install scripts
-        run: pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
+        uses: rodkisten/github/src/console-run@9d04949ee92f45bd4d9affe88a2e0104b82c97c8
+        with:
+          command: pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
 
       - name: Validate frozen lockfile
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        uses: rodkisten/github/src/console-run@9d04949ee92f45bd4d9affe88a2e0104b82c97c8
+        with:
+          command: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Detect changes
         id: changes
