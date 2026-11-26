@@ -29,13 +29,14 @@ export const providers = ["YouTube","Spotify","IMDb","TMDB","X","Vimeo","Web"] a
 type Provider = typeof providers[number];
 export type WidgetSize = 'full' | 'half';
 const defaultOrder: WidgetId[] = ['calendar','dimensions','mood','weather','daily','monthly','recent','liturgy','culture','trends','herbarium','astro'];
-type Preferences = { oracle: boolean; oracleAstro: boolean; order: WidgetId[]; sizes: Partial<Record<WidgetId, WidgetSize>>; richCards: boolean; providers: Record<Provider, boolean>; modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
+export type OracleModel = 'advanced' | 'fast';
+type Preferences = { oracleModel: OracleModel; oracle: boolean; oracleAstro: boolean; order: WidgetId[]; sizes: Partial<Record<WidgetId, WidgetSize>>; richCards: boolean; providers: Record<Provider, boolean>; modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
 const key = 'jardim.modules.v1';
-const defaults: Preferences = { oracle: false, oracleAstro: false, order: defaultOrder, sizes: {}, richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { astro: true, herbarium: true, mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { astro: true, herbarium: true, liturgy: true, culture: true, trends: false, mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
+const defaults: Preferences = { oracleModel: 'advanced', oracle: false, oracleAstro: false, order: defaultOrder, sizes: {}, richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { astro: true, herbarium: true, mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { astro: true, herbarium: true, liturgy: true, culture: true, trends: false, mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
 function read(): Preferences {
   try {
     const raw = JSON.parse(localStorage.getItem(key) || '{}');
-    const next: Preferences = { oracle: raw?.oracle === true, oracleAstro: raw?.oracleAstro === true, order: [...defaultOrder], sizes: {}, richCards: typeof raw?.richCards === "boolean" ? raw.richCards : true, providers: { ...defaults.providers }, modules: { ...defaults.modules }, widgets: { ...defaults.widgets } };
+    const next: Preferences = { oracleModel: raw?.oracleModel === 'fast' ? 'fast' : 'advanced', oracle: raw?.oracle === true, oracleAstro: raw?.oracleAstro === true, order: [...defaultOrder], sizes: {}, richCards: typeof raw?.richCards === "boolean" ? raw.richCards : true, providers: { ...defaults.providers }, modules: { ...defaults.modules }, widgets: { ...defaults.widgets } };
     if (Array.isArray(raw?.order)) {
       const valid = defaultOrder.filter(id => raw.order.includes(id));
       next.order = [...new Set<WidgetId>(raw.order.filter((id: unknown): id is WidgetId => valid.includes(id as WidgetId))), ...defaultOrder.filter(id => !valid.includes(id))];
@@ -67,3 +68,5 @@ export function resetDashboard() { persist({...current,order:[...defaultOrder],s
 
 export function setOracle(enabled:boolean){persist({...current,oracle:enabled});}
 export function setOracleAstro(enabled:boolean){persist({...current,oracleAstro:enabled});}
+
+export function setOracleModel(oracleModel:OracleModel){persist({...current,oracleModel});}

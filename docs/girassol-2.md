@@ -61,3 +61,6 @@ Workers AI como primeiro provider, reutilizando AI SDK e binding existente do Le
 
 ### Quota inicial do Oráculo
 20 solicitações por dia UTC por banco D1, compartilhadas entre sessões. Reserva atômica antes da inferência, somente após validação. Tentativas falhas ou canceladas também contam; não representa cobrança real nem cobre Lectio. GET autenticado /v2/oracle/usage expõe contagem. Aplicar migration antes de usar; falha de banco bloqueia geração.
+
+### Seleção de modelos do Oráculo
+Preferência local avançado (Llama 3.3 70B, padrão) ou rápido (Llama 3.1 8B). O Worker aceita somente aliases enumerados e resolve IDs no servidor antes da inferência. A quota e o consentimento permanecem iguais; disponibilidade do modelo rápido precisa ser validada em execução. Sem fallback automático ou providers externos adicionais.
