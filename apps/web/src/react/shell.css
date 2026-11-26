@@ -1,6 +1,16 @@
-.jardim-header {
-  padding-top: max(12px, env(safe-area-inset-top));
-}
-.jardim-nav {
-  padding-bottom: env(safe-area-inset-bottom);
-}
+.jardim-header { padding-top: max(16px, env(safe-area-inset-top)); }
+.jardim-editorial { font-family: 'Fraunces Variable', Georgia, serif; font-weight: 500; letter-spacing: -.035em; }
+.jardim-eyebrow { font-size: 10px; font-weight: 650; letter-spacing: .13em; text-transform: uppercase; }
+.jardim-hero { position: relative; overflow: hidden; isolation: isolate; padding: 28px 24px; border-radius: 28px; background: linear-gradient(135deg,#f6d45e,#dca74a); color:#302516; }
+.jardim-hero-flower { position:absolute; right:-45px; bottom:-65px; width:260px; height:260px; opacity:.24; transform:rotate(-18deg); pointer-events:none; }
+.jardim-day { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; padding:10px 0; border:1px solid var(--border); border-radius:18px; color:var(--muted-foreground); background:var(--card); }
+.jardim-day[aria-pressed=true] { background:var(--primary); color:var(--primary-foreground); border-color:transparent; }
+.jardim-dimension { display:flex; flex-direction:column; justify-content:space-between; gap:20px; min-height:132px; padding:16px; border-radius:22px; background:color-mix(in srgb,var(--dimension) 14%,var(--card)); color:var(--foreground); border:1px solid color-mix(in srgb,var(--dimension) 25%,var(--border)); }
+.jardim-dimension svg { color:var(--dimension); }
+[data-tone=faith] { --dimension:#b99b69; }
+[data-tone=culture] { --dimension:#a99acb; }
+[data-tone=memory] { --dimension:#94b3ca; }
+[data-tone=interior] { --dimension:#d4a69e; }
+.jardim-nav { z-index:30; left:50%; transform:translateX(-50%); bottom:max(10px,env(safe-area-inset-bottom)); width:min(calc(100% - 24px), 580px); padding:5px; border-radius:24px; box-shadow:0 8px 32px #0002; }
+.jardim-nav-active { background:var(--primary); color:var(--primary-foreground); }
+@media (prefers-reduced-motion: no-preference) { .jardim-dimension,.jardim-day { transition:background .18s,border-color .18s; } }

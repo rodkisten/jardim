@@ -1,3 +1,5 @@
+import '@fontsource-variable/fraunces';
+import '@fontsource-variable/inter';
 import './shadcn.css';
 import { PwaStatus } from '../components/PwaStatus';
 import { initializeTheme } from '../hooks/useTheme';

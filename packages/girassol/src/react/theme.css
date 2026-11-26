@@ -14,10 +14,10 @@
 }
 :root {
   color-scheme: dark;
-  --background: oklch(0.17 0.008 260);
-  --foreground: oklch(0.96 0.004 260);
-  --card: oklch(0.23 0.009 260);
-  --primary: oklch(0.85 0.17 88);
+  --background: #191a18;
+  --foreground: #f7e9c7;
+  --card: #242522;
+  --primary: #f6d45e;
   --primary-foreground: oklch(0.2 0.025 88);
   --muted: oklch(0.28 0.009 260);
   --muted-foreground: oklch(0.72 0.012 260);
@@ -26,6 +26,7 @@
 @layer base {
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: "Inter Variable", system-ui, sans-serif;
   }
   input,
   textarea,
@@ -36,10 +37,10 @@
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --background: oklch(0.98 0.008 88);
-  --foreground: oklch(0.22 0.012 260);
-  --card: oklch(1 0 0);
-  --primary: oklch(0.7 0.15 78);
+  --background: #f2eee4;
+  --foreground: #352b21;
+  --card: #fffaf0;
+  --primary: #e9bd46;
   --primary-foreground: oklch(0.18 0.025 88);
   --muted: oklch(0.94 0.008 88);
   --muted-foreground: oklch(0.45 0.012 260);

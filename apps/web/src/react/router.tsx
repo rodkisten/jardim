@@ -30,10 +30,10 @@ const items = [
 ] as const;
 function Shell() {
   return (
-    <div className="mx-auto min-h-dvh max-w-2xl">
-      <header className="jardim-header flex items-center gap-2 border-b border-border px-4 pb-3">
+    <div className="jardim-shell mx-auto min-h-dvh max-w-3xl">
+      <header className="jardim-header flex items-center gap-2 px-4 pb-3">
         <Flower2 className="size-6 text-primary" />
-        <span className="text-lg font-semibold">jardim.</span>
+        <span className="jardim-editorial text-2xl">jardim.</span>
         <Link to="/inbox" aria-label="Inbox" className="ml-auto p-2 text-muted-foreground">
           <InboxIcon className="size-5" />
         </Link>
@@ -41,22 +41,22 @@ function Shell() {
           <Settings className="size-5" />
         </Link>
       </header>
-      <main className="px-4 py-5 pb-28">
+      <main className="px-4 py-4 pb-32 sm:px-8">
         <SyncStatus />
         <Outlet />
       </main>
       <nav
         aria-label="Navegação principal"
-        className="jardim-nav fixed inset-x-0 bottom-0 mx-auto grid max-w-2xl grid-cols-6 border-t border-border bg-background/95 backdrop-blur"
+        className="jardim-nav fixed grid grid-cols-6 border border-border bg-card/95 backdrop-blur-xl"
       >
         {items.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
             to={to}
             activeOptions={{ exact: true }}
-            activeProps={{ className: 'text-primary' }}
+            activeProps={{ className: 'jardim-nav-active' }}
             inactiveProps={{ className: 'text-muted-foreground' }}
-            className="flex min-h-14 flex-col items-center justify-center gap-1 text-xs"
+            className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[10px]"
           >
             <Icon className="size-5" />
             {label}
