@@ -28,12 +28,14 @@ jobs:
     steps:
       - name: Authenticate Ploocky GitHub App
         id: app-token
-        uses: rodkisten/github/src/app-token@9d04949ee92f45bd4d9affe88a2e0104b82c97c8
+        uses: rodkisten/github/src/app-token@main
         with:
           app-id: ${{ secrets.BOT_APP_ID || vars.BOT_APP_ID }}
           private-key: ${{ secrets.BOT_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
+          permission-workflows: write 
+          
       - name: Checkout main
         uses: actions/checkout@v4
         with:
