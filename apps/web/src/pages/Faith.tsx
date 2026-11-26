@@ -1,3 +1,4 @@
+import { DimensionNotes } from '../components/DimensionNotes';
 import { Lectio } from '../components/Lectio';
 import { getFaith } from '../utils/faith-cache';
 import { useState } from 'react';
@@ -38,9 +39,9 @@ export function Faith() {
   const data = query.data;
   return (
     <section className="space-y-4">
-      <div>
-        <p className="text-xs uppercase tracking-wide text-primary">Hoje / Fé</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Fé, no seu tempo.</h1>
+      <div className="jardim-section-hero" data-tone="faith">
+        <p className="jardim-eyebrow">Fé e contemplação</p>
+        <h1 className="jardim-editorial text-4xl">Santuário</h1>
         <p className="text-sm text-muted-foreground">Liturgia, santos e terço em um só lugar.</p>
       </div>
       <div className="flex gap-2">
@@ -153,6 +154,7 @@ export function Faith() {
           )}
         </CardContent>
       </Card>
+      <DimensionNotes dimension="fé" kinds={['oração', 'intenção', 'gratidão', 'reflexão']} />
     </section>
   );
 }

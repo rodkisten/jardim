@@ -10,7 +10,7 @@ import { MemoryList } from '../components/MemoryList';
 const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const dimensions = [
   { to: '/faith', title: 'Santuário', description: 'Fé e contemplação', icon: Cross, tone: 'faith' },
-  { to: '/integrations', title: 'Cultura', description: 'Conecte suas descobertas', icon: Search, tone: 'culture' },
+  { to: '/acervo', title: 'Acervo', description: 'Guarde suas descobertas', icon: Search, tone: 'culture' },
   { to: '/timeline', title: 'Memórias', description: 'O que ficou de cada dia', icon: CalendarDays, tone: 'memory' },
   { to: '/diary', title: 'Interior', description: 'Escreva o que sente', icon: BookOpen, tone: 'interior' },
 ] as const;
