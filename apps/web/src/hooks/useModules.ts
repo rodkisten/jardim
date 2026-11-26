@@ -16,13 +16,16 @@ export const widgets = [
 ] as const;
 type ModuleId = typeof modules[number]['id'];
 type WidgetId = typeof widgets[number]['id'];
-type Preferences = { modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
+export const providers = ["YouTube","Spotify","IMDb","TMDB","X","Vimeo","Web"] as const;
+type Provider = typeof providers[number];
+type Preferences = { richCards: boolean; providers: Record<Provider, boolean>; modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
 const key = 'jardim.modules.v1';
-const defaults: Preferences = { modules: { diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
+const defaults: Preferences = { richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
 function read(): Preferences {
   try {
     const raw = JSON.parse(localStorage.getItem(key) || '{}');
-    const next = { modules: { ...defaults.modules }, widgets: { ...defaults.widgets } };
+    const next = { richCards: typeof raw?.richCards === "boolean" ? raw.richCards : true, providers: { ...defaults.providers }, modules: { ...defaults.modules }, widgets: { ...defaults.widgets } };
+    for (const id of providers) if (typeof raw?.providers?.[id] === "boolean") next.providers[id] = raw.providers[id];
     for (const { id } of modules) if (typeof raw?.modules?.[id] === 'boolean') next.modules[id] = raw.modules[id];
     for (const { id } of widgets) if (typeof raw?.widgets?.[id] === 'boolean') next.widgets[id] = raw.widgets[id];
     return next;
@@ -38,3 +41,6 @@ export function useModules() { return useSyncExternalStore(subscribe, () => curr
 export function setModule(id: ModuleId, enabled: boolean) { persist({ ...current, modules: { ...current.modules, [id]: enabled } }); }
 export function setWidget(id: WidgetId, enabled: boolean) { persist({ ...current, widgets: { ...current.widgets, [id]: enabled } }); }
 export function moduleForPath(path: string) { return modules.find(m => m.path === path); }
+
+export function setRichCards(enabled: boolean) { persist({ ...current, richCards: enabled }); }
+export function setProvider(id: Provider, enabled: boolean) { persist({ ...current, providers: { ...current.providers, [id]: enabled } }); }

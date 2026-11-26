@@ -1,3 +1,4 @@
+import { useModules } from '../hooks/useModules';
 import { CulturalCard } from './CulturalCard';
 import { culturalLink } from '../utils/cultural-link';
 import { ExternalLink, Link2 } from 'lucide-react';
@@ -50,7 +51,8 @@ function LinkCard({ value }: { value: string }) {
   );
 }
 export function LinkPreviews({ text }: { text: string }) {
-  const links = extractLinks(text);
+  const preferences = useModules();
+  const links = preferences.richCards ? extractLinks(text).filter(value => { const provider = culturalLink(value)?.provider ?? "Web"; return preferences.providers[provider as keyof typeof preferences.providers]; }) : [];
   return links.length ? (
     <div className="space-y-2">
       {links.map((value) =>
