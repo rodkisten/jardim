@@ -29,13 +29,13 @@ export const providers = ["YouTube","Spotify","IMDb","TMDB","X","Vimeo","Web"] a
 type Provider = typeof providers[number];
 export type WidgetSize = 'full' | 'half';
 const defaultOrder: WidgetId[] = ['calendar','dimensions','mood','weather','daily','monthly','recent','liturgy','culture','trends','herbarium','astro'];
-type Preferences = { order: WidgetId[]; sizes: Partial<Record<WidgetId, WidgetSize>>; richCards: boolean; providers: Record<Provider, boolean>; modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
+type Preferences = { oracle: boolean; oracleAstro: boolean; order: WidgetId[]; sizes: Partial<Record<WidgetId, WidgetSize>>; richCards: boolean; providers: Record<Provider, boolean>; modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
 const key = 'jardim.modules.v1';
-const defaults: Preferences = { order: defaultOrder, sizes: {}, richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { astro: true, herbarium: true, mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { astro: true, herbarium: true, liturgy: true, culture: true, trends: false, mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
+const defaults: Preferences = { oracle: false, oracleAstro: false, order: defaultOrder, sizes: {}, richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { astro: true, herbarium: true, mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { astro: true, herbarium: true, liturgy: true, culture: true, trends: false, mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
 function read(): Preferences {
   try {
     const raw = JSON.parse(localStorage.getItem(key) || '{}');
-    const next: Preferences = { order: [...defaultOrder], sizes: {}, richCards: typeof raw?.richCards === "boolean" ? raw.richCards : true, providers: { ...defaults.providers }, modules: { ...defaults.modules }, widgets: { ...defaults.widgets } };
+    const next: Preferences = { oracle: raw?.oracle === true, oracleAstro: raw?.oracleAstro === true, order: [...defaultOrder], sizes: {}, richCards: typeof raw?.richCards === "boolean" ? raw.richCards : true, providers: { ...defaults.providers }, modules: { ...defaults.modules }, widgets: { ...defaults.widgets } };
     if (Array.isArray(raw?.order)) {
       const valid = defaultOrder.filter(id => raw.order.includes(id));
       next.order = [...new Set<WidgetId>(raw.order.filter((id: unknown): id is WidgetId => valid.includes(id as WidgetId))), ...defaultOrder.filter(id => !valid.includes(id))];
@@ -64,3 +64,6 @@ export function setProvider(id: Provider, enabled: boolean) { persist({ ...curre
 export function moveWidget(id: WidgetId, target: WidgetId) { const order = [...current.order]; const from = order.indexOf(id), to = order.indexOf(target); if(from < 0 || to < 0 || from === to) return; order.splice(from,1); order.splice(to,0,id); persist({...current,order}); }
 export function resizeWidget(id: WidgetId, size: WidgetSize) { persist({...current,sizes:{...current.sizes,[id]:size}}); }
 export function resetDashboard() { persist({...current,order:[...defaultOrder],sizes:{},widgets:{...defaults.widgets}}); }
+
+export function setOracle(enabled:boolean){persist({...current,oracle:enabled});}
+export function setOracleAstro(enabled:boolean){persist({...current,oracleAstro:enabled});}
