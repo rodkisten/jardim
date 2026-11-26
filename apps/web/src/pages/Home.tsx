@@ -1,3 +1,5 @@
+import { FaithWidget } from '../components/FaithWidget';
+import { MoodTrendsWidget } from '../components/MoodTrends';
 import { MoodWidget } from '../components/MoodWidget';
 import { useModules, moduleForPath, type WidgetId } from '../hooks/useModules';
 import { useState, type ReactNode } from 'react';
@@ -30,7 +32,11 @@ export function Home() {
   });
   const current = state.memories.filter((m) => localDay(m.createdAt, zone) === selected);
   const monthly = state.memories.filter((m) => localDay(m.createdAt, zone).slice(0, 7) === today.slice(0, 7));
+  const cultural = state.memories.filter(m => m.tags.includes('cultura') || m.tags.includes('spotify')).slice(0,3);
   const panels: Record<WidgetId, ReactNode> = {
+    liturgy: modules.faith && widgets.liturgy && <FaithWidget date={today} />,
+    culture: modules.culture && widgets.culture && <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="jardim-editorial text-xl">Acervo recente</h2><Link to="/acervo" className="text-xs text-muted-foreground">Abrir acervo</Link></div><MemoryList {...state} memories={cultural}/></section>,
+    trends: modules.mood && widgets.trends && <MoodTrendsWidget />,
 calendar: (widgets.calendar && <section aria-label="Calendário da semana" className="space-y-3">
         <div className="flex items-center justify-between"><h2 className="jardim-editorial text-xl">Seus dias</h2>{modules.timeline && <Link to="/timeline" className="text-xs text-muted-foreground">Calendário completo</Link>}</div>
         <div className="grid grid-cols-7 gap-1.5">

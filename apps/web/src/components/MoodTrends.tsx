@@ -1,0 +1,12 @@
+import { useState } from 'react';
+import { dayKey, useMoodEntries, type MoodEntry } from '../utils/mood-db';
+const metrics = [{key:'mood',label:'Humor',color:'#d4a69e'},{key:'energy',label:'Energia',color:'#e1bb73'},{key:'anxiety',label:'Ansiedade',color:'#a99acb'}] as const;
+export function MoodTrends({entries}:{entries:MoodEntry[]}){
+ const [metric,setMetric]=useState<typeof metrics[number]['key']>('mood');
+ const days=[...new Set(entries.map(e=>e.day))].sort();
+ const values=days.map(day=>{const rows=entries.filter(e=>e.day===day);return {day,value:rows.reduce((s,e)=>s+e[metric],0)/rows.length};});
+ const active=metrics.find(m=>m.key===metric)!;
+ const average=values.length?values.reduce((s,v)=>s+v.value,0)/values.length:null;
+ return <section className="space-y-3 rounded-2xl border border-border bg-card p-4"><h2 className="jardim-editorial text-xl">Tendências emocionais</h2><div className="flex flex-wrap gap-2">{metrics.map(m=><button key={m.key} type="button" aria-pressed={metric===m.key} onClick={()=>setMetric(m.key)} className={'rounded-full border px-3 py-2 text-xs '+(metric===m.key?'bg-primary text-primary-foreground':'border-border')}>{m.label}</button>)}</div>{average===null?<p className="text-sm text-muted-foreground">Registre seus momentos para visualizar tendências.</p>:<><p className="text-2xl font-semibold">{average.toFixed(1)}<span className="text-xs text-muted-foreground"> / 5 · média diária</span></p><div className="flex h-28 items-end gap-1 overflow-x-auto" role="img" aria-label={'Médias diárias de '+active.label}>{values.map(v=><div key={v.day} className="flex h-full min-w-4 flex-1 flex-col justify-end gap-1"><div title={v.day+': '+v.value.toFixed(1)} style={{height:(v.value/5*80)+'%',background:active.color}} className="rounded-t-sm"/><span className="text-center text-[9px]">{v.day.slice(-2)}</span></div>)}</div><details className="text-xs"><summary>Valores por dia</summary>{values.map(v=><p key={v.day}>{v.day}: {v.value.toFixed(1)}</p>)}</details><p className="text-xs text-muted-foreground">{entries.length} registros em {days.length} dias. Dias sem registro não entram na média. Não é uma avaliação clínica.</p></>}</section>;
+}
+export function MoodTrendsWidget(){const {entries,loading,error}=useMoodEntries();const from=new Date();from.setDate(from.getDate()-6);return loading?<p>Carregando tendências…</p>:error?<p role="alert">{error}</p>:<MoodTrends entries={entries.filter(e=>e.day>=dayKey(from)&&e.day<=dayKey())}/>;}
