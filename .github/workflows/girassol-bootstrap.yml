@@ -38,7 +38,7 @@ jobs:
             motion@latest @tanstack/react-router@latest @tanstack/react-query@latest \
             @tanstack/react-virtual@latest dexie@latest dexie-react-hooks@latest \
             embla-carousel-react@latest vaul@latest photoswipe@latest wavesurfer.js@latest \
-            playerjs@latest minisearch@latest react-force-graph-2d@latest zod@latest \
+            video.js@latest minisearch@latest react-force-graph-2d@latest zod@latest \
             date-fns@latest pica@latest browser-image-compression@latest lucide-react@latest \
             @fontsource-variable/fraunces@latest @fontsource-variable/inter@latest \
             @jsquash/avif@latest @jsquash/webp@latest clsx@latest tailwind-merge@latest \
