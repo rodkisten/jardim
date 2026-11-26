@@ -1,3 +1,4 @@
+import { AstroWidget } from '../components/LunarCalendar';
 import { FaithWidget } from '../components/FaithWidget';
 import { MoodTrendsWidget } from '../components/MoodTrends';
 import { MoodWidget } from '../components/MoodWidget';
@@ -37,7 +38,7 @@ export function Home() {
   const cultural = state.memories.filter(m => m.tags.includes('cultura') || m.tags.includes('spotify')).slice(0,3);
   const fragments = state.memories.filter(m=>m.tags.includes('herbário')).slice(0,2);
   const panels: Record<WidgetId, ReactNode> = {
-    astro: modules.astro && widgets.astro && <Link to="/astro" data-tone="astro" className="jardim-dimension"><MoonStar className="size-7"/><div><h2 className="jardim-editorial text-xl">Astro</h2><p className="text-xs">Seus perfis e mapas celestes</p></div></Link>,
+    astro: modules.astro && widgets.astro && <AstroWidget />,
     herbarium: modules.herbarium && widgets.herbarium && <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="jardim-editorial text-xl">Herbário</h2><Link to="/herbarium" className="text-xs text-muted-foreground">Abrir coleção</Link></div>{fragments.length ? <MemoryList {...state} memories={fragments}/> : <Link to="/herbarium" className="block rounded-xl border border-border p-4 text-sm">Guarde seu primeiro fragmento.</Link>}</section>,
     liturgy: modules.faith && widgets.liturgy && <FaithWidget date={today} />,
     culture: modules.culture && widgets.culture && <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="jardim-editorial text-xl">Acervo recente</h2><Link to="/acervo" className="text-xs text-muted-foreground">Abrir acervo</Link></div><MemoryList {...state} memories={cultural}/></section>,
