@@ -64,3 +64,6 @@ Workers AI como primeiro provider, reutilizando AI SDK e binding existente do Le
 
 ### Seleção de modelos do Oráculo
 Preferência local avançado (Llama 3.3 70B, padrão) ou rápido (Llama 3.1 8B). O Worker aceita somente aliases enumerados e resolve IDs no servidor antes da inferência. A quota e o consentimento permanecem iguais; disponibilidade do modelo rápido precisa ser validada em execução. Sem fallback automático ou providers externos adicionais.
+
+### Intelligence: busca semântica sob demanda
+Seleção explícita de até 12 memórias, trechos de 1500 caracteres, consulta de 500 caracteres. Workers AI BGE-M3, similaridade cosseno, quota compartilhada com Oráculo. Sem armazenamento de embeddings pelo Jardim, sem indexação automática. Validar disponibilidade e formato do modelo em runtime. Índice persistente e grafo ficam para fase posterior.
