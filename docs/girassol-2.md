@@ -58,3 +58,6 @@ Antes de Constelações: perfis próprios e de outras pessoas, mapas natais, cé
 
 ## Oráculo — IA transversal
 Workers AI como primeiro provider, reutilizando AI SDK e binding existente do Lectio. Primeira entrega: reflexão simbólica do céu selecionado, consentimento por solicitação, somente posições planetárias, sem nomes, cidade, data de nascimento ou diário. Sem persistência de respostas no aplicativo. Não garantir retenção zero pelo provider; auditar políticas e configuração de logs/cache. Próximos blocos: registry multi-provider, controles globais e por dimensão, limites de uso, streaming, prompts versionados, contexto selecionado explicitamente, recomendações culturais, conexões semânticas e retrospectivas. Nunca diagnosticar ou prever eventos como fatos. Sem acesso automático a registros privados.
+
+### Quota inicial do Oráculo
+20 solicitações por dia UTC por banco D1, compartilhadas entre sessões. Reserva atômica antes da inferência, somente após validação. Tentativas falhas ou canceladas também contam; não representa cobrança real nem cobre Lectio. GET autenticado /v2/oracle/usage expõe contagem. Aplicar migration antes de usar; falha de banco bloqueia geração.
