@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 export const modules = [
+  { id: 'mood', label: 'Clima Interior', description: 'Registros emocionais locais', path: '/mood' },
   { id: 'diary', label: 'Diário', description: 'Escrita e novas memórias', path: '/diary' },
   { id: 'timeline', label: 'Timeline', description: 'Histórico das memórias', path: '/timeline' },
   { id: 'faith', label: 'Santuário', description: 'Liturgia e reflexões', path: '/faith' },
@@ -7,6 +8,7 @@ export const modules = [
   { id: 'capsules', label: 'Cápsulas', description: 'Retrospectivas mensais', path: '/capsules' },
 ] as const;
 export const widgets = [
+  { id: 'mood', label: 'Clima Interior' },
   { id: 'calendar', label: 'Calendário semanal' },
   { id: 'dimensions', label: 'Dimensões do Jardim' },
   { id: 'weather', label: 'Clima meteorológico' },
@@ -20,7 +22,7 @@ export const providers = ["YouTube","Spotify","IMDb","TMDB","X","Vimeo","Web"] a
 type Provider = typeof providers[number];
 type Preferences = { richCards: boolean; providers: Record<Provider, boolean>; modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
 const key = 'jardim.modules.v1';
-const defaults: Preferences = { richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
+const defaults: Preferences = { richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
 function read(): Preferences {
   try {
     const raw = JSON.parse(localStorage.getItem(key) || '{}');

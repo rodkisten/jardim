@@ -1,3 +1,4 @@
+import { MoodWidget } from '../components/MoodWidget';
 import { useModules, moduleForPath } from '../hooks/useModules';
 import { useState } from 'react';
 import { isPreview } from '../utils/preview';
@@ -13,7 +14,7 @@ const dimensions = [
   { to: '/faith', title: 'Santuário', description: 'Fé e contemplação', icon: Cross, tone: 'faith' },
   { to: '/acervo', title: 'Acervo', description: 'Guarde suas descobertas', icon: Search, tone: 'culture' },
   { to: '/timeline', title: 'Memórias', description: 'O que ficou de cada dia', icon: CalendarDays, tone: 'memory' },
-  { to: '/diary', title: 'Interior', description: 'Escreva o que sente', icon: BookOpen, tone: 'interior' },
+  { to: '/mood', title: 'Clima Interior', description: 'Escreva o que sente', icon: BookOpen, tone: 'interior' },
 ] as const;
 
 export function Home() {
@@ -59,6 +60,7 @@ export function Home() {
           </Link>)}
         </div>
       </section>}
+      {modules.mood && widgets.mood && <MoodWidget />}
       {widgets.weather && !isPreview && <WeatherCard />}
       {widgets.daily && <section className="space-y-3">
         <div className="flex items-center justify-between"><h2 className="jardim-editorial text-2xl">{selected === today ? 'Memórias de hoje' : 'Memórias do dia'}</h2>{modules.timeline && <Link to="/timeline" className="text-xs text-muted-foreground">Ver todas</Link>}</div>
