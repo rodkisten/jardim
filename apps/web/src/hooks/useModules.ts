@@ -17,16 +17,23 @@ export const widgets = [
   { id: 'monthly', label: 'Cápsula mensal' },
 ] as const;
 type ModuleId = typeof modules[number]['id'];
-type WidgetId = typeof widgets[number]['id'];
+export type WidgetId = typeof widgets[number]['id'];
 export const providers = ["YouTube","Spotify","IMDb","TMDB","X","Vimeo","Web"] as const;
 type Provider = typeof providers[number];
-type Preferences = { richCards: boolean; providers: Record<Provider, boolean>; modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
+export type WidgetSize = 'full' | 'half';
+const defaultOrder: WidgetId[] = ['calendar','dimensions','mood','weather','daily','monthly','recent'];
+type Preferences = { order: WidgetId[]; sizes: Partial<Record<WidgetId, WidgetSize>>; richCards: boolean; providers: Record<Provider, boolean>; modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
 const key = 'jardim.modules.v1';
-const defaults: Preferences = { richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
+const defaults: Preferences = { order: defaultOrder, sizes: {}, richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
 function read(): Preferences {
   try {
     const raw = JSON.parse(localStorage.getItem(key) || '{}');
-    const next = { richCards: typeof raw?.richCards === "boolean" ? raw.richCards : true, providers: { ...defaults.providers }, modules: { ...defaults.modules }, widgets: { ...defaults.widgets } };
+    const next: Preferences = { order: [...defaultOrder], sizes: {}, richCards: typeof raw?.richCards === "boolean" ? raw.richCards : true, providers: { ...defaults.providers }, modules: { ...defaults.modules }, widgets: { ...defaults.widgets } };
+    if (Array.isArray(raw?.order)) {
+      const valid = defaultOrder.filter(id => raw.order.includes(id));
+      next.order = [...new Set<WidgetId>(raw.order.filter((id: unknown): id is WidgetId => valid.includes(id as WidgetId))), ...defaultOrder.filter(id => !valid.includes(id))];
+    }
+    for (const id of defaultOrder) if (raw?.sizes?.[id] === 'half' || raw?.sizes?.[id] === 'full') next.sizes[id] = raw.sizes[id];
     for (const id of providers) if (typeof raw?.providers?.[id] === "boolean") next.providers[id] = raw.providers[id];
     for (const { id } of modules) if (typeof raw?.modules?.[id] === 'boolean') next.modules[id] = raw.modules[id];
     for (const { id } of widgets) if (typeof raw?.widgets?.[id] === 'boolean') next.widgets[id] = raw.widgets[id];
@@ -46,3 +53,7 @@ export function moduleForPath(path: string) { return modules.find(m => m.path ==
 
 export function setRichCards(enabled: boolean) { persist({ ...current, richCards: enabled }); }
 export function setProvider(id: Provider, enabled: boolean) { persist({ ...current, providers: { ...current.providers, [id]: enabled } }); }
+
+export function moveWidget(id: WidgetId, target: WidgetId) { const order = [...current.order]; const from = order.indexOf(id), to = order.indexOf(target); if(from < 0 || to < 0 || from === to) return; order.splice(from,1); order.splice(to,0,id); persist({...current,order}); }
+export function resizeWidget(id: WidgetId, size: WidgetSize) { persist({...current,sizes:{...current.sizes,[id]:size}}); }
+export function resetDashboard() { persist({...current,order:[...defaultOrder],sizes:{},widgets:{...defaults.widgets}}); }
