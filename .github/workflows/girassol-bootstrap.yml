@@ -96,8 +96,12 @@ jobs:
       - name: Validate and format
         run: |
           pnpm exec prettier --write apps/web/components.json apps/web/tsconfig.json tsconfig.react.json vite.config.ts apps/web/src/components apps/web/src/react/main.tsx apps/web/src/react/shadcn.css
-          pnpm typecheck
+          pnpm install --frozen-lockfile
+          pnpm db:generate
+          pnpm exec wrangler types
           pnpm --filter @rodkisten/jardim-web build
+          pnpm --filter @rodkisten/jardim-api build
+          pnpm typecheck
       - name: Publish validated changes
         env:
           APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
