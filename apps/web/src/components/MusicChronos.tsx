@@ -1,10 +1,13 @@
+import { useInsightSettings } from '../hooks/useInsightSettings';
 import { useMemo, useState } from 'react';
 import { Input } from '@rodkisten/girassol/react';
 import { chronos,timeFormatter } from '../utils/music-chronos';
 import type { LocalListening } from '../utils/music-insights-local';
 const weekdays=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 export function MusicChronos({rows}:{rows:readonly LocalListening[]}){
- const [zone,setZone]=useState(''),[year,setYear]=useState(new Date().getFullYear());
+ const settings=useInsightSettings();
+ const [override,setZone]=useState<string|null>(null);const zone=override??settings.chronosZone;
+ const [year,setYear]=useState(new Date().getFullYear());
  const valid=!zone||!!timeFormatter(zone);
  const data=useMemo(()=>chronos(rows,valid?zone:'',year),[rows,zone,valid,year]);
  const max=Math.max(1,...data.hours),peak=data.hours.indexOf(Math.max(...data.hours));
