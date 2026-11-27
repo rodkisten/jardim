@@ -1,3 +1,4 @@
+import { InsightSettingsPanel } from '../components/InsightSettingsPanel';
 import { ModuleSettings } from '../components/ModuleSettings';
 import { OfflineSettings } from '../components/OfflineSettings';
 import { ThemePicker } from '../components/ThemePicker';
@@ -8,6 +9,7 @@ export function SettingsPage() {
   return (
     <section className="space-y-4">
       <ModuleSettings />
+      <InsightSettingsPanel />
       <ThemePicker />
       <OfflineSettings />
       <Card>
