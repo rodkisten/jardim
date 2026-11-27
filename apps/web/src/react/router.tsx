@@ -13,6 +13,7 @@ import {
 } from '@tanstack/react-router';
 import {
   House,
+  ChartNoAxesCombined,
   CalendarDays,
   BookOpen,
   Layers,
@@ -42,6 +43,7 @@ function Shell() {
         <Flower2 className="size-6 text-primary" />
         <span className="jardim-editorial text-2xl">jardim.</span>
         <Link to="/search" aria-label="Buscar" className="ml-auto p-2 text-muted-foreground"><Search className="size-5" /></Link>
+        {preferences.modules.insights&&<Link to="/insights" aria-label="Insights" className="p-2 text-muted-foreground"><ChartNoAxesCombined className="size-5"/></Link>}
         <Link to="/inbox" aria-label="Inbox" className="p-2 text-muted-foreground">
           <InboxIcon className="size-5" />
         </Link>
@@ -121,6 +123,7 @@ const acervo = createRoute({
 const astro = createRoute({ getParentRoute: () => root, path: '/astro', component: lazyRouteComponent(() => import('../pages/Astro'), 'Astro') });
 const herbarium = createRoute({ getParentRoute: () => root, path: '/herbarium', component: lazyRouteComponent(() => import('../pages/Herbarium'), 'Herbarium') });
 const mood = createRoute({ getParentRoute: () => root, path: '/mood', component: lazyRouteComponent(() => import('../pages/Mood'), 'Mood') });
+const insights = createRoute({ getParentRoute: () => root, path: '/insights', component: lazyRouteComponent(() => import('../pages/Insights'), 'Insights') });
 const settings = createRoute({
   getParentRoute: () => root,
   path: '/settings',
@@ -154,6 +157,7 @@ export const router = createRouter({
     detail,
     conflicts,
     settings,
+    insights,
     integrations,
     faith,
     acervo,

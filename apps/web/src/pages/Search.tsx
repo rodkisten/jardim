@@ -1,4 +1,3 @@
-import { MusicInsights } from '../components/MusicInsights';
 import { SemanticSearch } from '../components/SemanticSearch';
 import { useModules } from '../hooks/useModules';
 import { useState } from 'react';
@@ -32,7 +31,6 @@ export function SearchMemories() {
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
-      {preferences.oracle&&<MusicInsights/>}
       {preferences.oracle&&<SemanticSearch items={state.memories.map(m=>({id:m.id,title:m.title,body:m.body}))}/>}
       <MemoryList {...state} memories={memories} />
     </div>

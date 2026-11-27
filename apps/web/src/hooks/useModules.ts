@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 export const modules = [
+  { id: 'insights', label: 'Insights', description: 'Perfis musicais e padrões contextuais locais', path: '/insights' },
   { id: 'astro', label: 'Astro', description: 'Mapas natais e céu diário', path: '/astro' },
   { id: 'herbarium', label: 'Herbário', description: 'Citações e fragmentos', path: '/herbarium' },
   { id: 'mood', label: 'Clima Interior', description: 'Registros emocionais locais', path: '/mood' },
@@ -32,7 +33,7 @@ const defaultOrder: WidgetId[] = ['calendar','dimensions','mood','weather','dail
 export type OracleModel = 'advanced' | 'fast';
 type Preferences = { oracleModel: OracleModel; oracle: boolean; oracleAstro: boolean; order: WidgetId[]; sizes: Partial<Record<WidgetId, WidgetSize>>; richCards: boolean; providers: Record<Provider, boolean>; modules: Record<ModuleId, boolean>; widgets: Record<WidgetId, boolean> };
 const key = 'jardim.modules.v1';
-const defaults: Preferences = { oracleModel: 'advanced', oracle: false, oracleAstro: false, order: defaultOrder, sizes: {}, richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { astro: true, herbarium: true, mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { astro: true, herbarium: true, liturgy: true, culture: true, trends: false, mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
+const defaults: Preferences = { oracleModel: 'advanced', oracle: false, oracleAstro: false, order: defaultOrder, sizes: {}, richCards: true, providers: { YouTube:true, Spotify:true, IMDb:true, TMDB:true, X:true, Vimeo:true, Web:true }, modules: { insights: true, astro: true, herbarium: true, mood: true, diary: true, timeline: true, faith: true, culture: true, capsules: true }, widgets: { astro: true, herbarium: true, liturgy: true, culture: true, trends: false, mood: true, calendar: true, dimensions: true, weather: true, daily: true, recent: true, monthly: true } };
 function read(): Preferences {
   try {
     const raw = JSON.parse(localStorage.getItem(key) || '{}');
