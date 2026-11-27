@@ -6,7 +6,7 @@ export function spotifyTrack(input:string){
 }
 const recording=z.object({id:z.string().uuid(),title:z.string(),length:z.number().optional(),'first-release-date':z.string().optional(),'artist-credit':z.array(z.object({name:z.string(),artist:z.object({id:z.string().uuid(),name:z.string()})})).optional(),isrcs:z.array(z.string()).optional()});
 const response=z.object({recordings:z.array(recording)});
-const escapeQuery=(value:string)=>value.replace(/[+\-&|!(){}\[\]^"~*?:\\/]/g,'\\$&');
+const escapeQuery=(value:string)=>value.replace(/[+\-&|!(){}[\]^"~*?:\\/]/g,'\\$&');
 let lastRequest=0;
 export async function findRecordings(title:string,artist:string,signal?:AbortSignal){
  if(Date.now()-lastRequest<1100)throw Error('Aguarde um segundo antes de consultar novamente.');
