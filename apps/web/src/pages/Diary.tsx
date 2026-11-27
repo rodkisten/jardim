@@ -1,3 +1,4 @@
+import { SurfacePanels } from '../components/SurfacePanels';
 import { inlineMediaIds } from '../utils/inline-media';
 import { MediaContext } from '../components/MediaNode';
 import { prepareImages, optimizeImage, type CompressionResult } from '../utils/image-compression';
@@ -246,7 +247,7 @@ export function Diary() {
             : 'Rascunho disponível offline'}
       </p>
       <fieldset disabled={busy} className="space-y-4">
-        <label className="block space-y-1 text-sm">
+<SurfacePanels surface="diary" labels={{title:'Título',notes:'Editor de notas',tags:'Tags',previews:'Links',compression:'Compressão',attachments:'Anexos'}} panels={{title:<label className="block space-y-1 text-sm">
           Título
           <Input
             required
@@ -254,8 +255,7 @@ export function Diary() {
             value={draft.title}
             onChange={(e) => change({ ...snapshot, draft: { ...draft, title: e.target.value } })}
           />
-        </label>
-        <MediaContext.Provider value={attachments}>
+        </label>,notes:<MediaContext.Provider value={attachments}>
           <PublicationNotes
             notes={snapshot.notes ?? []}
             onChange={(notes) => {
@@ -263,16 +263,13 @@ export function Diary() {
               if (latest) change({ ...latest, notes, draft: combineNotes(latest.draft, notes) });
             }}
           />
-        </MediaContext.Provider>
-        <label className="block space-y-1 text-sm">
+        </MediaContext.Provider>,tags:<label className="block space-y-1 text-sm">
           Tags
           <Input
             value={draft.tags}
             onChange={(e) => change({ ...snapshot, draft: { ...draft, tags: e.target.value } })}
           />
-        </label>
-        <LinkPreviews text={draft.body} />
-        <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
+        </label>,previews:<LinkPreviews text={draft.body} />,compression:<div><p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
           Cole ou arraste arquivos para adicionar à publicação.
         </p>
         <CompressionPanel
@@ -284,8 +281,7 @@ export function Diary() {
           attachments={attachments}
           processing={processing}
           onRecompress={recompress}
-        />
-        <ComposerMedia
+        /></div>,attachments:<ComposerMedia
           attachments={attachments}
           onError={setError}
           onFiles={importFiles}
@@ -300,7 +296,7 @@ export function Diary() {
               change({ ...latest, attachments: latest.attachments.filter((_, j) => j !== i) });
             }
           }}
-        />
+        />}}/>
       </fieldset>
       {storageError && (
         <Button type="button" variant="outline" onClick={() => change(snapshot)}>

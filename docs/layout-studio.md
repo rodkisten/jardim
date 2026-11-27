@@ -6,3 +6,5 @@ Shared session edit state now connects Home, Music Insights and Settings. Visibl
 V3: surface registry for navigation and Astro, validated persisted order and cross-tab updates. Header remains fixed; bottom navigation and seven Astro sections are sortable. Hidden navigation entries retain their slots. Reset API available; Settings UI integration pending.
 
 V4: reusable SurfacePanels integrates Mood and Faith; page hero and liturgical date controls remain fixed. Conditional Lectio retains its saved slot. No new dependencies.
+
+V5: Acervo, Herbarium and Diary surface panels. Diary retains one form and fixed publication controls; keyed panels preserve component identity while sorting. Existing native file-drop handlers remain in place.

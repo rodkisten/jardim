@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-export const surfaces={navigation:['/','/timeline','/diary','/capsules','/faith','/acervo'],astro:['sky','date','profile','oracle','lunar','compare','maps'],mood:['checkin','calendar','trends','history'],faith:['calendar','rosary','readings','lectio','saints','notes']} as const;
+export const surfaces={navigation:['/','/timeline','/diary','/capsules','/faith','/acervo'],astro:['sky','date','profile','oracle','lunar','compare','maps'],mood:['checkin','calendar','trends','history'],faith:['calendar','rosary','readings','lectio','saints','notes'],acervo:['integrations','discovery','notes','history'],herbarium:['capture','collection'],diary:['title','notes','tags','previews','compression','attachments']} as const;
 export type Surface=keyof typeof surfaces;
 const key='jardim.layout.surfaces.v1';
 type State=Partial<Record<Surface,string[]>>;
