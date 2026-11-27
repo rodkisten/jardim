@@ -1,3 +1,4 @@
+import type { AtlasListening } from './music-atlas';
 import type { LocalListening } from './music-insights-local';
 export function timeFormatter(zone:string){try{return new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'});}catch{return undefined;}}
 export function temporalPoint(row:LocalListening,assumedZone?:Intl.DateTimeFormat){
@@ -6,7 +7,7 @@ export function temporalPoint(row:LocalListening,assumedZone?:Intl.DateTimeForma
  if(!formatter)return undefined;
  const instant=new Date(row.occurredAt);if(!Number.isFinite(instant.getTime()))return undefined;
  const parts=Object.fromEntries(formatter.formatToParts(instant).map(p=>[p.type,p.value]));
- return {date:parts.year+'-'+parts.month+'-'+parts.day,hour:Number(parts.hour),basis:row.timezone?'recorded' as const:'assumed' as const};
+ return {date:parts.year+'-'+parts.month+'-'+parts.day,hour:Number(parts.hour),basis:row.timezone&&!(row as AtlasListening).atlasPeriodId?'recorded' as const:'assumed' as const};
 }
 export function chronos(rows:readonly LocalListening[],zone:string,year:number){
  const formatter=zone?timeFormatter(zone):undefined;
