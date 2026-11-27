@@ -31,7 +31,7 @@ export function SearchMemories() {
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
-      {preferences.oracle&&<SemanticSearch items={memories.map(m=>({id:m.id,title:m.title,body:m.body}))}/>}
+      {preferences.oracle&&<SemanticSearch items={state.memories.map(m=>({id:m.id,title:m.title,body:m.body}))}/>}
       <MemoryList {...state} memories={memories} />
     </div>
   );
