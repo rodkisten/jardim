@@ -71,3 +71,5 @@ export function setOracle(enabled:boolean){persist({...current,oracle:enabled});
 export function setOracleAstro(enabled:boolean){persist({...current,oracleAstro:enabled});}
 
 export function setOracleModel(oracleModel:OracleModel){persist({...current,oracleModel});}
+
+export function reorderWidgets(order:WidgetId[]){if(order.length!==defaultOrder.length||new Set(order).size!==defaultOrder.length||order.some(id=>!defaultOrder.includes(id)))throw Error('Invalid widget order');persist({...current,order:[...order]});}

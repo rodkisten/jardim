@@ -1,3 +1,5 @@
+import { LayoutSortable, LayoutItem } from '../components/LayoutSortable';
+import { reorderWidgets, widgets as widgetDefinitions } from '../hooks/useModules';
 import { AstroWidget } from '../components/LunarCalendar';
 import { FaithWidget } from '../components/FaithWidget';
 import { MoodTrendsWidget } from '../components/MoodTrends';
@@ -28,6 +30,8 @@ export function Home() {
   const now = new Date();
   const today = localDay(now, zone);
   const [selected, setSelected] = useState(today);
+  const [editing,setEditing]=useState(false);
+  const [layoutError,setLayoutError]=useState('');
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(now);
     date.setDate(now.getDate() + i - 6);
@@ -84,10 +88,12 @@ recent: (widgets.recent && <section className="space-y-3"><h2 className="jardim-
         </div>
         <Flower2 aria-hidden="true" className="jardim-hero-flower" strokeWidth={0.65} />
       </section>
-      <div className="flex justify-end"><Link to="/settings" className="text-xs text-muted-foreground underline">Personalizar dashboard</Link></div>
+      <div className="flex items-center justify-between"><button type="button" className="rounded-md border border-border px-3 py-2 text-sm" aria-pressed={editing} onClick={()=>setEditing(v=>!v)}>{editing?"Concluir edição":"Editar layout"}</button><Link to="/settings" className="text-xs text-muted-foreground underline">Personalizar dashboard</Link></div>
+      {layoutError&&<p role="alert">{layoutError}</p>}
+      <LayoutSortable order={order.filter(id=>Boolean(panels[id]))} onChange={next=>{try{const visible=new Set(next);let index=0;reorderWidgets(order.map(id=>visible.has(id)?next[index++]:id));setLayoutError('');}catch{setLayoutError('Não foi possível salvar o layout.');}}}>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        {order.map(id => { const content = panels[id]; return content ? <div key={id} className={sizes[id] === 'half' ? 'min-w-0' : 'min-w-0 sm:col-span-2'}>{content}</div> : null; })}
-      </div>
+        {order.map(id => { const content = panels[id]; return content ? <LayoutItem key={id} id={id} enabled={editing} label={widgetDefinitions.find(w=>w.id===id)?.label??id} className={sizes[id] === 'half' ? 'min-w-0' : 'min-w-0 sm:col-span-2'}>{content}</LayoutItem> : null; })}
+      </div></LayoutSortable>
     </div>
   );
 }
