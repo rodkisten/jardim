@@ -1,2 +1,4 @@
 # Settings contract
 Every new user-adjustable Insights feature must expose a central Settings control, validated defaults and runtime wiring. Section visibility, recent history limit and hemisphere are implemented in v1. External consent remains per operation; hiding Atlas or Atmosphere disables their derived context. Settings are device-local. Analytical thresholds, provider selection, ordering, quota administration, export/reset integration and other module preferences remain follow-up work. Security limits must not be bypassable by preferences.
+
+Deep Control: ten validated numeric preferences now drive mood lookback, discovery evidence thresholds and constellation sample, overlap and result limits. Existing v1 preferences are preserved by field defaults. These thresholds are exploratory heuristics, not statistical significance. Other parameters remain pending.
