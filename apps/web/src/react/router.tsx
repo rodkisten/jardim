@@ -1,3 +1,8 @@
+import { LayoutSortable,LayoutItem } from '../components/LayoutSortable';
+import { LayoutEditToggle } from '../components/LayoutEditToggle';
+import { useLayoutEditing } from '../hooks/useLayoutEditing';
+import { useSurfaceLayout,reorderSurface } from '../hooks/useSurfaceLayout';
+import { useState } from 'react';
 import { useModules, moduleForPath } from '../hooks/useModules';
 import { SyncStatus } from '../components/SyncStatus';
 import { Home } from '../pages/Home';
@@ -34,9 +39,10 @@ const items = [
 ] as const;
 function Shell() {
   const preferences = useModules();
+  const editing=useLayoutEditing();const order=useSurfaceLayout('navigation');const [layoutError,setLayoutError]=useState('');
   const pathname = useRouterState({ select: s => s.location.pathname });
   const active = moduleForPath(pathname);
-  const visible = items.filter(item => { const module = moduleForPath(item.to); return !module || preferences.modules[module.id]; });
+  const visible = order.flatMap(id=>items.filter(item=>item.to===id)).filter(item => { const module = moduleForPath(item.to); return !module || preferences.modules[module.id]; });
   return (
     <div className="jardim-shell mx-auto min-h-dvh max-w-3xl">
       <header className="jardim-header flex items-center gap-2 px-4 pb-3">
@@ -53,16 +59,16 @@ function Shell() {
       </header>
       <main className="px-4 py-4 pb-32 sm:px-8">
         <SyncStatus />
+        {editing&&<div className="mb-3 flex justify-end"><LayoutEditToggle/></div>}{layoutError&&<p role="alert">{layoutError}</p>}
         {active && !preferences.modules[active.id] ? <section className="space-y-3 rounded-2xl border border-border p-5"><h1 className="jardim-editorial text-2xl">Módulo desativado</h1><p className="text-sm">Seus dados continuam guardados.</p><Link to="/settings" className="text-primary">Abrir configurações</Link></section> : <Outlet />}
       </main>
-      <nav
+      <LayoutSortable order={visible.map(item=>item.to)} onChange={next=>{try{reorderSurface('navigation',next);setLayoutError('');}catch{setLayoutError('Não foi possível salvar a navegação.');}}}><nav
         aria-label="Navegação principal"
         style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
         className="jardim-nav fixed grid border border-border bg-card/95 backdrop-blur-xl"
       >
         {visible.map(({ to, label, icon: Icon }) => (
-          <Link
-            key={to}
+          <LayoutItem key={to} id={to} label={label} enabled={editing} className="min-w-0"><Link
             to={to}
             activeOptions={{ exact: true }}
             activeProps={{ className: 'jardim-nav-active' }}
@@ -71,9 +77,9 @@ function Shell() {
           >
             <Icon className="size-5" />
             {label}
-          </Link>
+          </Link></LayoutItem>
         ))}
-      </nav>
+      </nav></LayoutSortable>
     </div>
   );
 }
