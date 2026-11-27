@@ -68,7 +68,7 @@ function Shell() {
         className="jardim-nav fixed grid border border-border bg-card/95 backdrop-blur-xl"
       >
         {visible.map(({ to, label, icon: Icon }) => (
-          <LayoutItem key={to} id={to} label={label} enabled={editing} className="min-w-0"><Link
+          <LayoutItem key={to} id={to} label={label} enabled={editing} compact className="min-w-0"><Link
             to={to}
             activeOptions={{ exact: true }}
             activeProps={{ className: 'jardim-nav-active' }}
