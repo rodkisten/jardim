@@ -1,3 +1,4 @@
+import { sophiaPlan } from './sophia';
 import { semanticSearch } from './intelligence';
 import { oracleUsage } from './oracle-usage';
 import { oracle } from './oracle';
@@ -153,6 +154,10 @@ async function handle(request: Request, env: Env): Promise<Response> {
     }
   }
   if (['/v2/discovery/cities','/v2/discovery/books'].includes(path) && request.method === 'GET') return discovery(url);
+  if (path === '/v2/intelligence/plan' && request.method === 'POST') {
+    const body=await limitedBody(request,4096);
+    return body===null?json({error:'Pedido muito grande'},413):sophiaPlan(env.AI,env.DB,body);
+  }
   if (path === '/v2/intelligence/search' && request.method === 'POST') {
     const body=await limitedBody(request, 100000);
     return body===null?json({error:'Pedido muito grande'},413):semanticSearch(env.AI,env.DB,body);
