@@ -4,3 +4,5 @@ Reusable dnd-kit sortable primitive for React pages. Home edit mode and Settings
 Shared session edit state now connects Home, Music Insights and Settings. Visible Insights modules can be reordered directly; hidden slots are preserved. Edit state is deliberately transient; order persists. Other routes remain opt-in integrations.
 
 V3: surface registry for navigation and Astro, validated persisted order and cross-tab updates. Header remains fixed; bottom navigation and seven Astro sections are sortable. Hidden navigation entries retain their slots. Reset API available; Settings UI integration pending.
+
+V4: reusable SurfacePanels integrates Mood and Faith; page hero and liturgical date controls remain fixed. Conditional Lectio retains its saved slot. No new dependencies.

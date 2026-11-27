@@ -1,3 +1,4 @@
+import { SurfacePanels } from '../components/SurfacePanels';
 import { DimensionNotes } from '../components/DimensionNotes';
 import { Lectio } from '../components/Lectio';
 import { getFaith } from '../utils/faith-cache';
@@ -65,7 +66,7 @@ export function Faith() {
           Tentar carregar novamente
         </Button>
       )}
-      <Card>
+      <SurfacePanels surface="faith" labels={{calendar:'Calendário litúrgico',rosary:'Terço',readings:'Leituras',lectio:'Lectio',saints:'Santos',notes:'Anotações'}} panels={{calendar:<Card>
         <CardContent className="space-y-2">
           <CalendarDays className="size-5 text-primary" />
           <h2 className="font-semibold">Calendário litúrgico</h2>
@@ -74,8 +75,7 @@ export function Faith() {
             {text(data?.calendar.liturgicalSeason)} {text(data?.calendar.color)}
           </p>
         </CardContent>
-      </Card>
-      <Card>
+      </Card>,rosary:<Card>
         <CardContent className="space-y-3">
           <Cross className="size-5 text-primary" />
           <h2 className="font-semibold">Mistérios {rosaryNames[rosary.type] || rosary.type}</h2>
@@ -93,8 +93,7 @@ export function Faith() {
             </details>
           ))}
         </CardContent>
-      </Card>
-      <Card>
+      </Card>,readings:<Card>
         <CardContent className="space-y-3">
           <BookOpen className="size-5 text-primary" />
           <h2 className="font-semibold">Leituras e Evangelho</h2>
@@ -113,15 +112,13 @@ export function Faith() {
             </p>
           )}
         </CardContent>
-      </Card>
-      {validDate(date) && (
+      </Card>,lectio:validDate(date) && (
         <Lectio
           key={date}
           date={date}
           passages={data?.readings.status === 'available' ? readings(data.readings.items) : []}
         />
-      )}
-      <Card>
+      ),saints:<Card>
         <CardContent className="space-y-3">
           <Heart className="size-5 text-primary" />
           <h2 className="font-semibold">Santos do dia</h2>
@@ -153,8 +150,7 @@ export function Faith() {
             </p>
           )}
         </CardContent>
-      </Card>
-      <DimensionNotes dimension="fé" kinds={['oração', 'intenção', 'gratidão', 'reflexão']} />
+      </Card>,notes:<DimensionNotes dimension="fé" kinds={['oração', 'intenção', 'gratidão', 'reflexão']} />}}/>
     </section>
   );
 }
