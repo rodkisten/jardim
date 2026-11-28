@@ -19,6 +19,7 @@ export const Results = z.object({
       title: z.string(),
       description: z.string(),
       year: z.string(),
+      poster: z.string().optional(),
     }),
   ),
 });

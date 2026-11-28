@@ -1,0 +1,120 @@
+name: '🌻 JA · Bootstrap Girassol UI'
+on:
+  push:
+    branches: [feat/girassol-2]
+    paths: [.github/workflows/girassol-bootstrap.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: girassol-bootstrap-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  bootstrap:
+    if: github.ref == 'refs/heads/feat/girassol-2'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: rodkisten/github/src/app-token@main
+        id: app-token
+        with:
+          app-id: ${{ secrets.BOT_APP_ID || vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/girassol-2
+          token: ${{ steps.app-token.outputs.token }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install latest frontend dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t existing < <(node -e 'const p=require("./apps/web/package.json"); for(const k of Object.keys(p.dependencies)) if(k.startsWith("@tiptap/") || k.startsWith("@codemirror/")) console.log(k+"@latest")')
+          pnpm --filter @rodkisten/jardim-web add \
+            motion@latest @tanstack/react-router@latest @tanstack/react-query@latest \
+            @tanstack/react-virtual@latest dexie@latest dexie-react-hooks@latest \
+            embla-carousel-react@latest vaul@latest photoswipe@latest wavesurfer.js@latest \
+            video.js@latest minisearch@latest react-force-graph-2d@latest zod@latest \
+            date-fns@latest pica@latest browser-image-compression@latest lucide-react@latest \
+            @fontsource-variable/fraunces@latest @fontsource-variable/inter@latest \
+            @jsquash/avif@latest @jsquash/webp@latest clsx@latest tailwind-merge@latest \
+            class-variance-authority@latest sonner@latest cmdk@latest react-day-picker@latest \
+            react-resizable-panels@latest "${existing[@]}"
+      - name: Configure shadcn for existing Vite monorepo
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const write = (p,v) => fs.writeFileSync(p, JSON.stringify(v,null,2)+'\n');
+          const config = 'apps/web/components.json';
+          if (!fs.existsSync(config)) write(config, {
+            $schema:'https://ui.shadcn.com/schema.json',style:'new-york',rsc:false,tsx:true,
+            tailwind:{config:'',css:'src/react/shadcn.css',baseColor:'neutral',cssVariables:true,prefix:''},
+            iconLibrary:'lucide',aliases:{components:'@/components',utils:'@/components/lib/utils',ui:'@/components/ui',lib:'@/components/lib',hooks:'@/hooks'}
+          });
+          const ts = 'tsconfig.react.json';
+          const t = JSON.parse(fs.readFileSync(ts,'utf8'));
+          t.compilerOptions.paths = {...t.compilerOptions.paths,'@/*':['./apps/web/src/*']};
+          write(ts,t);
+          if (!fs.existsSync('apps/web/tsconfig.json')) write('apps/web/tsconfig.json',{extends:'../../tsconfig.react.json',compilerOptions:{paths:{'@/*':['./src/*']}},include:['src/react','src/components','src/hooks','src/utils','src/pages']});
+          const vite='vite.config.ts';
+          let v=fs.readFileSync(vite,'utf8');
+          if (!v.includes("alias:")) {
+            const before="resolve: { dedupe: ['react', 'react-dom'] }";
+            if (!v.includes(before)) throw Error('Vite resolve configuration changed');
+            v=v.replace(before,"resolve: { alias: { '@': fileURLToPath(new URL('./apps/web/src', import.meta.url)) }, dedupe: ['react', 'react-dom'] }");
+            fs.writeFileSync(vite,v);
+          }
+          fs.mkdirSync('apps/web/src/components/lib',{recursive:true});
+          const utils='apps/web/src/components/lib/utils.ts';
+          if(!fs.existsSync(utils)) fs.writeFileSync(utils,"import { clsx, type ClassValue } from 'clsx';\nimport { twMerge } from 'tailwind-merge';\nexport function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }\n");
+          const css='apps/web/src/react/shadcn.css';
+          if(!fs.existsSync(css)) fs.writeFileSync(css,`@theme inline {
+            --color-popover: var(--card);
+            --color-popover-foreground: var(--foreground);
+            --color-secondary: var(--muted);
+            --color-secondary-foreground: var(--foreground);
+            --color-accent: var(--muted);
+            --color-accent-foreground: var(--foreground);
+            --color-input: var(--border);
+            --color-destructive: oklch(0.58 0.22 25);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.625rem;
+            --radius-lg: 0.875rem;
+          }\n`);
+          const entry='apps/web/src/react/main.tsx';
+          let e=fs.readFileSync(entry,'utf8');
+          if(!e.includes("'./shadcn.css'")) fs.writeFileSync(entry,"import './shadcn.css';\n"+e);
+          JS
+      - name: Add all shadcn components without overwriting
+        working-directory: apps/web
+        run: pnpm dlx shadcn@latest add --all --yes
+      - name: Validate and format
+        run: |
+          pnpm exec prettier --write apps/web/components.json apps/web/tsconfig.json tsconfig.react.json vite.config.ts apps/web/src/components apps/web/src/react/main.tsx apps/web/src/react/shadcn.css
+          pnpm install --frozen-lockfile
+          pnpm db:generate
+          pnpm exec wrangler types
+          pnpm --filter @rodkisten/jardim-web build
+          pnpm --filter @rodkisten/jardim-api build
+          pnpm typecheck
+      - name: Publish validated changes
+        env:
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${APP_SLUG}[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "feat: bootstrap Girassol UI dependencies and shadcn [deploy]"
+          git push origin HEAD:feat/girassol-2
+      - name: Summary
+        if: always()
+        run: |
+          echo '### 🌻 Girassol bootstrap' >> "$GITHUB_STEP_SUMMARY"
+          echo '[PR #32](https://github.com/rodkisten/jardim/pull/32)' >> "$GITHUB_STEP_SUMMARY"
+          echo "Job status: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

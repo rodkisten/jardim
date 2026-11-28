@@ -1,3 +1,8 @@
+import { sophiaPlan } from './sophia';
+import { semanticSearch } from './intelligence';
+import { oracleUsage } from './oracle-usage';
+import { oracle } from './oracle';
+import { discovery } from './discovery';
 import { ingestInbox, listInbox, decideInbox } from './inbox';
 import { linkPreview } from './link-preview';
 import { lectio } from './lectio';
@@ -147,6 +152,22 @@ async function handle(request: Request, env: Env): Promise<Response> {
         ? json({ error: 'Configuração muito grande' }, 413)
         : preferences(env, text);
     }
+  }
+  if (['/v2/discovery/cities','/v2/discovery/books'].includes(path) && request.method === 'GET') return discovery(url);
+  if (path === '/v2/intelligence/plan' && request.method === 'POST') {
+    const body=await limitedBody(request,4096);
+    return body===null?json({error:'Pedido muito grande'},413):sophiaPlan(env.AI,env.DB,body);
+  }
+  if (path === '/v2/intelligence/search' && request.method === 'POST') {
+    const body=await limitedBody(request, 100000);
+    return body===null?json({error:'Pedido muito grande'},413):semanticSearch(env.AI,env.DB,body);
+  }
+  if (path === '/v2/oracle/usage' && request.method === 'GET') {
+    try { return json(await oracleUsage(env.DB)); } catch { return json({error:'Consumo indisponível'},503); }
+  }
+  if (path === '/v2/oracle/astro' && request.method === 'POST') {
+    const body = await limitedBody(request, 4096);
+    return body === null ? json({error:'Pedido muito grande'},413) : oracle(env.AI, body, env.DB);
   }
   if (path === '/v2/integrations' && request.method === 'GET') return integrationStatus(env);
   if (path === '/v2/spotify/start' && request.method === 'POST') return spotifyStart(env);
@@ -325,7 +346,7 @@ export default {
     result.headers.set('X-Frame-Options', 'DENY');
     result.headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://image.tmdb.org https://covers.openlibrary.org; font-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     );
     return result;
   },

@@ -314,6 +314,7 @@ export async function searchTmdb(env: IntegrationEnv, url: URL, fetcher: typeof 
             title: z.string().optional(),
             name: z.string().optional(),
             overview: z.string().optional(),
+            poster_path: z.string().nullable().optional(),
             release_date: z.string().optional(),
             first_air_date: z.string().optional(),
           }),
@@ -337,6 +338,7 @@ export async function searchTmdb(env: IntegrationEnv, url: URL, fetcher: typeof 
         title: item.title || item.name || 'Sem título',
         description: item.overview || '',
         year: (item.release_date || item.first_air_date || '').slice(0, 4),
+        poster: item.poster_path && /^\/[a-zA-Z0-9_.-]+$/.test(item.poster_path) ? 'https://image.tmdb.org/t/p/w342' + item.poster_path : undefined,
       })),
   });
 }

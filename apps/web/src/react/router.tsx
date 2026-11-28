@@ -1,3 +1,9 @@
+import { LayoutSortable,LayoutItem } from '../components/LayoutSortable';
+import { LayoutEditToggle } from '../components/LayoutEditToggle';
+import { useLayoutEditing } from '../hooks/useLayoutEditing';
+import { useSurfaceLayout,reorderSurface } from '../hooks/useSurfaceLayout';
+import { useState } from 'react';
+import { useModules, moduleForPath } from '../hooks/useModules';
 import { SyncStatus } from '../components/SyncStatus';
 import { Home } from '../pages/Home';
 import {
@@ -6,15 +12,18 @@ import {
   createRouter,
   Link,
   Outlet,
+  useRouterState,
   createHashHistory,
   lazyRouteComponent,
 } from '@tanstack/react-router';
 import {
   House,
+  ChartNoAxesCombined,
   CalendarDays,
   BookOpen,
   Layers,
   Search,
+  LibraryBig,
   Flower2,
   Settings,
   Cross,
@@ -26,43 +35,51 @@ const items = [
   { to: '/diary', label: 'Diário', icon: BookOpen },
   { to: '/capsules', label: 'Cápsulas', icon: Layers },
   { to: '/faith', label: 'Fé', icon: Cross },
-  { to: '/search', label: 'Buscar', icon: Search },
+  { to: '/acervo', label: 'Acervo', icon: LibraryBig },
 ] as const;
 function Shell() {
+  const preferences = useModules();
+  const editing=useLayoutEditing();const order=useSurfaceLayout('navigation');const [layoutError,setLayoutError]=useState('');
+  const pathname = useRouterState({ select: s => s.location.pathname });
+  const active = moduleForPath(pathname);
+  const visible = order.flatMap(id=>items.filter(item=>item.to===id)).filter(item => { const module = moduleForPath(item.to); return !module || preferences.modules[module.id]; });
   return (
-    <div className="mx-auto min-h-dvh max-w-2xl">
-      <header className="jardim-header flex items-center gap-2 border-b border-border px-4 pb-3">
+    <div className="jardim-shell mx-auto min-h-dvh max-w-3xl">
+      <header className="jardim-header flex items-center gap-2 px-4 pb-3">
         <Flower2 className="size-6 text-primary" />
-        <span className="text-lg font-semibold">jardim.</span>
-        <Link to="/inbox" aria-label="Inbox" className="ml-auto p-2 text-muted-foreground">
+        <span className="jardim-editorial text-2xl">jardim.</span>
+        <Link to="/search" aria-label="Buscar" className="ml-auto p-2 text-muted-foreground"><Search className="size-5" /></Link>
+        {preferences.modules.insights&&<Link to="/insights" aria-label="Insights" className="p-2 text-muted-foreground"><ChartNoAxesCombined className="size-5"/></Link>}
+        <Link to="/inbox" aria-label="Inbox" className="p-2 text-muted-foreground">
           <InboxIcon className="size-5" />
         </Link>
         <Link to="/settings" aria-label="Configurações" className="p-2 text-muted-foreground">
           <Settings className="size-5" />
         </Link>
       </header>
-      <main className="px-4 py-5 pb-28">
+      <main className="px-4 py-4 pb-32 sm:px-8">
         <SyncStatus />
-        <Outlet />
+        {editing&&<div className="mb-3 flex justify-end"><LayoutEditToggle/></div>}{layoutError&&<p role="alert">{layoutError}</p>}
+        {active && !preferences.modules[active.id] ? <section className="space-y-3 rounded-2xl border border-border p-5"><h1 className="jardim-editorial text-2xl">Módulo desativado</h1><p className="text-sm">Seus dados continuam guardados.</p><Link to="/settings" className="text-primary">Abrir configurações</Link></section> : <Outlet />}
       </main>
-      <nav
+      <LayoutSortable order={visible.map(item=>item.to)} onChange={next=>{try{reorderSurface('navigation',next);setLayoutError('');}catch{setLayoutError('Não foi possível salvar a navegação.');}}}><nav
         aria-label="Navegação principal"
-        className="jardim-nav fixed inset-x-0 bottom-0 mx-auto grid max-w-2xl grid-cols-6 border-t border-border bg-background/95 backdrop-blur"
+        style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
+        className="jardim-nav fixed grid border border-border bg-card/95 backdrop-blur-xl"
       >
-        {items.map(({ to, label, icon: Icon }) => (
-          <Link
-            key={to}
+        {visible.map(({ to, label, icon: Icon }) => (
+          <LayoutItem key={to} id={to} label={label} enabled={editing} compact className="min-w-0"><Link
             to={to}
             activeOptions={{ exact: true }}
-            activeProps={{ className: 'text-primary' }}
+            activeProps={{ className: 'jardim-nav-active' }}
             inactiveProps={{ className: 'text-muted-foreground' }}
-            className="flex min-h-14 flex-col items-center justify-center gap-1 text-xs"
+            className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[10px]"
           >
             <Icon className="size-5" />
             {label}
-          </Link>
+          </Link></LayoutItem>
         ))}
-      </nav>
+      </nav></LayoutSortable>
     </div>
   );
 }
@@ -104,6 +121,15 @@ const faith = createRoute({
   path: '/faith',
   component: lazyRouteComponent(() => import('../pages/Faith'), 'Faith'),
 });
+const acervo = createRoute({
+  getParentRoute: () => root,
+  path: '/acervo',
+  component: lazyRouteComponent(() => import('../pages/Acervo'), 'Acervo'),
+});
+const astro = createRoute({ getParentRoute: () => root, path: '/astro', component: lazyRouteComponent(() => import('../pages/Astro'), 'Astro') });
+const herbarium = createRoute({ getParentRoute: () => root, path: '/herbarium', component: lazyRouteComponent(() => import('../pages/Herbarium'), 'Herbarium') });
+const mood = createRoute({ getParentRoute: () => root, path: '/mood', component: lazyRouteComponent(() => import('../pages/Mood'), 'Mood') });
+const insights = createRoute({ getParentRoute: () => root, path: '/insights', component: lazyRouteComponent(() => import('../pages/Insights'), 'Insights') });
 const settings = createRoute({
   getParentRoute: () => root,
   path: '/settings',
@@ -127,6 +153,9 @@ const vault = createRoute({
 export const router = createRouter({
   routeTree: root.addChildren([
     home,
+    astro,
+    herbarium,
+    mood,
     timeline,
     diary,
     capsules,
@@ -134,8 +163,10 @@ export const router = createRouter({
     detail,
     conflicts,
     settings,
+    insights,
     integrations,
     faith,
+    acervo,
     inboxRoute,
     vault,
   ]),
