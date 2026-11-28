@@ -26,11 +26,11 @@ function safeLink(value: unknown) {
     /* Optional operation failed; retain the existing local state. */
   }
 }
-function RichNode({ node, depth = 0 }: { node: Node; depth?: number }): ReactNode {
+function RichNode({ node, depth = 0, hideSpotify = false }: { node: Node; depth?: number; hideSpotify?: boolean }): ReactNode {
   const children =
     depth >= 12
       ? null
-      : nodes(node.content).map((child, i) => <RichNode key={i} node={child} depth={depth + 1} />);
+      : nodes(node.content).map((child, i) => <RichNode key={i} node={child} depth={depth + 1} hideSpotify={hideSpotify} />);
   switch (node.type) {
     case 'text': {
       let value: ReactNode = typeof node.text === 'string' ? node.text.slice(0, 20000) : '';
@@ -77,8 +77,11 @@ function RichNode({ node, depth = 0 }: { node: Node; depth?: number }): ReactNod
       const id = attrs(node).id;
       return typeof id === 'string' && /^[a-f0-9-]{36}$/i.test(id) ? <Attachment id={id} /> : null;
     }
-    case 'paragraph':
+    case 'paragraph': {
+      const text = nodes(node.content).map((child) => typeof child.text === 'string' ? child.text : '').join('');
+      if (hideSpotify && culturalLink(text.trim())?.provider === 'Spotify') return null;
       return <p>{children}</p>;
+    }
     case 'heading':
       return <h3 className="text-lg font-semibold">{children}</h3>;
     case 'blockquote':
@@ -145,7 +148,7 @@ export function RichMemory({ memory }: { memory: Memory }) {
   return (
     <div className="space-y-3 whitespace-pre-wrap break-words">
       {memory.richDocument ? (
-        nodes(memory.richDocument.content).map((node, i) => <RichNode key={i} node={node} />)
+        nodes(memory.richDocument.content).map((node, i) => <RichNode key={i} node={node} hideSpotify={hideSpotify} />)
       ) : (
         <p>{memory.body.replace(/\[anexo:[a-f0-9-]{36}\]/gi, '').split('\n').filter((line) => !hideSpotify || culturalLink(line.trim())?.provider !== 'Spotify').join('\n').trim()}</p>
       )}
