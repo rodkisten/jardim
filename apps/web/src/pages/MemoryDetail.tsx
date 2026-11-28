@@ -1,3 +1,4 @@
+import { SentioPanel } from '../components/SentioPanel';
 import { inlineMediaIds } from '../utils/inline-media';
 import { MemoryActions } from '../components/MemoryActions';
 import { Link } from '@tanstack/react-router';
@@ -28,6 +29,7 @@ export function MemoryDetail({ id }: { id: string }) {
           <h1 className="text-2xl font-semibold break-words">{memory.title}</h1>
           <MemoryActions key={memory.id} memory={memory} />
           <RichMemory memory={memory} />
+          <SentioPanel key={memory.id} memory={memory} />
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {attachmentIds(memory.body)
               .filter((id) => !inlineMediaIds(memory.richDocument).has(id))

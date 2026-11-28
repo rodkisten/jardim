@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { listeningSchema, musicDB, type LocalListening } from './music-insights-local';
+import { spotifyIdentity, type CulturalWork, type CulturalInteraction } from './cultural-insights';
+import { ingestCulturalBatch } from './cultural-registry';
 const extended = z.object({
   ts: z.string(),
   ms_played: z.number().int().nonnegative(),
@@ -62,6 +64,31 @@ export async function importSpotify(raw: unknown) {
     });
     if (parsed.success) rows.push(parsed.data);
     else skipped++;
+  }
+  // Preserve the existing analytics store while indexing canonical works.
+  // Replay is safe: both stores use stable playback identifiers.
+  for (let offset = 0; offset < rows.length; offset += 500) {
+    const works: CulturalWork[] = [];
+    const interactions: CulturalInteraction[] = [];
+    for (const row of rows.slice(offset, offset + 500)) {
+      const identity = spotifyIdentity(row.trackId) ?? {
+        provider: 'spotify-history',
+        kind: 'track' as const,
+        externalId: row.trackId,
+      };
+      works.push({
+        identity,
+        title: { value: row.title, provenance: { provider: 'spotify-export', retrievedAt: new Date().toISOString() } },
+      });
+      interactions.push({
+        id: row.id,
+        identity,
+        kind: 'playback',
+        occurredAt: row.occurredAt,
+        ...(row.playedMs === undefined ? {} : { durationMs: row.playedMs }),
+      });
+    }
+    await ingestCulturalBatch(works, interactions);
   }
   let added = 0,
     duplicates = 0;

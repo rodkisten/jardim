@@ -1,3 +1,5 @@
+import { CulturalEnrichmentPanel } from '../components/CulturalEnrichmentPanel';
+import { useInsightSettings, updateInsights } from '../hooks/useInsightSettings';
 import { LayoutEditToggle } from '../components/LayoutEditToggle';
 import { InsightSettingsPanel } from '../components/InsightSettingsPanel';
 import { ModuleSettings } from '../components/ModuleSettings';
@@ -7,6 +9,7 @@ import { Button, Card, CardContent } from '@rodkisten/girassol/react';
 import { Devices } from '../components/Devices';
 import { Link } from '@tanstack/react-router';
 export function SettingsPage() {
+  const settings = useInsightSettings();
   return (
     <section className="space-y-4">
       <Card>
@@ -28,6 +31,17 @@ export function SettingsPage() {
       </Card>
       <ModuleSettings />
       <InsightSettingsPanel />
+      <CulturalEnrichmentPanel />
+      <Card>
+        <CardContent className="space-y-3">
+          <h2 className="font-semibold">Sentio · Sentimentos</h2>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={settings.sentioAutomatic} onChange={event => updateInsights({ ...settings, sentioAutomatic: event.target.checked })} />
+            Analisar automaticamente neste dispositivo
+          </label>
+          <p className="text-xs text-muted-foreground">Análise lexical local, sem envio de notas. Sugestões não são sentimentos confirmados.</p>
+        </CardContent>
+      </Card>
       <ThemePicker />
       <OfflineSettings />
       <Card>

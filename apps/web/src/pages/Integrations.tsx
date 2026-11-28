@@ -1,3 +1,4 @@
+import posthog from 'posthog-js';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from '@rodkisten/jardim-contracts';
@@ -36,15 +37,27 @@ export function IntegrationsPage() {
     },
   });
   const configure = useMutation({
-    mutationFn: () =>
-      integrationRequest('/v2/preferences', {
+    mutationFn: async () => {
+      posthog.capture('jardim_spotify_connect', { stage: 'submit' });
+      const value = id.trim() || status.data?.spotify.clientId || '';
+      if (!/^[a-fA-F0-9]{32}$/.test(value)) throw Error('Informe um Client ID hexadecimal de 32 caracteres.');
+      await integrationRequest('/v2/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spotifyClientId: id.trim() }),
-      }),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ['integrations'] });
+        body: JSON.stringify({ spotifyClientId: value }),
+      });
+      posthog.capture('jardim_spotify_connect', { stage: 'preferences_saved' });
+      const current = Status.parse(await integrationRequest('/v2/integrations'));
+      client.setQueryData(['integrations'], current);
+      if (!current.spotify.configured) throw Error('Spotify indisponível: verifique INTEGRATION_KEY no servidor.');
+      posthog.capture('jardim_spotify_connect', { stage: 'configured' });
+      const data = await integrationRequest('/v2/spotify/start', { method: 'POST' });
+      const url = z.string().url().parse(data.url);
+      if (new URL(url).origin !== 'https://accounts.spotify.com') throw Error('Destino OAuth inválido.');
+      posthog.capture('jardim_spotify_connect', { stage: 'redirect' });
+      location.assign(url);
     },
+    onError: () => posthog.capture('jardim_spotify_connect', { stage: 'failed' }),
   });
   const search = useMutation({
     mutationFn: async () =>
@@ -97,10 +110,11 @@ export function IntegrationsPage() {
               value={id}
               onChange={(e) => setId(e.target.value)}
               placeholder={status.data?.spotify.clientId || 'Client ID'}
-              pattern="[a-fA-F0-9]{32}"
-              required
             />
-            <Button disabled={configure.isPending}>Salvar aplicação</Button>
+            <Button type="submit" disabled={configure.isPending || action.isPending}>
+              {configure.isPending ? 'Conectando…' : 'Salvar e conectar ao Spotify'}
+            </Button>
+            {configure.error && <p role="alert" className="text-sm text-destructive">{configure.error.message}</p>}
           </form>
           <p className="break-all text-xs">
             {status.data?.spotify.redirectUri || location.origin + '/v2/spotify/callback'}

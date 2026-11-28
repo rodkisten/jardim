@@ -1,0 +1,26 @@
+name: Install PostHog dependencies
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  install:
+    if: github.ref_name == 'feat/cultural-insights-foundation'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: pnpm --filter @rodkisten/jardim-web add posthog-js@1 @posthog/react@1
+      - run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/web/package.json pnpm-lock.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: lock PostHog React dependencies [deploy]'
+            git push
+          fi
