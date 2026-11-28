@@ -38,15 +38,21 @@ export function IntegrationsPage() {
     },
   });
   const configure = useMutation({
-    mutationFn: () =>
-      integrationRequest('/v2/preferences', {
+    mutationFn: async () => {
+      const value = id.trim() || status.data?.spotify.clientId || '';
+      if (!/^[a-fA-F0-9]{32}$/.test(value)) throw Error('Informe um Client ID hexadecimal de 32 caracteres.');
+      await integrationRequest('/v2/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spotifyClientId: id.trim() }),
-      }),
-    onSuccess: () => {
-      setMessage('Client ID salvo. Verificando configuração…');
-      void client.invalidateQueries({ queryKey: ['integrations'] });
+        body: JSON.stringify({ spotifyClientId: value }),
+      });
+      const current = Status.parse(await integrationRequest('/v2/integrations'));
+      client.setQueryData(['integrations'], current);
+      if (!current.spotify.configured) throw Error('Spotify indisponível: verifique INTEGRATION_KEY no servidor.');
+      const data = await integrationRequest('/v2/spotify/start', { method: 'POST' });
+      const url = z.string().url().parse(data.url);
+      if (new URL(url).origin !== 'https://accounts.spotify.com') throw Error('Destino OAuth inválido.');
+      location.assign(url);
     },
   });
   const search = useMutation({
@@ -99,10 +105,6 @@ export function IntegrationsPage() {
             onSubmit={(e) => {
               e.preventDefault();
               setMessage('');
-              if (!/^[a-fA-F0-9]{32}$/.test(id.trim())) {
-                setMessage('Informe um Client ID hexadecimal de 32 caracteres.');
-                return;
-              }
               configure.mutate();
             }}
           >
@@ -114,11 +116,11 @@ export function IntegrationsPage() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              required
             />
-            <Button type="submit" disabled={configure.isPending}>
-              {configure.isPending ? 'Salvando…' : 'Salvar aplicação'}
+            <Button type="submit" disabled={configure.isPending || action.isPending}>
+              {configure.isPending ? 'Conectando…' : 'Salvar e conectar ao Spotify'}
             </Button>
+            {configure.error && <p role="alert" className="text-sm text-destructive">{configure.error.message}</p>}
           </form>
           {status.data?.spotify.missing === 'encryption_key' && (
             <p role="alert" className="text-sm text-destructive">Falta configurar INTEGRATION_KEY no servidor.</p>
