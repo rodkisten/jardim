@@ -13,6 +13,7 @@ import {
   spotifyStart,
   spotifyCallback,
   syncSpotify,
+  spotifyTrackMetadata,
   disconnectSpotify,
   searchTmdb,
 } from './integrations';
@@ -181,6 +182,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
       : oracle(env.AI, body, env.DB);
   }
   if (path === '/v2/integrations' && request.method === 'GET') return integrationStatus(env);
+  if (path === '/v2/spotify/track' && request.method === 'GET') return spotifyTrackMetadata(env, url);
   if (path === '/v2/spotify/start' && request.method === 'POST') return spotifyStart(env);
   if (path === '/v2/spotify/sync' && request.method === 'POST') return syncSpotify(env);
   if (path === '/v2/spotify' && request.method === 'DELETE') return disconnectSpotify(env);
