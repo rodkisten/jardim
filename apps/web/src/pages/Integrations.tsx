@@ -1,3 +1,4 @@
+import posthog from 'posthog-js';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from '@rodkisten/jardim-contracts';
@@ -37,6 +38,7 @@ export function IntegrationsPage() {
   });
   const configure = useMutation({
     mutationFn: async () => {
+      posthog.capture('jardim_spotify_connect', { stage: 'submit' });
       const value = id.trim() || status.data?.spotify.clientId || '';
       if (!/^[a-fA-F0-9]{32}$/.test(value)) throw Error('Informe um Client ID hexadecimal de 32 caracteres.');
       await integrationRequest('/v2/preferences', {
@@ -44,14 +46,18 @@ export function IntegrationsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ spotifyClientId: value }),
       });
+      posthog.capture('jardim_spotify_connect', { stage: 'preferences_saved' });
       const current = Status.parse(await integrationRequest('/v2/integrations'));
       client.setQueryData(['integrations'], current);
       if (!current.spotify.configured) throw Error('Spotify indisponível: verifique INTEGRATION_KEY no servidor.');
+      posthog.capture('jardim_spotify_connect', { stage: 'configured' });
       const data = await integrationRequest('/v2/spotify/start', { method: 'POST' });
       const url = z.string().url().parse(data.url);
       if (new URL(url).origin !== 'https://accounts.spotify.com') throw Error('Destino OAuth inválido.');
+      posthog.capture('jardim_spotify_connect', { stage: 'redirect' });
       location.assign(url);
     },
+    onError: () => posthog.capture('jardim_spotify_connect', { stage: 'failed' }),
   });
   const search = useMutation({
     mutationFn: async () =>
