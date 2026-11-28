@@ -345,3 +345,19 @@ export async function searchTmdb(env: IntegrationEnv, url: URL, fetcher: typeof 
       })),
   });
 }
+
+export async function spotifyTrackMetadata(env: IntegrationEnv, url: URL, fetcher: typeof fetch = fetch) {
+  const id = url.searchParams.get('id') ?? '';
+  if (!/^[A-Za-z0-9]{22}$/.test(id)) return Response.json({ error: 'Faixa inválida' }, { status: 400 });
+  const token = await spotifyAccess(env, fetcher);
+  const track = z.object({
+    id: z.string().regex(/^[A-Za-z0-9]{22}$/),
+    name: z.string(),
+    duration_ms: z.number().nonnegative(),
+    explicit: z.boolean().optional(),
+    artists: z.array(z.object({ id: z.string(), name: z.string() })),
+    album: z.object({ id: z.string(), name: z.string(), release_date: z.string().optional() }),
+    external_ids: z.object({ isrc: z.string().optional() }).optional(),
+  }).parse(await externalJson('https://api.spotify.com/v1/tracks/' + id, { headers: { Authorization: 'Bearer ' + token } }, fetcher));
+  return Response.json(track, { headers: { 'Cache-Control': 'private, no-store' } });
+}
