@@ -14,7 +14,7 @@ export function culturalLink(value: string) {
       return { provider: 'YouTube', kind: 'video', href: 'https://www.youtube.com/watch?v=' + id };
     if (host === 'open.spotify.com') {
       const m = u.pathname.match(
-        /^\/(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]{22})\/?$/,
+        /^\/(?:intl-[a-zA-Z-]+\/)?(?:embed\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]{22})\/?$/,
       );
       if (m)
         return {
