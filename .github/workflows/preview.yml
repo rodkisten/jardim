@@ -75,8 +75,8 @@ jobs:
           if [ -z "$db" ]; then
             db="$(curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' -d "$(jq -nc --arg name "$name" '{name:$name}')" "$api/d1/database" | jq -er '.result.uuid')"
           fi
-          pnpm exec wrangler r2 bucket list --json > /tmp/jardim-preview-buckets.json
-          if ! jq -e --arg name "$name" 'any(.[]; .name == $name)' /tmp/jardim-preview-buckets.json; then
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api/r2/buckets" > /tmp/jardim-preview-buckets.json
+          if ! jq -e --arg name "$name" 'any(.result.buckets[]; .name == $name)' /tmp/jardim-preview-buckets.json; then
             pnpm exec wrangler r2 bucket create "$name"
           fi
           jq -n --arg name "$name" --arg db "$db" --arg origin "https://pr${PR}.jardim.migos.club" '{
