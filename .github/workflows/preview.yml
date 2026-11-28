@@ -28,11 +28,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck:react
       - run: pnpm --filter @rodkisten/jardim-web build -- --base=/
+        if: vars.JARDIM_FULL_STACK_PREVIEW != 'true'
+      - run: pnpm build
+        if: vars.JARDIM_FULL_STACK_PREVIEW == 'true'
+        env:
+          VITE_FULL_STACK_PREVIEW: 'true'
       - name: Validate Cloudflare credentials
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::Missing Cloudflare token'; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::Missing Cloudflare account'; exit 1; }
       - name: Deploy isolated PR Worker
+        if: vars.JARDIM_FULL_STACK_PREVIEW != 'true'
         run: |
           node --input-type=module <<'JS'
           import {writeFileSync} from 'node:fs';
@@ -53,12 +59,49 @@ jobs:
           JS
           pnpm exec wrangler deploy --config wrangler.preview.json
           pnpm exec wrangler deploy --config wrangler.preview-alias.json
+      - name: Deploy full-stack PR Worker
+        if: vars.JARDIM_FULL_STACK_PREVIEW == 'true'
+        env:
+          PREVIEW_PASSWORD: ${{ secrets.JARDIM_PREVIEW_PASSWORD }}
+          PREVIEW_KEY: ${{ secrets.JARDIM_PREVIEW_INTEGRATION_KEY }}
+        run: |
+          set -euo pipefail
+          [[ "$PR" =~ ^[0-9]+$ ]]
+          test -n "$PREVIEW_PASSWORD"
+          [[ "$PREVIEW_KEY" =~ ^[a-f0-9]{64}$ ]]
+          name="jardim-preview-pr${PR}"
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          db="$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api/d1/database?name=$name" | jq -er --arg name "$name" '.result[] | select(.name == $name) | .uuid' || true)"
+          if [ -z "$db" ]; then
+            db="$(curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' -d "$(jq -nc --arg name "$name" '{name:$name}')" "$api/d1/database" | jq -er '.result.uuid')"
+          fi
+          pnpm exec wrangler r2 bucket list --json > /tmp/jardim-preview-buckets.json
+          if ! jq -e --arg name "$name" 'any(.[]; .name == $name)' /tmp/jardim-preview-buckets.json; then
+            pnpm exec wrangler r2 bucket create "$name"
+          fi
+          jq -n --arg name "$name" --arg db "$db" --arg origin "https://pr${PR}.jardim.migos.club" '{
+            name:$name, main:"dist/worker.js", compatibility_date:"2026-11-12",
+            compatibility_flags:["nodejs_compat"], workers_dev:false, preview_urls:false,
+            ai:{binding:"AI"}, d1_databases:[{binding:"DB",database_name:$name,database_id:$db,migrations_dir:"infra/cloudflare/migrations"}],
+            r2_buckets:[{binding:"MEDIA",bucket_name:$name}],
+            routes:[{pattern:($origin|sub("^https://";"")),custom_domain:true}],
+            vars:{APP_ORIGIN:$origin}, observability:{enabled:true}
+          }' > wrangler.preview.json
+          pnpm exec wrangler d1 migrations apply "$name" --remote --config wrangler.preview.json
+          pnpm exec wrangler deploy --config wrangler.preview.json
+          jq -nc '{JARDIM_PASSWORD:env.PREVIEW_PASSWORD,INTEGRATION_KEY:env.PREVIEW_KEY}' | pnpm exec wrangler secret bulk --config wrangler.preview.json
       - name: Verify HTTPS preview
+        if: vars.JARDIM_FULL_STACK_PREVIEW != 'true'
         run: |
           curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 10 "https://pr${PR}.jardim.migos.club/" -o /tmp/jardim-preview.html
           grep -q 'id="root"' /tmp/jardim-preview.html
           curl --fail --silent --show-error "https://pr${PR}.jardim.migos.club/faith/rosary" | jq -e '.mysteries | length == 5'
           echo "### 🌻 https://pr${PR}.jardim.migos.club/" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify full-stack preview
+        if: vars.JARDIM_FULL_STACK_PREVIEW == 'true'
+        run: |
+          code="$(curl -sS -o /dev/null -w '%{http_code}' "https://pr${PR}.jardim.migos.club/v2/integrations")"
+          test "$code" = 401
       - name: Update preview comment
         env:
           GH_TOKEN: ${{ github.token }}

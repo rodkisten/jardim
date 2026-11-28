@@ -53,7 +53,7 @@ function LinkCard({ value }: { value: string }) {
 export function LinkPreviews({ text }: { text: string }) {
   const preferences = useModules();
   const links = preferences.richCards
-    ? extractLinks(text).filter((value) => {
+    ? [...new Set(extractLinks(text).map((value) => culturalLink(value)?.href ?? value))].filter((value) => {
         const provider = culturalLink(value)?.provider ?? 'Web';
         return preferences.providers[provider as keyof typeof preferences.providers];
       })

@@ -4,6 +4,7 @@ import { z } from '@rodkisten/jardim-contracts';
 import { Button, Card, CardContent, Input } from '@rodkisten/girassol/react';
 import { Status, Results, importSpotify, integrationRequest } from '../utils/integrations';
 import { db } from '../utils/db';
+import { isPreview } from '../utils/preview';
 export function IntegrationsPage() {
   const client = useQueryClient(),
     [id, setId] = useState(''),
@@ -16,6 +17,7 @@ export function IntegrationsPage() {
     queryKey: ['integrations'],
     queryFn: async () => Status.parse(await integrationRequest('/v2/integrations')),
     retry: false,
+    enabled: !isPreview,
   });
   const action = useMutation({
     mutationFn: async (action: 'start' | 'sync' | 'disconnect') => {
@@ -36,14 +38,21 @@ export function IntegrationsPage() {
     },
   });
   const configure = useMutation({
-    mutationFn: () =>
-      integrationRequest('/v2/preferences', {
+    mutationFn: async () => {
+      const value = id.trim() || status.data?.spotify.clientId || '';
+      if (!/^[a-fA-F0-9]{32}$/.test(value)) throw Error('Informe um Client ID hexadecimal de 32 caracteres.');
+      await integrationRequest('/v2/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spotifyClientId: id.trim() }),
-      }),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ['integrations'] });
+        body: JSON.stringify({ spotifyClientId: value }),
+      });
+      const current = Status.parse(await integrationRequest('/v2/integrations'));
+      client.setQueryData(['integrations'], current);
+      if (!current.spotify.configured) throw Error('Spotify indisponível: verifique INTEGRATION_KEY no servidor.');
+      const data = await integrationRequest('/v2/spotify/start', { method: 'POST' });
+      const url = z.string().url().parse(data.url);
+      if (new URL(url).origin !== 'https://accounts.spotify.com') throw Error('Destino OAuth inválido.');
+      location.assign(url);
     },
   });
   const search = useMutation({
@@ -78,6 +87,12 @@ export function IntegrationsPage() {
       <Card>
         <CardContent className="space-y-3">
           <h2 className="font-semibold">Spotify</h2>
+          {isPreview && (
+            <p role="status" className="rounded-lg border border-border p-3 text-sm">
+              Este preview usa armazenamento local e não possui API de autenticação. Para conectar sua conta, abra o <a className="text-primary underline" href="https://jardim.migos.club">Jardim em produção</a>. A importação JSON continua disponível aqui.
+            </p>
+          )}
+          {!isPreview && <>
           <p>
             {status.data?.spotify.connected
               ? 'Conectado'
@@ -89,6 +104,7 @@ export function IntegrationsPage() {
             className="space-y-2"
             onSubmit={(e) => {
               e.preventDefault();
+              setMessage('');
               configure.mutate();
             }}
           >
@@ -97,11 +113,22 @@ export function IntegrationsPage() {
               value={id}
               onChange={(e) => setId(e.target.value)}
               placeholder={status.data?.spotify.clientId || 'Client ID'}
-              pattern="[a-fA-F0-9]{32}"
-              required
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
             />
-            <Button disabled={configure.isPending}>Salvar aplicação</Button>
+            <Button type="submit" disabled={configure.isPending || action.isPending}>
+              {configure.isPending ? 'Conectando…' : 'Salvar e conectar ao Spotify'}
+            </Button>
+            {configure.error && <p role="alert" className="text-sm text-destructive">{configure.error.message}</p>}
           </form>
+          {status.data?.spotify.missing === 'encryption_key' && (
+            <p role="alert" className="text-sm text-destructive">Falta configurar INTEGRATION_KEY no servidor.</p>
+          )}
+          {message && <p role="status">{message}</p>}
+          {[status.error, configure.error, action.error].filter(Boolean).map((error, i) => (
+            <p key={i} role="alert" className="text-sm text-destructive">{error?.message}</p>
+          ))}
           <p className="break-all text-xs">
             {status.data?.spotify.redirectUri || location.origin + '/v2/spotify/callback'}
           </p>
@@ -126,6 +153,7 @@ export function IntegrationsPage() {
               Conectar Spotify
             </Button>
           )}
+          </>}
           <label className="block text-sm">
             Importar histórico JSON
             <input
@@ -214,8 +242,7 @@ export function IntegrationsPage() {
           </p>
         </CardContent>
       </Card>
-      {message && <p role="status">{message}</p>}
-      {[status.error, action.error, configure.error, search.error, history.error, culture.error]
+      {[search.error, history.error, culture.error]
         .filter(Boolean)
         .map((error, i) => (
           <p key={i} role="alert">
