@@ -15,8 +15,9 @@ import { MusicExplorer } from './MusicExplorer';
 import { deriveContext } from '../utils/music-context';
 import { useMoodEntries } from '../utils/mood-db';
 import { MusicMetadata } from './MusicMetadata';
+import { importSpotifyArchive } from '../utils/spotify-archive';
 import { importSpotify } from '../utils/spotify-history';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Button, Input } from '@rodkisten/girassol/react';
 import {
@@ -35,6 +36,7 @@ export function MusicInsights() {
     [mood, setMood] = useState(''),
     [status, setStatus] = useState(''),
     [busy, setBusy] = useState(false);
+  const archiveAbort = useRef<AbortController | null>(null);
   const { entries } = useMoodEntries();
   const [enrich, setEnrich] = useState(false);
   const hemisphere = settings.hemisphere;
@@ -140,10 +142,10 @@ export function MusicInsights() {
         </Button>
       </form>
       <label className="block text-sm">
-        Importar histórico JSON (Jardim ou Spotify)
+        Importar histórico ZIP ou JSON (Jardim ou Spotify)
         <input
           type="file"
-          accept=".json,application/json"
+          accept=".zip,application/zip,.json,application/json"
           disabled={busy}
           className="block w-full text-xs"
           onChange={async (e) => {
@@ -152,6 +154,13 @@ export function MusicInsights() {
             if (!file) return;
             setBusy(true);
             try {
+              if (file.name.toLowerCase().endsWith('.zip')) {
+                const controller = new AbortController();
+                archiveAbort.current = controller;
+                const result = await importSpotifyArchive(file, setStatus, controller.signal);
+                setStatus(`${result.added} novas escutas · ${result.duplicates} duplicadas · ${result.skipped} ignoradas.`);
+                return;
+              }
               if (file.size > 10_000_000) throw Error();
               const raw: unknown = JSON.parse(await file.text());
               if (
@@ -171,14 +180,20 @@ export function MusicInsights() {
                 const count = await importListening(raw);
                 setStatus(count + ' registros processados.');
               }
-            } catch {
-              setStatus('Arquivo inválido ou grande demais.');
+            } catch (error) {
+              setStatus(archiveAbort.current?.signal.aborted ? 'Importação interrompida. Os lotes concluídos foram preservados.' : error instanceof Error ? error.message : 'Arquivo inválido.');
             } finally {
+              archiveAbort.current = null;
               setBusy(false);
             }
           }}
         />
       </label>
+      {busy && archiveAbort.current && (
+        <Button type="button" variant="outline" onClick={() => archiveAbort.current?.abort()}>
+          Cancelar importação
+        </Button>
+      )}
       {status && (
         <p role="status" className="text-sm">
           {status}
