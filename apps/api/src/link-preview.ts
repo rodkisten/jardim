@@ -70,20 +70,27 @@ export async function linkPreview(url: URL, fetcher = fetch, preview = false) {
     return Response.json({ error: 'Preview limitado a páginas iniciais' }, { status: 400 });
   if (!target) return Response.json({ error: 'Domínio não habilitado' }, { status: 400 });
   try {
-    const endpoint = ({
-      'www.youtube.com': 'https://www.youtube.com/oembed',
-      'open.spotify.com': 'https://open.spotify.com/oembed',
-      'twitter.com': 'https://publish.twitter.com/oembed',
-      'vimeo.com': 'https://vimeo.com/api/oembed.json',
-    } as Record<string,string>)[target.hostname];
+    const endpoint = (
+      {
+        'www.youtube.com': 'https://www.youtube.com/oembed',
+        'open.spotify.com': 'https://open.spotify.com/oembed',
+        'twitter.com': 'https://publish.twitter.com/oembed',
+        'vimeo.com': 'https://vimeo.com/api/oembed.json',
+      } as Record<string, string>
+    )[target.hostname];
     if (endpoint && !preview) {
       const request = new URL(endpoint);
       request.searchParams.set('url', target.href);
       request.searchParams.set('format', 'json');
-      const result = await fetcher(request.href, { redirect: 'manual', signal: AbortSignal.timeout(7000), headers: { Accept: 'application/json' } });
+      const result = await fetcher(request.href, {
+        redirect: 'manual',
+        signal: AbortSignal.timeout(7000),
+        headers: { Accept: 'application/json' },
+      });
       if (result.ok && result.body) {
         const reader = result.body.getReader();
-        let raw = '', size = 0;
+        let raw = '',
+          size = 0;
         const decoder = new TextDecoder();
         try {
           while (true) {
@@ -94,10 +101,26 @@ export async function linkPreview(url: URL, fetcher = fetch, preview = false) {
             raw += decoder.decode(value, { stream: true });
           }
           raw += decoder.decode();
-        } finally { await reader.cancel().catch(() => undefined); }
+        } finally {
+          await reader.cancel().catch(() => undefined);
+        }
         const data = JSON.parse(raw) as Record<string, unknown>;
-        const title = typeof data.title === 'string' ? data.title : typeof data.author_name === 'string' ? 'Publicação de ' + data.author_name : '';
-        if (title) return Response.json({ title: title.slice(0,240), description: typeof data.author_name === 'string' ? data.author_name.slice(0,500) : '', host: target.hostname, image: typeof data.thumbnail_url === 'string' ? await loadImage(data.thumbnail_url, target, fetcher) : undefined });
+        const title =
+          typeof data.title === 'string'
+            ? data.title
+            : typeof data.author_name === 'string'
+              ? 'Publicação de ' + data.author_name
+              : '';
+        if (title)
+          return Response.json({
+            title: title.slice(0, 240),
+            description: typeof data.author_name === 'string' ? data.author_name.slice(0, 500) : '',
+            host: target.hostname,
+            image:
+              typeof data.thumbnail_url === 'string'
+                ? await loadImage(data.thumbnail_url, target, fetcher)
+                : undefined,
+          });
       }
     }
     const response = await fetcher(target.href, {

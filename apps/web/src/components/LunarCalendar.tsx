@@ -1,6 +1,118 @@
 import { useMemo } from 'react';
 import { Link } from '@tanstack/react-router';
 import { lunarState, lunarEvents } from '../utils/astro-lunar';
-function MoonDisc({angle}:{angle:number}){const waxing=angle<180;const k=Math.cos(angle*Math.PI/180);return <svg viewBox="0 0 80 80" className="size-16 shrink-0" role="img" aria-label="Ilustração da fase lunar"><circle cx="40" cy="40" r="36" fill="#302143" stroke="#a78bfa"/><path d={`M40 4 A36 36 0 0 ${waxing?1:0} 40 76 A${Math.max(.001,Math.abs(k)*36)} 36 0 0 ${waxing?(k>0?0:1):(k>0?1:0)} 40 4Z`} fill="#e6d7fa"/></svg>;}
-export function AstroWidget(){const data=useMemo(()=>{try{const now=new Date();return {moon:lunarState(now),next:lunarEvents(now,1)[0]};}catch{return null;}},[]);return <Link to="/astro" data-tone="astro" className="astro-panel block space-y-2 rounded-2xl border p-4"><div className="flex items-center gap-3">{data&&<MoonDisc angle={data.moon.angle}/>}<div><p className="jardim-eyebrow">Astro · Lua de hoje</p><h2 className="jardim-editorial text-xl">{data?.moon.phase??'Céu indisponível'}</h2>{data&&<p className="text-xs">{Math.round(data.moon.illumination*100)}% iluminada</p>}</div></div>{data&&<p className="text-xs">Próxima fase: {data.next.name} · {data.next.date.toLocaleDateString('pt-BR')}</p>}</Link>;}
-export function LunarCalendar({date,onSelect}:{date:string;onSelect:(date:string)=>void}){const data=useMemo(()=>{try{const start=new Date(date.slice(0,7)+'-01T00:00:00Z');if(!Number.isFinite(start.getTime()))return null;const days=new Date(Date.UTC(start.getUTCFullYear(),start.getUTCMonth()+1,0)).getUTCDate();return {start,days:Array.from({length:days},(_,i)=>{const d=new Date(start.getTime()+i*86400000+43200000);return {key:d.toISOString().slice(0,10),day:i+1,...lunarState(d)};}),events:lunarEvents(new Date(date+'T00:00:00Z'))};}catch{return null;}},[date]);if(!data)return <p role="alert">Calendário lunar indisponível.</p>;return <section className="astro-panel space-y-3 rounded-2xl border p-4"><h2 className="jardim-editorial text-xl">Calendário lunar</h2><div className="grid grid-cols-7 gap-1">{['D','S','T','Q','Q','S','S'].map((s,i)=><span key={i} className="text-center text-xs">{s}</span>)}{Array.from({length:data.start.getUTCDay()},(_,i)=><span key={'blank'+i}/>)}{data.days.map(d=><button type="button" key={d.key} aria-label={d.key+' '+d.phase} aria-pressed={date===d.key} onClick={()=>onSelect(d.key)} className="flex min-w-0 flex-col items-center rounded-lg border border-transparent p-1 text-xs aria-pressed:border-violet-400"><span>{d.day}</span><span className="text-lg">{['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'][Math.round(d.angle/45)%8]}</span></button>)}</div><p className="text-xs">Fases diárias às 12h UTC. Selecione um dia para atualizar o céu.</p><h3 className="text-sm font-semibold">Próximas fases principais</h3>{data.events.map(e=><div key={e.date.toISOString()} className="flex justify-between gap-2 text-xs"><span>{e.name}</span><time dateTime={e.date.toISOString()}>{e.date.toLocaleString('pt-BR')}</time></div>)}</section>;}
+function MoonDisc({ angle }: { angle: number }) {
+  const waxing = angle < 180;
+  const k = Math.cos((angle * Math.PI) / 180);
+  return (
+    <svg
+      viewBox="0 0 80 80"
+      className="size-16 shrink-0"
+      role="img"
+      aria-label="Ilustração da fase lunar"
+    >
+      <circle cx="40" cy="40" r="36" fill="#302143" stroke="#a78bfa" />
+      <path
+        d={`M40 4 A36 36 0 0 ${waxing ? 1 : 0} 40 76 A${Math.max(0.001, Math.abs(k) * 36)} 36 0 0 ${waxing ? (k > 0 ? 0 : 1) : k > 0 ? 1 : 0} 40 4Z`}
+        fill="#e6d7fa"
+      />
+    </svg>
+  );
+}
+export function AstroWidget() {
+  const data = useMemo(() => {
+    try {
+      const now = new Date();
+      return { moon: lunarState(now), next: lunarEvents(now, 1)[0] };
+    } catch {
+      return null;
+    }
+  }, []);
+  return (
+    <Link
+      to="/astro"
+      data-tone="astro"
+      className="astro-panel block space-y-2 rounded-2xl border p-4"
+    >
+      <div className="flex items-center gap-3">
+        {data && <MoonDisc angle={data.moon.angle} />}
+        <div>
+          <p className="jardim-eyebrow">Astro · Lua de hoje</p>
+          <h2 className="jardim-editorial text-xl">{data?.moon.phase ?? 'Céu indisponível'}</h2>
+          {data && <p className="text-xs">{Math.round(data.moon.illumination * 100)}% iluminada</p>}
+        </div>
+      </div>
+      {data && (
+        <p className="text-xs">
+          Próxima fase: {data.next.name} · {data.next.date.toLocaleDateString('pt-BR')}
+        </p>
+      )}
+    </Link>
+  );
+}
+export function LunarCalendar({
+  date,
+  onSelect,
+}: {
+  date: string;
+  onSelect: (date: string) => void;
+}) {
+  const data = useMemo(() => {
+    try {
+      const start = new Date(date.slice(0, 7) + '-01T00:00:00Z');
+      if (!Number.isFinite(start.getTime())) return null;
+      const days = new Date(
+        Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0),
+      ).getUTCDate();
+      return {
+        start,
+        days: Array.from({ length: days }, (_, i) => {
+          const d = new Date(start.getTime() + i * 86400000 + 43200000);
+          return { key: d.toISOString().slice(0, 10), day: i + 1, ...lunarState(d) };
+        }),
+        events: lunarEvents(new Date(date + 'T00:00:00Z')),
+      };
+    } catch {
+      return null;
+    }
+  }, [date]);
+  if (!data) return <p role="alert">Calendário lunar indisponível.</p>;
+  return (
+    <section className="astro-panel space-y-3 rounded-2xl border p-4">
+      <h2 className="jardim-editorial text-xl">Calendário lunar</h2>
+      <div className="grid grid-cols-7 gap-1">
+        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((s, i) => (
+          <span key={i} className="text-center text-xs">
+            {s}
+          </span>
+        ))}
+        {Array.from({ length: data.start.getUTCDay() }, (_, i) => (
+          <span key={'blank' + i} />
+        ))}
+        {data.days.map((d) => (
+          <button
+            type="button"
+            key={d.key}
+            aria-label={d.key + ' ' + d.phase}
+            aria-pressed={date === d.key}
+            onClick={() => onSelect(d.key)}
+            className="flex min-w-0 flex-col items-center rounded-lg border border-transparent p-1 text-xs aria-pressed:border-violet-400"
+          >
+            <span>{d.day}</span>
+            <span className="text-lg">
+              {['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'][Math.round(d.angle / 45) % 8]}
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="text-xs">Fases diárias às 12h UTC. Selecione um dia para atualizar o céu.</p>
+      <h3 className="text-sm font-semibold">Próximas fases principais</h3>
+      {data.events.map((e) => (
+        <div key={e.date.toISOString()} className="flex justify-between gap-2 text-xs">
+          <span>{e.name}</span>
+          <time dateTime={e.date.toISOString()}>{e.date.toLocaleString('pt-BR')}</time>
+        </div>
+      ))}
+    </section>
+  );
+}

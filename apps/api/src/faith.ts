@@ -165,16 +165,14 @@ export async function faith(url: URL, fetcher: typeof fetch = fetch): Promise<Re
       ? {
           status: 'available',
           source: saintsRaw.source,
-          items: saintsRaw.data.results
-            .filter(record)
-            .map((s) => ({
-              name: s.nome ?? null,
-              image: typeof s.imagem === 'string' && /^https:\/\//.test(s.imagem) ? s.imagem : null,
-              biography: s.historia ?? null,
-              reflection: s.reflexao ?? null,
-              prayer: s.oracao ?? null,
-              imageLicense: 'unverified',
-            })),
+          items: saintsRaw.data.results.filter(record).map((s) => ({
+            name: s.nome ?? null,
+            image: typeof s.imagem === 'string' && /^https:\/\//.test(s.imagem) ? s.imagem : null,
+            biography: s.historia ?? null,
+            reflection: s.reflexao ?? null,
+            prayer: s.oracao ?? null,
+            imageLicense: 'unverified',
+          })),
         }
       : unavailable('saints');
   const result =

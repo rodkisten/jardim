@@ -1,2 +1,3 @@
 # Jardim Insights database
+
 Dedicated PostgreSQL 17 / pgvector. Apply migrations transactionally with a privileged migration role. Runtime access is not enabled until least-privilege roles, owner isolation, consent and deletion are implemented. Never use production data in PR previews. D1 remains unchanged. No credentials in git. SQL is the initial migration source of truth; Drizzle mapping follows.

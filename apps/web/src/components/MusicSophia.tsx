@@ -3,30 +3,386 @@ import { useMemo, useState } from 'react';
 import Dexie, { type Table } from 'dexie';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { z } from 'zod';
-import { Button,Input } from '@rodkisten/girassol/react';
+import { Button, Input } from '@rodkisten/girassol/react';
 import type { LocalListening } from '../utils/music-insights-local';
-const Plan=z.object({supported:z.boolean(),artist:z.string().max(200).nullable(),track:z.string().max(200).nullable(),mood:z.string().max(100).nullable(),weather:z.string().max(100).nullable(),season:z.string().max(100).nullable(),moonSign:z.string().max(100).nullable(),maxBpm:z.number().positive().max(500).nullable(),from:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),to:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),group:z.enum(['track','artist'])}).strict();
-type QueryPlan=z.infer<typeof Plan>;
-type SavedQuery={id:string;name:string;plan:QueryPlan;createdAt:string};
-class SophiaDB extends Dexie{queries!:Table<SavedQuery,string>;constructor(){super('jardim-sophia');this.version(1).stores({queries:'id,createdAt'});}}
-const db=new SophiaDB();
-const emptyPlan:QueryPlan={supported:true,artist:null,track:null,mood:null,weather:null,season:null,moonSign:null,maxBpm:null,from:null,to:null,group:'track'};
-const fields=[['artist','Artista'],['track','Música'],['mood','Humor'],['weather','Clima'],['season','Estação'],['moonSign','Lua'],['from','De'],['to','Até']] as const;
-const normalize=(s:string)=>s.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLocaleLowerCase('pt-BR').trim();
-export function MusicSophia({rows}:{rows:readonly LocalListening[]}){
- const settings=useInsightSettings();
- const [query,setQuery]=useState(''),[consent,setConsent]=useState(false),[busy,setBusy]=useState(false),[status,setStatus]=useState(''),[plan,setPlan]=useState<QueryPlan|null>(null),[approved,setApproved]=useState(false);
- const saved=useLiveQuery(()=>db.queries.orderBy('createdAt').reverse().toArray(),[]);
- const [name,setName]=useState('');
- function edit(next:QueryPlan){setPlan(next);setApproved(false);}
- async function save(){if(!plan||!Plan.safeParse(plan).success||!name.trim()||!plan.supported||plan.from&&plan.to&&plan.from>plan.to)return;try{await db.queries.add({id:crypto.randomUUID(),name:name.trim(),plan,createdAt:new Date().toISOString()});setName('');setStatus('Consulta salva neste dispositivo.');}catch{setStatus('Falha ao salvar consulta.');}}
- async function interpret(){if(!settings.sophiaAI||!consent||busy)return;setBusy(true);setConsent(false);setPlan(null);setApproved(false);setStatus('');try{const response=await fetch('/v2/intelligence/plan',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({consent:true,query,model:settings.sophiaModel,slowBpm:settings.slowBpm}),signal:AbortSignal.timeout(60000)});if(!response.ok)throw Error(response.status===429?'Quota diária atingida.':'Interpretação indisponível.');setPlan(z.object({plan:Plan}).parse(await response.json()).plan);}catch(e){setStatus(e instanceof Error?e.message:'Falha na interpretação.');}finally{setBusy(false);}}
- const result=useMemo(()=>{const groups=new Map<string,{name:string;count:number}>();let matched=0,unknown=0;const seen=new Set<string>();
- if(plan?.supported&&approved){for(const row of rows){if(row.source==='reference'||seen.has(row.id))continue;seen.add(row.id);if(plan.artist&&!normalize(row.artist).includes(normalize(plan.artist))||plan.track&&!normalize(row.title).includes(normalize(plan.track)))continue;
- const filters=[['mood',plan.mood],['weather',plan.weather],['season',plan.season],['moonSign',plan.moonSign]] as const;
- if((plan.from||plan.to)&&row.timeBasis==='utc'&&!row.timezone||plan.maxBpm!==null&&row.bpm===undefined||filters.some(([key,value])=>value&&!row.context?.[key])){unknown++;continue;}
- if(plan.from&&row.localDate<plan.from||plan.to&&row.localDate>plan.to||plan.maxBpm!==null&&(row.bpm??Infinity)>plan.maxBpm||filters.some(([key,value])=>value&&normalize(row.context?.[key]??'')!==normalize(value)))continue;
- matched++;const key=plan.group==='artist'?JSON.stringify([...row.artistIds].sort()):row.trackId;const name=plan.group==='artist'?row.artist:row.title+' · '+row.artist;groups.set(key,{name,count:(groups.get(key)?.count??0)+1});}}return {matched,unknown,ranked:[...groups.entries()].sort((a,b)=>b[1].count-a[1].count).slice(0,settings.sophiaLimit)};},[rows,plan,approved,settings.sophiaLimit]);
- const valid=!!plan&&Plan.safeParse(plan).success&&!(plan.from&&plan.to&&plan.from>plan.to);
- return <section className="space-y-3 border-t border-border pt-4"><h3 className="jardim-editorial text-xl">Sophia Studio</h3><p className="text-xs text-muted-foreground">A pergunta e os parâmetros de interpretação serão enviados à Cloudflare Workers AI. O histórico e o contexto são consultados localmente. A pergunta pode conter informações pessoais.</p>{!settings.sophiaAI&&<p className="text-xs">IA desativada nos Settings. Consultas manuais disponíveis.</p>}<Input maxLength={500} disabled={busy||!settings.sophiaAI} placeholder="Quais músicas lentas ouço na chuva?" value={query} onChange={e=>{setQuery(e.target.value);setConsent(false);setPlan(null);setApproved(false);}}/><label className="flex gap-2 text-sm"><input type="checkbox" checked={consent} disabled={busy} onChange={e=>setConsent(e.target.checked)}/>Autorizo enviar esta pergunta para interpretação.</label><Button type="button" disabled={!settings.sophiaAI||busy||!consent||query.trim().length<3} onClick={()=>void interpret()}>{busy?'Interpretando…':'Interpretar pergunta'}</Button><div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={busy} onClick={()=>edit({...emptyPlan})}>Consulta manual</Button>{[['Chuva','Chuva'],['Céu limpo','Céu limpo']].map(([label,weather])=><Button key={label} type="button" variant="ghost" disabled={busy} onClick={()=>edit({...emptyPlan,weather})}>{label}</Button>)}</div><details><summary className="text-sm">Consultas salvas ({saved?.length??0})</summary>{saved?.map(item=><div key={item.id} className="flex items-center gap-2 py-1"><Button type="button" variant="ghost" disabled={busy} onClick={()=>{const parsed=Plan.safeParse(item.plan);if(parsed.success)edit(parsed.data);else setStatus('Consulta incompatível.');}}>{item.name}</Button><Button type="button" variant="ghost" onClick={()=>void db.queries.delete(item.id).catch(()=>setStatus('Falha ao excluir.'))}>Excluir</Button></div>)}</details>{status&&<p role="alert" className="text-xs">{status}</p>}{plan&&(!plan.supported?<p>Esta pergunta ainda não é suportada. Tente filtros de música, artista, humor, clima, estação, Lua, BPM ou datas explícitas.</p>:<div className="space-y-2 rounded-lg border border-border p-3"><h4 className="font-medium">Plano de consulta</h4><div className="grid grid-cols-2 gap-2">{fields.map(([key,label])=><label key={key} className="text-xs">{label}<Input disabled={busy} type={key==='from'||key==='to'?'date':'text'} maxLength={key==='artist'||key==='track'?200:100} value={plan[key]??''} onChange={e=>edit({...plan,[key]:e.target.value||null})}/></label>)}<label className="text-xs">BPM máximo<Input type="number" min={1} max={500} value={plan.maxBpm??''} onChange={e=>edit({...plan,maxBpm:e.target.value?Number(e.target.value):null})}/></label><label className="text-xs">Agrupar<select className="block w-full rounded-lg border border-border bg-background p-2 text-base" value={plan.group} onChange={e=>edit({...plan,group:e.target.value==='artist'?'artist':'track'})}><option value="track">Músicas</option><option value="artist">Créditos de artistas</option></select></label></div><div className="flex gap-2"><Input aria-label="Nome da consulta" maxLength={100} value={name} placeholder="Nome para salvar" onChange={e=>setName(e.target.value)}/><Button type="button" variant="outline" disabled={!valid||!name.trim()} onClick={()=>void save()}>Salvar</Button></div><p className="text-xs text-muted-foreground">Confira os filtros antes de executar. Música lenta usa limite configurado de {settings.slowBpm} BPM.</p><Button type="button" disabled={!valid} onClick={()=>setApproved(true)}>Executar localmente</Button>{approved&&<><p className="text-sm">{result.matched} escutas encontradas · {result.unknown} excluídas por contexto desconhecido.</p>{result.ranked.map(([id,g])=><div key={id} className="flex justify-between gap-2 text-sm"><span>{g.name}</span><strong>{g.count}</strong><div className="h-1 w-16 self-center rounded bg-muted"><div className="h-1 rounded bg-primary" style={{width:100*g.count/Math.max(1,result.ranked[0]?.[1].count??1)+'%'}}/></div></div>)}<p className="text-xs text-muted-foreground">Até {settings.sophiaLimit} resultados, ordenados por contagem. Não encontrar registros não prova ausência de escutas.</p></>}</div>)}</section>;
+const Plan = z
+  .object({
+    supported: z.boolean(),
+    artist: z.string().max(200).nullable(),
+    track: z.string().max(200).nullable(),
+    mood: z.string().max(100).nullable(),
+    weather: z.string().max(100).nullable(),
+    season: z.string().max(100).nullable(),
+    moonSign: z.string().max(100).nullable(),
+    maxBpm: z.number().positive().max(500).nullable(),
+    from: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .nullable(),
+    to: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .nullable(),
+    group: z.enum(['track', 'artist']),
+  })
+  .strict();
+type QueryPlan = z.infer<typeof Plan>;
+type SavedQuery = { id: string; name: string; plan: QueryPlan; createdAt: string };
+class SophiaDB extends Dexie {
+  queries!: Table<SavedQuery, string>;
+  constructor() {
+    super('jardim-sophia');
+    this.version(1).stores({ queries: 'id,createdAt' });
+  }
+}
+const db = new SophiaDB();
+const emptyPlan: QueryPlan = {
+  supported: true,
+  artist: null,
+  track: null,
+  mood: null,
+  weather: null,
+  season: null,
+  moonSign: null,
+  maxBpm: null,
+  from: null,
+  to: null,
+  group: 'track',
+};
+const fields = [
+  ['artist', 'Artista'],
+  ['track', 'Música'],
+  ['mood', 'Humor'],
+  ['weather', 'Clima'],
+  ['season', 'Estação'],
+  ['moonSign', 'Lua'],
+  ['from', 'De'],
+  ['to', 'Até'],
+] as const;
+const normalize = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase('pt-BR')
+    .trim();
+export function MusicSophia({ rows }: { rows: readonly LocalListening[] }) {
+  const settings = useInsightSettings();
+  const [query, setQuery] = useState(''),
+    [consent, setConsent] = useState(false),
+    [busy, setBusy] = useState(false),
+    [status, setStatus] = useState(''),
+    [plan, setPlan] = useState<QueryPlan | null>(null),
+    [approved, setApproved] = useState(false);
+  const saved = useLiveQuery(() => db.queries.orderBy('createdAt').reverse().toArray(), []);
+  const [name, setName] = useState('');
+  function edit(next: QueryPlan) {
+    setPlan(next);
+    setApproved(false);
+  }
+  async function save() {
+    if (
+      !plan ||
+      !Plan.safeParse(plan).success ||
+      !name.trim() ||
+      !plan.supported ||
+      (plan.from && plan.to && plan.from > plan.to)
+    )
+      return;
+    try {
+      await db.queries.add({
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        plan,
+        createdAt: new Date().toISOString(),
+      });
+      setName('');
+      setStatus('Consulta salva neste dispositivo.');
+    } catch {
+      setStatus('Falha ao salvar consulta.');
+    }
+  }
+  async function interpret() {
+    if (!settings.sophiaAI || !consent || busy) return;
+    setBusy(true);
+    setConsent(false);
+    setPlan(null);
+    setApproved(false);
+    setStatus('');
+    try {
+      const response = await fetch('/v2/intelligence/plan', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          consent: true,
+          query,
+          model: settings.sophiaModel,
+          slowBpm: settings.slowBpm,
+        }),
+        signal: AbortSignal.timeout(60000),
+      });
+      if (!response.ok)
+        throw Error(
+          response.status === 429 ? 'Quota diária atingida.' : 'Interpretação indisponível.',
+        );
+      setPlan(z.object({ plan: Plan }).parse(await response.json()).plan);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : 'Falha na interpretação.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  const result = useMemo(() => {
+    const groups = new Map<string, { name: string; count: number }>();
+    let matched = 0,
+      unknown = 0;
+    const seen = new Set<string>();
+    if (plan?.supported && approved) {
+      for (const row of rows) {
+        if (row.source === 'reference' || seen.has(row.id)) continue;
+        seen.add(row.id);
+        if (
+          (plan.artist && !normalize(row.artist).includes(normalize(plan.artist))) ||
+          (plan.track && !normalize(row.title).includes(normalize(plan.track)))
+        )
+          continue;
+        const filters = [
+          ['mood', plan.mood],
+          ['weather', plan.weather],
+          ['season', plan.season],
+          ['moonSign', plan.moonSign],
+        ] as const;
+        if (
+          ((plan.from || plan.to) && row.timeBasis === 'utc' && !row.timezone) ||
+          (plan.maxBpm !== null && row.bpm === undefined) ||
+          filters.some(([key, value]) => value && !row.context?.[key])
+        ) {
+          unknown++;
+          continue;
+        }
+        if (
+          (plan.from && row.localDate < plan.from) ||
+          (plan.to && row.localDate > plan.to) ||
+          (plan.maxBpm !== null && (row.bpm ?? Infinity) > plan.maxBpm) ||
+          filters.some(
+            ([key, value]) => value && normalize(row.context?.[key] ?? '') !== normalize(value),
+          )
+        )
+          continue;
+        matched++;
+        const key =
+          plan.group === 'artist' ? JSON.stringify([...row.artistIds].sort()) : row.trackId;
+        const name = plan.group === 'artist' ? row.artist : row.title + ' · ' + row.artist;
+        groups.set(key, { name, count: (groups.get(key)?.count ?? 0) + 1 });
+      }
+    }
+    return {
+      matched,
+      unknown,
+      ranked: [...groups.entries()]
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, settings.sophiaLimit),
+    };
+  }, [rows, plan, approved, settings.sophiaLimit]);
+  const valid =
+    !!plan && Plan.safeParse(plan).success && !(plan.from && plan.to && plan.from > plan.to);
+  return (
+    <section className="space-y-3 border-t border-border pt-4">
+      <h3 className="jardim-editorial text-xl">Sophia Studio</h3>
+      <p className="text-xs text-muted-foreground">
+        A pergunta e os parâmetros de interpretação serão enviados à Cloudflare Workers AI. O
+        histórico e o contexto são consultados localmente. A pergunta pode conter informações
+        pessoais.
+      </p>
+      {!settings.sophiaAI && (
+        <p className="text-xs">IA desativada nos Settings. Consultas manuais disponíveis.</p>
+      )}
+      <Input
+        maxLength={500}
+        disabled={busy || !settings.sophiaAI}
+        placeholder="Quais músicas lentas ouço na chuva?"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setConsent(false);
+          setPlan(null);
+          setApproved(false);
+        }}
+      />
+      <label className="flex gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={consent}
+          disabled={busy}
+          onChange={(e) => setConsent(e.target.checked)}
+        />
+        Autorizo enviar esta pergunta para interpretação.
+      </label>
+      <Button
+        type="button"
+        disabled={!settings.sophiaAI || busy || !consent || query.trim().length < 3}
+        onClick={() => void interpret()}
+      >
+        {busy ? 'Interpretando…' : 'Interpretar pergunta'}
+      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          onClick={() => edit({ ...emptyPlan })}
+        >
+          Consulta manual
+        </Button>
+        {[
+          ['Chuva', 'Chuva'],
+          ['Céu limpo', 'Céu limpo'],
+        ].map(([label, weather]) => (
+          <Button
+            key={label}
+            type="button"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => edit({ ...emptyPlan, weather })}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+      <details>
+        <summary className="text-sm">Consultas salvas ({saved?.length ?? 0})</summary>
+        {saved?.map((item) => (
+          <div key={item.id} className="flex items-center gap-2 py-1">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => {
+                const parsed = Plan.safeParse(item.plan);
+                if (parsed.success) edit(parsed.data);
+                else setStatus('Consulta incompatível.');
+              }}
+            >
+              {item.name}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() =>
+                void db.queries.delete(item.id).catch(() => setStatus('Falha ao excluir.'))
+              }
+            >
+              Excluir
+            </Button>
+          </div>
+        ))}
+      </details>
+      {status && (
+        <p role="alert" className="text-xs">
+          {status}
+        </p>
+      )}
+      {plan &&
+        (!plan.supported ? (
+          <p>
+            Esta pergunta ainda não é suportada. Tente filtros de música, artista, humor, clima,
+            estação, Lua, BPM ou datas explícitas.
+          </p>
+        ) : (
+          <div className="space-y-2 rounded-lg border border-border p-3">
+            <h4 className="font-medium">Plano de consulta</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {fields.map(([key, label]) => (
+                <label key={key} className="text-xs">
+                  {label}
+                  <Input
+                    disabled={busy}
+                    type={key === 'from' || key === 'to' ? 'date' : 'text'}
+                    maxLength={key === 'artist' || key === 'track' ? 200 : 100}
+                    value={plan[key] ?? ''}
+                    onChange={(e) => edit({ ...plan, [key]: e.target.value || null })}
+                  />
+                </label>
+              ))}
+              <label className="text-xs">
+                BPM máximo
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={plan.maxBpm ?? ''}
+                  onChange={(e) =>
+                    edit({ ...plan, maxBpm: e.target.value ? Number(e.target.value) : null })
+                  }
+                />
+              </label>
+              <label className="text-xs">
+                Agrupar
+                <select
+                  className="block w-full rounded-lg border border-border bg-background p-2 text-base"
+                  value={plan.group}
+                  onChange={(e) =>
+                    edit({ ...plan, group: e.target.value === 'artist' ? 'artist' : 'track' })
+                  }
+                >
+                  <option value="track">Músicas</option>
+                  <option value="artist">Créditos de artistas</option>
+                </select>
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                aria-label="Nome da consulta"
+                maxLength={100}
+                value={name}
+                placeholder="Nome para salvar"
+                onChange={(e) => setName(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!valid || !name.trim()}
+                onClick={() => void save()}
+              >
+                Salvar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Confira os filtros antes de executar. Música lenta usa limite configurado de{' '}
+              {settings.slowBpm} BPM.
+            </p>
+            <Button type="button" disabled={!valid} onClick={() => setApproved(true)}>
+              Executar localmente
+            </Button>
+            {approved && (
+              <>
+                <p className="text-sm">
+                  {result.matched} escutas encontradas · {result.unknown} excluídas por contexto
+                  desconhecido.
+                </p>
+                {result.ranked.map(([id, g]) => (
+                  <div key={id} className="flex justify-between gap-2 text-sm">
+                    <span>{g.name}</span>
+                    <strong>{g.count}</strong>
+                    <div className="h-1 w-16 self-center rounded bg-muted">
+                      <div
+                        className="h-1 rounded bg-primary"
+                        style={{
+                          width:
+                            (100 * g.count) / Math.max(1, result.ranked[0]?.[1].count ?? 1) + '%',
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground">
+                  Até {settings.sophiaLimit} resultados, ordenados por contagem. Não encontrar
+                  registros não prova ausência de escutas.
+                </p>
+              </>
+            )}
+          </div>
+        ))}
+    </section>
+  );
 }

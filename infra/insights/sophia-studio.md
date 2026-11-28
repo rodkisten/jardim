@@ -1,2 +1,3 @@
 # Sophia Studio
+
 Manual queries and weather presets require no AI. Edit all supported filters; edits invalidate execution approval. Save named structured plans locally in Dexie, not raw questions or results. Reload and delete saved plans; execution always requires confirmation. Memoized local ranking and relative count bars. Saved plans may contain sensitive filters; global export/reset integration pending. No narrative AI or cloud sync in this iteration.
