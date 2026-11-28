@@ -43,6 +43,7 @@ export function IntegrationsPage() {
         body: JSON.stringify({ spotifyClientId: id.trim() }),
       }),
     onSuccess: () => {
+      setMessage('Client ID salvo. Verificando configuração…');
       void client.invalidateQueries({ queryKey: ['integrations'] });
     },
   });
@@ -89,6 +90,11 @@ export function IntegrationsPage() {
             className="space-y-2"
             onSubmit={(e) => {
               e.preventDefault();
+              setMessage('');
+              if (!/^[a-fA-F0-9]{32}$/.test(id.trim())) {
+                setMessage('Informe um Client ID hexadecimal de 32 caracteres.');
+                return;
+              }
               configure.mutate();
             }}
           >
@@ -97,11 +103,22 @@ export function IntegrationsPage() {
               value={id}
               onChange={(e) => setId(e.target.value)}
               placeholder={status.data?.spotify.clientId || 'Client ID'}
-              pattern="[a-fA-F0-9]{32}"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               required
             />
-            <Button disabled={configure.isPending}>Salvar aplicação</Button>
+            <Button type="submit" disabled={configure.isPending}>
+              {configure.isPending ? 'Salvando…' : 'Salvar aplicação'}
+            </Button>
           </form>
+          {status.data?.spotify.missing === 'encryption_key' && (
+            <p role="alert" className="text-sm text-destructive">Falta configurar INTEGRATION_KEY no servidor.</p>
+          )}
+          {message && <p role="status">{message}</p>}
+          {[status.error, configure.error, action.error].filter(Boolean).map((error, i) => (
+            <p key={i} role="alert" className="text-sm text-destructive">{error?.message}</p>
+          ))}
           <p className="break-all text-xs">
             {status.data?.spotify.redirectUri || location.origin + '/v2/spotify/callback'}
           </p>
@@ -214,8 +231,7 @@ export function IntegrationsPage() {
           </p>
         </CardContent>
       </Card>
-      {message && <p role="status">{message}</p>}
-      {[status.error, action.error, configure.error, search.error, history.error, culture.error]
+      {[search.error, history.error, culture.error]
         .filter(Boolean)
         .map((error, i) => (
           <p key={i} role="alert">
