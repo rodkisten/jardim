@@ -4,6 +4,7 @@ import { z } from '@rodkisten/jardim-contracts';
 import { Button, Card, CardContent, Input } from '@rodkisten/girassol/react';
 import { Status, Results, importSpotify, integrationRequest } from '../utils/integrations';
 import { db } from '../utils/db';
+import { isPreview } from '../utils/preview';
 export function IntegrationsPage() {
   const client = useQueryClient(),
     [id, setId] = useState(''),
@@ -16,6 +17,7 @@ export function IntegrationsPage() {
     queryKey: ['integrations'],
     queryFn: async () => Status.parse(await integrationRequest('/v2/integrations')),
     retry: false,
+    enabled: !isPreview,
   });
   const action = useMutation({
     mutationFn: async (action: 'start' | 'sync' | 'disconnect') => {
@@ -79,6 +81,12 @@ export function IntegrationsPage() {
       <Card>
         <CardContent className="space-y-3">
           <h2 className="font-semibold">Spotify</h2>
+          {isPreview && (
+            <p role="status" className="rounded-lg border border-border p-3 text-sm">
+              Este preview usa armazenamento local e não possui API de autenticação. Para conectar sua conta, abra o <a className="text-primary underline" href="https://jardim.migos.club">Jardim em produção</a>. A importação JSON continua disponível aqui.
+            </p>
+          )}
+          {!isPreview && <>
           <p>
             {status.data?.spotify.connected
               ? 'Conectado'
@@ -143,6 +151,7 @@ export function IntegrationsPage() {
               Conectar Spotify
             </Button>
           )}
+          </>}
           <label className="block text-sm">
             Importar histórico JSON
             <input
