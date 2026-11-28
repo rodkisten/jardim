@@ -5,6 +5,10 @@ export type Observation<T> = { value: T; provenance: Provenance };
 export type CulturalWork = {
   identity: CulturalIdentity;
   title?: Observation<string>;
+  durationMs?: Observation<number>;
+  explicit?: Observation<boolean>;
+  artists?: Observation<{ id: string; name: string }[]>;
+  album?: Observation<{ id: string; name: string; release_date?: string }>;
   genres?: Observation<string[]>;
   tags?: Observation<string[]>;
   identifiers?: Record<string, string>;
