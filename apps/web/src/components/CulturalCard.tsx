@@ -29,6 +29,23 @@ export function CulturalCard({ value }: { value: string }) {
   if (!link) return null;
   const Icon = link.provider === 'Spotify' ? Music2 : link.provider === 'X' ? MessageCircle : Film;
   const embed = embedUrl(link.href);
+  if (link.provider === 'Spotify' && embed)
+    return (
+      <div className="overflow-hidden rounded-xl">
+        <iframe
+          title={'Spotify · ' + link.kind}
+          src={embed}
+          loading="lazy"
+          className={link.kind === 'track' ? 'h-[152px] w-full rounded-xl' : 'h-[352px] w-full rounded-xl'}
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+        <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground underline">
+          Abrir no Spotify
+        </a>
+      </div>
+    );
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
       <a
@@ -80,9 +97,7 @@ export function CulturalCard({ value }: { value: string }) {
                 title={'Player ' + link.provider}
                 src={embed}
                 className={
-                  link.provider === 'Spotify'
-                    ? 'h-40 w-full rounded-lg'
-                    : 'aspect-video w-full rounded-lg'
+                  'aspect-video w-full rounded-lg'
                 }
                 allow="encrypted-media; fullscreen; picture-in-picture"
                 allowFullScreen
