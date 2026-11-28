@@ -5,21 +5,25 @@ import { culturalRegistry as db } from '../utils/cultural-registry';
 import { enrichNext } from '../utils/cultural-enrichment';
 import { openLibraryProvider } from '../utils/cultural-providers';
 
+import { spotifyProvider, musicBrainzProvider } from '../utils/music-providers';
+
 export function CulturalEnrichmentPanel() {
   const jobs = useLiveQuery(() => db.enrichment.toArray(), []);
   const [allowed, setAllowed] = useState(false);
+  const [spotify, setSpotify] = useState(false);
+  const [musicBrainz, setMusicBrainz] = useState(false);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
   async function start() {
-    if (!allowed || controller.current) return;
+    if (!(allowed || spotify || musicBrainz) || controller.current) return;
     const task = new AbortController();
     controller.current = task;
     setRunning(true);
     setError('');
     try {
-      while (!task.signal.aborted && await enrichNext([openLibraryProvider], task.signal)) {
+      while (!task.signal.aborted && await enrichNext([...(allowed ? [openLibraryProvider] : []), ...(spotify ? [spotifyProvider] : []), ...(musicBrainz ? [musicBrainzProvider] : [])], task.signal)) {
         await new Promise<void>(resolve => setTimeout(resolve, 1100));
       }
     } catch {
@@ -43,11 +47,13 @@ export function CulturalEnrichmentPanel() {
         <input type="checkbox" checked={allowed} onChange={event => { setAllowed(event.target.checked); if (!event.target.checked) controller.current?.abort(); }} />
         Permitir consultas ao Open Library nesta sessão
       </label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={spotify} disabled={running} onChange={event => setSpotify(event.target.checked)} />Spotify</label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={musicBrainz} disabled={running} onChange={event => setMusicBrainz(event.target.checked)} />MusicBrainz (ISRC)</label>
       <div className="grid grid-cols-2 gap-2 text-sm">
         {(['pending', 'running', 'complete', 'failed'] as const).map((status, index) => <div key={status} className="rounded-md border border-border p-2"><span className="text-muted-foreground">{['Pendentes', 'Processando', 'Concluídos', 'Falhas'][index]}</span><p className="font-semibold">{jobs ? jobs.filter(job => job.status === status).length : '…'}</p></div>)}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button disabled={!allowed || running} onClick={() => void start()}>Processar fila</Button>
+        <Button disabled={!(allowed || spotify || musicBrainz) || running} onClick={() => void start()}>Processar fila</Button>
         <Button variant="outline" disabled={!running} onClick={() => controller.current?.abort()}>Pausar</Button>
         <Button variant="outline" disabled={running} onClick={() => void retry()}>Reagendar falhas</Button>
       </div>
