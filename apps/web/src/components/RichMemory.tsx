@@ -1,6 +1,8 @@
 import { TechnicalContent } from './TechnicalContent';
 import { Attachment } from './Attachment';
 import { Snippet } from './Snippet';
+import { culturalLink } from '../utils/cultural-link';
+import { useModules } from '../hooks/useModules';
 import { LinkPreviews } from './LinkPreviews';
 import type { ReactNode } from 'react';
 import type { Memory } from '@rodkisten/jardim-contracts';
@@ -138,12 +140,14 @@ function RichNode({ node, depth = 0 }: { node: Node; depth?: number }): ReactNod
   }
 }
 export function RichMemory({ memory }: { memory: Memory }) {
+  const preferences = useModules();
+  const hideSpotify = preferences.richCards && preferences.providers.Spotify;
   return (
     <div className="space-y-3 whitespace-pre-wrap break-words">
       {memory.richDocument ? (
         nodes(memory.richDocument.content).map((node, i) => <RichNode key={i} node={node} />)
       ) : (
-        <p>{memory.body.replace(/\[anexo:[a-f0-9-]{36}\]/gi, '').trim()}</p>
+        <p>{memory.body.replace(/\[anexo:[a-f0-9-]{36}\]/gi, '').split('\n').filter((line) => !hideSpotify || culturalLink(line.trim())?.provider !== 'Spotify').join('\n').trim()}</p>
       )}
       <LinkPreviews text={memory.body} />
     </div>
