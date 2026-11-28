@@ -1,3 +1,4 @@
+import { CulturalEnrichmentPanel } from '../components/CulturalEnrichmentPanel';
 import { useInsightSettings, updateInsights } from '../hooks/useInsightSettings';
 import { LayoutEditToggle } from '../components/LayoutEditToggle';
 import { InsightSettingsPanel } from '../components/InsightSettingsPanel';
@@ -30,6 +31,7 @@ export function SettingsPage() {
       </Card>
       <ModuleSettings />
       <InsightSettingsPanel />
+      <CulturalEnrichmentPanel />
       <Card>
         <CardContent className="space-y-3">
           <h2 className="font-semibold">Sentio · Sentimentos</h2>
