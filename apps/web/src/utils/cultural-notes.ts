@@ -6,7 +6,7 @@ import { culturalRegistry as db } from './cultural-registry';
 export function noteIdentities(memory: Pick<Memory, 'body' | 'title' | 'richDocument'>) {
   const identities = new Map<string, CulturalIdentity>();
   const scan = (text: string) => {
-    for (const match of text.matchAll(/https:\/\/[^\s<>"\x27\x60\]\)]+|spotify:(?:track|album|artist|episode|show|playlist):[A-Za-z0-9]{22}/g)) {
+    for (const match of text.matchAll(/https:\/\/[^\s<>"\x27\x60\])]+|spotify:(?:track|album|artist|episode|show|playlist):[A-Za-z0-9]{22}/g)) {
       const identity = culturalIdentity(match[0].replace(/[.,;!?]+$/, ''));
       if (identity) identities.set(culturalIdentityKey(identity), identity);
     }
