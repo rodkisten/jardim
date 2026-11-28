@@ -52,7 +52,12 @@ function LinkCard({ value }: { value: string }) {
 }
 export function LinkPreviews({ text }: { text: string }) {
   const preferences = useModules();
-  const links = preferences.richCards ? extractLinks(text).filter(value => { const provider = culturalLink(value)?.provider ?? "Web"; return preferences.providers[provider as keyof typeof preferences.providers]; }) : [];
+  const links = preferences.richCards
+    ? extractLinks(text).filter((value) => {
+        const provider = culturalLink(value)?.provider ?? 'Web';
+        return preferences.providers[provider as keyof typeof preferences.providers];
+      })
+    : [];
   return links.length ? (
     <div className="space-y-2">
       {links.map((value) =>

@@ -3,9 +3,98 @@ import { useState } from 'react';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { Button } from '@rodkisten/girassol/react';
-import { widgets, useModules, moveWidget, resizeWidget, resetDashboard, setWidget, reorderWidgets } from '../hooks/useModules';
-export function DashboardSettings(){
- const p=useModules();const [error,setError]=useState('');
- function change(fn:()=>void){try{fn();setError('');}catch{setError('Não foi possível salvar o layout.');}}
- return <section className="space-y-3 rounded-2xl border border-border bg-card p-4"><h2 className="jardim-editorial text-xl">Dashboard Builder</h2><p className="text-xs text-muted-foreground">Arraste pelo puxador ou use as setas para ordenar. No celular, todos os widgets ocupam a largura disponível.</p><LayoutSortable order={p.order} onChange={next=>change(()=>reorderWidgets(next))}>{p.order.map((id,i)=><LayoutItem key={id} id={id} label={widgets.find(w=>w.id===id)?.label??id} className="space-y-2 rounded-xl border border-border p-3"><div className="flex items-center gap-2"><span className="min-w-0 flex-1 text-sm">{widgets.find(w=>w.id===id)?.label}</span><Switch aria-label={'Mostrar '+id} checked={p.widgets[id]} onCheckedChange={v=>change(()=>setWidget(id,v))}/></div><div className="flex items-center gap-1"><Button type="button" size="icon" variant="ghost" aria-label="Mover acima" disabled={i===0} onClick={()=>change(()=>moveWidget(id,p.order[i-1]))}><ArrowUp className="size-4"/></Button><Button type="button" size="icon" variant="ghost" aria-label="Mover abaixo" disabled={i===p.order.length-1} onClick={()=>change(()=>moveWidget(id,p.order[i+1]))}><ArrowDown className="size-4"/></Button><select aria-label={'Largura '+id} className="ml-auto rounded-lg border border-border bg-background p-2 text-base" value={p.sizes[id]??'full'} onChange={e=>change(()=>resizeWidget(id,e.target.value==='half'?'half':'full'))}><option value="full">Largura inteira</option><option value="half">Meia largura</option></select></div></LayoutItem>)}</LayoutSortable><Button type="button" variant="outline" onClick={()=>{if(confirm('Restaurar ordem, tamanho e visibilidade dos widgets?'))change(resetDashboard);}}>Restaurar layout</Button>{error&&<p role="alert">{error}</p>}</section>;
+import {
+  widgets,
+  useModules,
+  moveWidget,
+  resizeWidget,
+  resetDashboard,
+  setWidget,
+  reorderWidgets,
+} from '../hooks/useModules';
+export function DashboardSettings() {
+  const p = useModules();
+  const [error, setError] = useState('');
+  function change(fn: () => void) {
+    try {
+      fn();
+      setError('');
+    } catch {
+      setError('Não foi possível salvar o layout.');
+    }
+  }
+  return (
+    <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
+      <h2 className="jardim-editorial text-xl">Dashboard Builder</h2>
+      <p className="text-xs text-muted-foreground">
+        Arraste pelo puxador ou use as setas para ordenar. No celular, todos os widgets ocupam a
+        largura disponível.
+      </p>
+      <LayoutSortable order={p.order} onChange={(next) => change(() => reorderWidgets(next))}>
+        {p.order.map((id, i) => (
+          <LayoutItem
+            key={id}
+            id={id}
+            label={widgets.find((w) => w.id === id)?.label ?? id}
+            className="space-y-2 rounded-xl border border-border p-3"
+          >
+            <div className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 text-sm">
+                {widgets.find((w) => w.id === id)?.label}
+              </span>
+              <Switch
+                aria-label={'Mostrar ' + id}
+                checked={p.widgets[id]}
+                onCheckedChange={(v) => change(() => setWidget(id, v))}
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Mover acima"
+                disabled={i === 0}
+                onClick={() => change(() => moveWidget(id, p.order[i - 1]))}
+              >
+                <ArrowUp className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Mover abaixo"
+                disabled={i === p.order.length - 1}
+                onClick={() => change(() => moveWidget(id, p.order[i + 1]))}
+              >
+                <ArrowDown className="size-4" />
+              </Button>
+              <select
+                aria-label={'Largura ' + id}
+                className="ml-auto rounded-lg border border-border bg-background p-2 text-base"
+                value={p.sizes[id] ?? 'full'}
+                onChange={(e) =>
+                  change(() => resizeWidget(id, e.target.value === 'half' ? 'half' : 'full'))
+                }
+              >
+                <option value="full">Largura inteira</option>
+                <option value="half">Meia largura</option>
+              </select>
+            </div>
+          </LayoutItem>
+        ))}
+      </LayoutSortable>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => {
+          if (confirm('Restaurar ordem, tamanho e visibilidade dos widgets?'))
+            change(resetDashboard);
+        }}
+      >
+        Restaurar layout
+      </Button>
+      {error && <p role="alert">{error}</p>}
+    </section>
+  );
 }

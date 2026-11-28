@@ -1,7 +1,7 @@
-import { LayoutSortable,LayoutItem } from './LayoutSortable';
+import { LayoutSortable, LayoutItem } from './LayoutSortable';
 import { LayoutEditToggle } from './LayoutEditToggle';
 import { useLayoutEditing } from '../hooks/useLayoutEditing';
-import { useInsightSettings,updateInsights } from '../hooks/useInsightSettings';
+import { useInsightSettings, updateInsights } from '../hooks/useInsightSettings';
 import { MusicSophia } from './MusicSophia';
 import { MusicHelios } from './MusicHelios';
 import { MusicAtlas } from './MusicAtlas';
@@ -19,21 +19,288 @@ import { importSpotify } from '../utils/spotify-history';
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Button, Input } from '@rodkisten/girassol/react';
-import { musicDB, manualListening, saveListening, importListening } from '../utils/music-insights-local';
-export function MusicInsights(){
- const settings=useInsightSettings();
- const editing=useLayoutEditing();
- const rows=useLiveQuery(()=>musicDB.listening.orderBy('occurredAt').reverse().toArray(),[]);
- const [title,setTitle]=useState(''),[artist,setArtist]=useState(''),[bpm,setBpm]=useState(''),[mood,setMood]=useState(''),[status,setStatus]=useState(''),[busy,setBusy]=useState(false);
- const {entries}=useMoodEntries();
- const [enrich,setEnrich]=useState(false);
- const hemisphere=settings.hemisphere;
- const [atmosphere,setAtmosphere]=useState<AtmosphereSnapshot|null>(null);
- const periods=useLiveQuery(()=>atlasDB.periods.orderBy('from').toArray(),[]);
- const [atlasEnabled,setAtlasEnabled]=useState(false);
- const locatedRows=useMemo(()=>atlasEnabled&&settings.sections.atlas?applyAtlas(rows??[],periods??[]):rows??[],[rows,periods,atlasEnabled,settings.sections.atlas]);
- const baseRows=useMemo(()=>enrich?locatedRows.map(row=>({...row,context:deriveContext(row,entries,hemisphere||undefined,settings.moodHours)})):locatedRows,[locatedRows,entries,enrich,hemisphere,settings.moodHours]);
- const contextualRows=useMemo(()=>applyAtmosphere(baseRows,settings.sections.atmosphere?atmosphere:null),[baseRows,atmosphere,settings.sections.atmosphere]);
- async function capture(){setBusy(true);setStatus('');try{const event=manualListening(title,artist,bpm?Number(bpm):undefined);await saveListening({...event,context:{...event.context,mood:mood.trim()||undefined}});setTitle('');setArtist('');setBpm('');setMood('');setStatus('Escuta registrada.');}catch{setStatus('Não foi possível registrar. Verifique os campos.');}finally{setBusy(false);}}
- return <section className={settings.density==='compact'?'space-y-2 rounded-2xl border border-border bg-card p-2':'space-y-4 rounded-2xl border border-border bg-card p-4'}><div><h2 className="jardim-editorial text-xl">DNA musical</h2><p className="text-xs text-muted-foreground">Escutas registradas neste dispositivo. Sem envio ao servidor.</p></div><form className="space-y-2" onSubmit={e=>{e.preventDefault();void capture();}}><Input aria-label="Música" placeholder="Música" value={title} onChange={e=>setTitle(e.target.value)} required maxLength={300}/><Input aria-label="Artista" placeholder="Artista" value={artist} onChange={e=>setArtist(e.target.value)} required maxLength={300}/><Input aria-label="BPM opcional" placeholder="BPM (opcional)" type="number" min={1} max={500} value={bpm} onChange={e=>setBpm(e.target.value)}/><Input aria-label="Humor opcional" placeholder="Como estou me sentindo? (opcional)" value={mood} onChange={e=>setMood(e.target.value)} maxLength={100}/><Button type="submit" disabled={busy||!title.trim()||!artist.trim()}>Registrar escuta</Button></form><label className="block text-sm">Importar histórico JSON (Jardim ou Spotify)<input type="file" accept=".json,application/json" disabled={busy} className="block w-full text-xs" onChange={async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;setBusy(true);try{if(file.size>10_000_000)throw Error();const raw:unknown=JSON.parse(await file.text());if(Array.isArray(raw)&&raw.some(r=>r&&typeof r==='object'&&('ts' in r||'endTime' in r))){const result=await importSpotify(raw);setStatus(result.added+' novas escutas · '+result.duplicates+' duplicadas · '+result.skipped+' ignoradas.');}else{const count=await importListening(raw);setStatus(count+' registros processados.');}}catch{setStatus('Arquivo inválido ou grande demais.');}finally{setBusy(false);}}}/></label>{status&&<p role="status" className="text-sm">{status}</p>}<div className="space-y-2"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={enrich} onChange={e=>setEnrich(e.target.checked)}/> Cruzar contexto local (humor e Lua)</label>{enrich&&<><p className="text-xs text-muted-foreground">Humor: último check-in até {settings.moodHours} horas antes da escuta. Lua: posição tropical calculada no instante. Nenhum dado é enviado ou gravado pelo cruzamento.</p><label className="block text-sm">Hemisfério para estação meteorológica<select className="block w-full rounded-lg border border-border bg-background p-2 text-base" value={hemisphere} onChange={e=>updateInsights({...settings,hemisphere:e.target.value as typeof hemisphere})}><option value="">Desconhecido</option><option value="south">Sul</option><option value="north">Norte</option></select></label></>}<LayoutEditToggle/><LayoutSortable order={settings.order.filter(id=>settings.sections[id])} onChange={next=>{try{const visible=new Set(next);let i=0;updateInsights({...settings,order:settings.order.map(id=>visible.has(id)?next[i++]:id)});}catch{setStatus('Não foi possível salvar o layout.');}}}>{settings.order.filter(id=>settings.sections[id]).map(id=><LayoutItem key={id} id={id} label={id} enabled={editing}>{({metadata:<MusicMetadata title={title} artist={artist} onSelect={(t,a)=>{setTitle(t);setArtist(a);}}/>,atlas:<MusicAtlas enabled={atlasEnabled} onEnabled={setAtlasEnabled}/>,atmosphere:<MusicAtmosphere onApply={setAtmosphere}/>,helios:<MusicHelios rows={contextualRows} periods={atlasEnabled&&settings.sections.atlas?periods??[]:[]}/>,sophia:<MusicSophia rows={contextualRows}/>,discoveries:<MusicDiscoveries rows={contextualRows}/>,constellations:<MusicConstellations rows={contextualRows}/>,chronos:<MusicChronos rows={contextualRows}/>,explorer:<MusicExplorer rows={contextualRows}/>})[id]}</LayoutItem>)}</LayoutSortable></div><details><summary className="text-sm">Histórico local</summary>{(rows??[]).slice(0,settings.historyLimit).map(row=><div key={row.id} className="flex items-center justify-between gap-2 border-b border-border py-2 text-sm"><span>{row.title} · {row.artist}</span><Button variant="ghost" type="button" onClick={()=>{void musicDB.listening.delete(row.id).catch(()=>setStatus('Falha ao excluir.'));}}>Excluir</Button></div>)}</details><Button variant="outline" type="button" disabled={!rows?.length} onClick={()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(rows,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='jardim-listening.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}>Exportar histórico</Button></section>;
+import {
+  musicDB,
+  manualListening,
+  saveListening,
+  importListening,
+} from '../utils/music-insights-local';
+export function MusicInsights() {
+  const settings = useInsightSettings();
+  const editing = useLayoutEditing();
+  const rows = useLiveQuery(() => musicDB.listening.orderBy('occurredAt').reverse().toArray(), []);
+  const [title, setTitle] = useState(''),
+    [artist, setArtist] = useState(''),
+    [bpm, setBpm] = useState(''),
+    [mood, setMood] = useState(''),
+    [status, setStatus] = useState(''),
+    [busy, setBusy] = useState(false);
+  const { entries } = useMoodEntries();
+  const [enrich, setEnrich] = useState(false);
+  const hemisphere = settings.hemisphere;
+  const [atmosphere, setAtmosphere] = useState<AtmosphereSnapshot | null>(null);
+  const periods = useLiveQuery(() => atlasDB.periods.orderBy('from').toArray(), []);
+  const [atlasEnabled, setAtlasEnabled] = useState(false);
+  const locatedRows = useMemo(
+    () =>
+      atlasEnabled && settings.sections.atlas
+        ? applyAtlas(rows ?? [], periods ?? [])
+        : (rows ?? []),
+    [rows, periods, atlasEnabled, settings.sections.atlas],
+  );
+  const baseRows = useMemo(
+    () =>
+      enrich
+        ? locatedRows.map((row) => ({
+            ...row,
+            context: deriveContext(row, entries, hemisphere || undefined, settings.moodHours),
+          }))
+        : locatedRows,
+    [locatedRows, entries, enrich, hemisphere, settings.moodHours],
+  );
+  const contextualRows = useMemo(
+    () => applyAtmosphere(baseRows, settings.sections.atmosphere ? atmosphere : null),
+    [baseRows, atmosphere, settings.sections.atmosphere],
+  );
+  async function capture() {
+    setBusy(true);
+    setStatus('');
+    try {
+      const event = manualListening(title, artist, bpm ? Number(bpm) : undefined);
+      await saveListening({
+        ...event,
+        context: { ...event.context, mood: mood.trim() || undefined },
+      });
+      setTitle('');
+      setArtist('');
+      setBpm('');
+      setMood('');
+      setStatus('Escuta registrada.');
+    } catch {
+      setStatus('Não foi possível registrar. Verifique os campos.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section
+      className={
+        settings.density === 'compact'
+          ? 'space-y-2 rounded-2xl border border-border bg-card p-2'
+          : 'space-y-4 rounded-2xl border border-border bg-card p-4'
+      }
+    >
+      <div>
+        <h2 className="jardim-editorial text-xl">DNA musical</h2>
+        <p className="text-xs text-muted-foreground">
+          Escutas registradas neste dispositivo. Sem envio ao servidor.
+        </p>
+      </div>
+      <form
+        className="space-y-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void capture();
+        }}
+      >
+        <Input
+          aria-label="Música"
+          placeholder="Música"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          maxLength={300}
+        />
+        <Input
+          aria-label="Artista"
+          placeholder="Artista"
+          value={artist}
+          onChange={(e) => setArtist(e.target.value)}
+          required
+          maxLength={300}
+        />
+        <Input
+          aria-label="BPM opcional"
+          placeholder="BPM (opcional)"
+          type="number"
+          min={1}
+          max={500}
+          value={bpm}
+          onChange={(e) => setBpm(e.target.value)}
+        />
+        <Input
+          aria-label="Humor opcional"
+          placeholder="Como estou me sentindo? (opcional)"
+          value={mood}
+          onChange={(e) => setMood(e.target.value)}
+          maxLength={100}
+        />
+        <Button type="submit" disabled={busy || !title.trim() || !artist.trim()}>
+          Registrar escuta
+        </Button>
+      </form>
+      <label className="block text-sm">
+        Importar histórico JSON (Jardim ou Spotify)
+        <input
+          type="file"
+          accept=".json,application/json"
+          disabled={busy}
+          className="block w-full text-xs"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (!file) return;
+            setBusy(true);
+            try {
+              if (file.size > 10_000_000) throw Error();
+              const raw: unknown = JSON.parse(await file.text());
+              if (
+                Array.isArray(raw) &&
+                raw.some((r) => r && typeof r === 'object' && ('ts' in r || 'endTime' in r))
+              ) {
+                const result = await importSpotify(raw);
+                setStatus(
+                  result.added +
+                    ' novas escutas · ' +
+                    result.duplicates +
+                    ' duplicadas · ' +
+                    result.skipped +
+                    ' ignoradas.',
+                );
+              } else {
+                const count = await importListening(raw);
+                setStatus(count + ' registros processados.');
+              }
+            } catch {
+              setStatus('Arquivo inválido ou grande demais.');
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      </label>
+      {status && (
+        <p role="status" className="text-sm">
+          {status}
+        </p>
+      )}
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={enrich} onChange={(e) => setEnrich(e.target.checked)} />{' '}
+          Cruzar contexto local (humor e Lua)
+        </label>
+        {enrich && (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Humor: último check-in até {settings.moodHours} horas antes da escuta. Lua: posição
+              tropical calculada no instante. Nenhum dado é enviado ou gravado pelo cruzamento.
+            </p>
+            <label className="block text-sm">
+              Hemisfério para estação meteorológica
+              <select
+                className="block w-full rounded-lg border border-border bg-background p-2 text-base"
+                value={hemisphere}
+                onChange={(e) =>
+                  updateInsights({ ...settings, hemisphere: e.target.value as typeof hemisphere })
+                }
+              >
+                <option value="">Desconhecido</option>
+                <option value="south">Sul</option>
+                <option value="north">Norte</option>
+              </select>
+            </label>
+          </>
+        )}
+        <LayoutEditToggle />
+        <LayoutSortable
+          order={settings.order.filter((id) => settings.sections[id])}
+          onChange={(next) => {
+            try {
+              const visible = new Set(next);
+              let i = 0;
+              updateInsights({
+                ...settings,
+                order: settings.order.map((id) => (visible.has(id) ? next[i++] : id)),
+              });
+            } catch {
+              setStatus('Não foi possível salvar o layout.');
+            }
+          }}
+        >
+          {settings.order
+            .filter((id) => settings.sections[id])
+            .map((id) => (
+              <LayoutItem key={id} id={id} label={id} enabled={editing}>
+                {
+                  {
+                    metadata: (
+                      <MusicMetadata
+                        title={title}
+                        artist={artist}
+                        onSelect={(t, a) => {
+                          setTitle(t);
+                          setArtist(a);
+                        }}
+                      />
+                    ),
+                    atlas: <MusicAtlas enabled={atlasEnabled} onEnabled={setAtlasEnabled} />,
+                    atmosphere: <MusicAtmosphere onApply={setAtmosphere} />,
+                    helios: (
+                      <MusicHelios
+                        rows={contextualRows}
+                        periods={atlasEnabled && settings.sections.atlas ? (periods ?? []) : []}
+                      />
+                    ),
+                    sophia: <MusicSophia rows={contextualRows} />,
+                    discoveries: <MusicDiscoveries rows={contextualRows} />,
+                    constellations: <MusicConstellations rows={contextualRows} />,
+                    chronos: <MusicChronos rows={contextualRows} />,
+                    explorer: <MusicExplorer rows={contextualRows} />,
+                  }[id]
+                }
+              </LayoutItem>
+            ))}
+        </LayoutSortable>
+      </div>
+      <details>
+        <summary className="text-sm">Histórico local</summary>
+        {(rows ?? []).slice(0, settings.historyLimit).map((row) => (
+          <div
+            key={row.id}
+            className="flex items-center justify-between gap-2 border-b border-border py-2 text-sm"
+          >
+            <span>
+              {row.title} · {row.artist}
+            </span>
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => {
+                void musicDB.listening.delete(row.id).catch(() => setStatus('Falha ao excluir.'));
+              }}
+            >
+              Excluir
+            </Button>
+          </div>
+        ))}
+      </details>
+      <Button
+        variant="outline"
+        type="button"
+        disabled={!rows?.length}
+        onClick={() => {
+          const url = URL.createObjectURL(
+            new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' }),
+          );
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'jardim-listening.json';
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }}
+      >
+        Exportar histórico
+      </Button>
+    </section>
+  );
 }

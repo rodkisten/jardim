@@ -247,56 +247,94 @@ export function Diary() {
             : 'Rascunho disponível offline'}
       </p>
       <fieldset disabled={busy} className="space-y-4">
-<SurfacePanels surface="diary" labels={{title:'Título',notes:'Editor de notas',tags:'Tags',previews:'Links',compression:'Compressão',attachments:'Anexos'}} panels={{title:<label className="block space-y-1 text-sm">
-          Título
-          <Input
-            required
-            maxLength={160}
-            value={draft.title}
-            onChange={(e) => change({ ...snapshot, draft: { ...draft, title: e.target.value } })}
-          />
-        </label>,notes:<MediaContext.Provider value={attachments}>
-          <PublicationNotes
-            notes={snapshot.notes ?? []}
-            onChange={(notes) => {
-              const latest = current.current;
-              if (latest) change({ ...latest, notes, draft: combineNotes(latest.draft, notes) });
-            }}
-          />
-        </MediaContext.Provider>,tags:<label className="block space-y-1 text-sm">
-          Tags
-          <Input
-            value={draft.tags}
-            onChange={(e) => change({ ...snapshot, draft: { ...draft, tags: e.target.value } })}
-          />
-        </label>,previews:<LinkPreviews text={draft.body} />,compression:<div><p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
-          Cole ou arraste arquivos para adicionar à publicação.
-        </p>
-        <CompressionPanel
-          options={options}
-          onChange={setOptions}
-          results={results}
-          progress={progress}
-          onClear={() => setResults([])}
-          attachments={attachments}
-          processing={processing}
-          onRecompress={recompress}
-        /></div>,attachments:<ComposerMedia
-          attachments={attachments}
-          onError={setError}
-          onFiles={importFiles}
-          onRemove={(i) => {
-            const latest = current.current;
-            if (latest) {
-              const id = latest.attachments[i]?.id;
-              if (id && inlineMediaIds(latest.draft.document).has(id)) {
-                setError('Remova primeiro os blocos que utilizam este anexo.');
-                return;
-              }
-              change({ ...latest, attachments: latest.attachments.filter((_, j) => j !== i) });
-            }
+        <SurfacePanels
+          surface="diary"
+          labels={{
+            title: 'Título',
+            notes: 'Editor de notas',
+            tags: 'Tags',
+            previews: 'Links',
+            compression: 'Compressão',
+            attachments: 'Anexos',
           }}
-        />}}/>
+          panels={{
+            title: (
+              <label className="block space-y-1 text-sm">
+                Título
+                <Input
+                  required
+                  maxLength={160}
+                  value={draft.title}
+                  onChange={(e) =>
+                    change({ ...snapshot, draft: { ...draft, title: e.target.value } })
+                  }
+                />
+              </label>
+            ),
+            notes: (
+              <MediaContext.Provider value={attachments}>
+                <PublicationNotes
+                  notes={snapshot.notes ?? []}
+                  onChange={(notes) => {
+                    const latest = current.current;
+                    if (latest)
+                      change({ ...latest, notes, draft: combineNotes(latest.draft, notes) });
+                  }}
+                />
+              </MediaContext.Provider>
+            ),
+            tags: (
+              <label className="block space-y-1 text-sm">
+                Tags
+                <Input
+                  value={draft.tags}
+                  onChange={(e) =>
+                    change({ ...snapshot, draft: { ...draft, tags: e.target.value } })
+                  }
+                />
+              </label>
+            ),
+            previews: <LinkPreviews text={draft.body} />,
+            compression: (
+              <div>
+                <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
+                  Cole ou arraste arquivos para adicionar à publicação.
+                </p>
+                <CompressionPanel
+                  options={options}
+                  onChange={setOptions}
+                  results={results}
+                  progress={progress}
+                  onClear={() => setResults([])}
+                  attachments={attachments}
+                  processing={processing}
+                  onRecompress={recompress}
+                />
+              </div>
+            ),
+            attachments: (
+              <ComposerMedia
+                attachments={attachments}
+                onError={setError}
+                onFiles={importFiles}
+                onRemove={(i) => {
+                  const latest = current.current;
+                  if (latest) {
+                    const id = latest.attachments[i]?.id;
+                    if (id && inlineMediaIds(latest.draft.document).has(id)) {
+                      setError('Remova primeiro os blocos que utilizam este anexo.');
+                      return;
+                    }
+                    change({
+                      ...latest,
+                      attachments: latest.attachments.filter((_, j) => j !== i),
+                    });
+                  }
+                }}
+              />
+            ),
+          }}
+        />
       </fieldset>
       {storageError && (
         <Button type="button" variant="outline" onClick={() => change(snapshot)}>

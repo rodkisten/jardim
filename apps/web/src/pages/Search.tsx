@@ -8,7 +8,7 @@ import { useMemories } from '../hooks/useMemories';
 import { MemoryList } from '../components/MemoryList';
 const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 export function SearchMemories() {
-  const preferences=useModules();
+  const preferences = useModules();
   const state = useMemories(),
     [query, setQuery] = useState('');
   const memories = selectMemories(state.memories, {
@@ -31,7 +31,11 @@ export function SearchMemories() {
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
-      {preferences.oracle&&<SemanticSearch items={state.memories.map(m=>({id:m.id,title:m.title,body:m.body}))}/>}
+      {preferences.oracle && (
+        <SemanticSearch
+          items={state.memories.map((m) => ({ id: m.id, title: m.title, body: m.body }))}
+        />
+      )}
       <MemoryList {...state} memories={memories} />
     </div>
   );

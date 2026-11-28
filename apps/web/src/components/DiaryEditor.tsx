@@ -277,8 +277,21 @@ export function DiaryEditor({
           </div>
         )}
       </div>
-      {preferences.richCards && pendingLink && <div className="flex items-center gap-2 border-t border-border p-2 text-xs"><span className="min-w-0 flex-1 truncate">Link reconhecido: {culturalLink(pendingLink)?.provider}</span><Button type="button" size="sm" variant="ghost" onClick={() => setPendingLink('')}>Fechar</Button></div>}
-      {preferences.richCards && <div className="space-y-2 p-2"><LinkPreviews text={previewText} /></div>}
+      {preferences.richCards && pendingLink && (
+        <div className="flex items-center gap-2 border-t border-border p-2 text-xs">
+          <span className="min-w-0 flex-1 truncate">
+            Link reconhecido: {culturalLink(pendingLink)?.provider}
+          </span>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setPendingLink('')}>
+            Fechar
+          </Button>
+        </div>
+      )}
+      {preferences.richCards && (
+        <div className="space-y-2 p-2">
+          <LinkPreviews text={previewText} />
+        </div>
+      )}
       <div className="flex flex-wrap gap-1 p-2">
         {attachments
           .filter((a) => a.id)

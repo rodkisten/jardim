@@ -1,2 +1,3 @@
 # Local discoveries
+
 Single-pass contextual counts, deduplicated by event ID, excluding references. Each artist or track is compared with the complement of its own events for each known dimension. Minimum 10 entity and 30 complement observations, 5 matching observations on both sides, 1.5 lift and 10 percentage point difference. Rank by absolute difference times square root of entity sample size; cap 100 results. Exploratory heuristic, not statistical significance; repeated listens and multiple comparisons can bias results. No network, persistence or AI. Context opt-in inherited from MusicInsights.

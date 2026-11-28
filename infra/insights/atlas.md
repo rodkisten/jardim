@@ -1,2 +1,3 @@
 # Atlas
+
 Local Dexie place periods, explicit UTC half-open boundaries, IANA timezone validation, overlap rejection in a transaction, optional coordinates, edit/delete. Session opt-in derives local date/hour for imported events without recorded timezone; original events untouched. Chronos counts Atlas-derived timezone as assumed. No automatic location collection or network requests. Coordinates are not yet connected to weather or solar calculations. No cloud sync. Export/reset integration pending.

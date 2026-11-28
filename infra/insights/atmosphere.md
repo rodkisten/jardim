@@ -1,2 +1,3 @@
 # Atmosphere
+
 Explicit user-selected coordinates and UTC date range, up to 31 days. Round coordinates to 0.1 degree before cache or request. Open-Meteo archive hourly estimates, UTC join by event instant. Cache in separate Dexie database with 30-day reuse and explicit clear; no automatic deletion. One active session snapshot, manual weather wins, no writes to listening events. No automatic geolocation, no music or mood sent. Historical data availability, browser CORS, service terms and attribution must be validated before production. Temperature/cloud/rain cached but only categorical weather used in current analytics. No solar calculations yet.

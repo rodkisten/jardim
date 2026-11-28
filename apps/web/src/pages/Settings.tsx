@@ -9,7 +9,24 @@ import { Link } from '@tanstack/react-router';
 export function SettingsPage() {
   return (
     <section className="space-y-4">
-      <Card><CardContent className="space-y-3"><h2 className="font-semibold">Layout Studio</h2><p className="text-sm text-muted-foreground">Ative a edição compartilhada entre Home e Insights. A ordem é salva ao soltar.</p><LayoutEditToggle/><div className="flex flex-wrap gap-3 text-sm"><Link to="/" className="text-primary">Home</Link><Link to="/insights" className="text-primary">Insights</Link></div></CardContent></Card><ModuleSettings />
+      <Card>
+        <CardContent className="space-y-3">
+          <h2 className="font-semibold">Layout Studio</h2>
+          <p className="text-sm text-muted-foreground">
+            Ative a edição compartilhada entre Home e Insights. A ordem é salva ao soltar.
+          </p>
+          <LayoutEditToggle />
+          <div className="flex flex-wrap gap-3 text-sm">
+            <Link to="/" className="text-primary">
+              Home
+            </Link>
+            <Link to="/insights" className="text-primary">
+              Insights
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+      <ModuleSettings />
       <InsightSettingsPanel />
       <ThemePicker />
       <OfflineSettings />
