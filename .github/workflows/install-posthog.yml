@@ -1,17 +1,16 @@
 name: Install PostHog dependencies
 on:
-  pull_request:
-    types: [synchronize]
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
   install:
-    if: github.head_ref == 'feat/cultural-insights-foundation' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.ref_name == 'feat/cultural-insights-foundation'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.ref_name }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
