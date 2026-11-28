@@ -61,6 +61,7 @@ const schema = z.object({
       }
     })
     .default(''),
+  sentioAutomatic: z.boolean().default(false),
   sophiaModel: z.enum(['advanced', 'fast']).default('advanced'),
   sophiaAI: z.boolean().default(true),
   sophiaLimit: z.number().int().min(1).max(100).default(20),
@@ -120,6 +121,7 @@ export function importInsightSettings(raw: unknown) {
 export function resetInsights() {
   updateInsights(defaults);
 }
+export function getInsightSettings() { return current; }
 export function useInsightSettings() {
   return useSyncExternalStore(
     subscribe,
