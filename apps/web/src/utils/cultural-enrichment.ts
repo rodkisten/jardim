@@ -49,7 +49,8 @@ export async function enrichNext(providers: readonly CulturalProvider[], signal:
     const timeout = AbortSignal.timeout(60_000);
     const requestSignal = AbortSignal.any([signal, timeout]);
     let enriched: CulturalWork = work;
-    for (const provider of applicable) {
+    for (const provider of providers) {
+      if (!provider.supports(enriched)) continue;
       requestSignal.throwIfAborted();
       const patch = await provider.enrich(enriched, requestSignal);
       enriched = {
